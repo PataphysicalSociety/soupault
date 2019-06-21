@@ -1,0 +1,30 @@
+opam-version: "2.0"
+name: "soupault"
+version: "0.1"
+synopsis: "Static website generator based on HTML rewriting"
+description: """
+A templateless website generator that allows you to store metadata
+inside HTML and retrieve it using arbitrary selectors.
+Includes built-in widgets for setting page title, generating
+breadcrumbs and page ToC, deleting elements, including a file or output of a program
+into the page and a few others.
+"""
+maintainer: "Daniil Baturin <daniil@baturin.org>"
+authors: "Daniil Baturin <daniil@baturin.org>"
+license: "MIT"
+homepage: "https://github.com/dmbaturin/soupault"
+bug-reports: "https://github.com/dmbaturin/soupault/issues"
+dev-repo: "git+https://github.com/dmbaturin/soupalt"
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name]
+]
+depends: [
+  "ocamlfind" {build}
+  "dune" {build & >= "1.4.0"}
+  "lambdasoup"
+  "toml"
+  "fileutils"
+  "logs"
+  "ppx_monadic"
+]

@@ -1,4 +1,5 @@
 (executable
  (name soupault)
+ (public_name soupault)
  (libraries lambdasoup toml fileutils logs logs.fmt)
  (preprocess (pps ppx_monadic)))
