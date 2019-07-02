@@ -106,16 +106,15 @@ let _process_page settings env target_dir page_file =
    
  *)
 let rec process_dir settings env base_src_dir base_dst_dir dirname =
-    let src_path = base_src_dir +/ dirname in
-    let dst_path = base_dst_dir +/ dirname in
-    let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
-    let nav_path = if dirname <> "" then dirname :: env.nav_path else env.nav_path in
-    let env = {env with nav_path = nav_path} in
-    let pages = list_page_files src_path in
-    let dirs = List.map (FP.basename) (list_dirs src_path) in
-    let () = List.iter (_process_page settings env dst_path) pages;
-             ignore @@ List.iter (process_dir settings env src_path dst_path) dirs
-    in ()
+  let src_path = base_src_dir +/ dirname in
+  let dst_path = base_dst_dir +/ dirname in
+  let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
+  let nav_path = if dirname <> "" then dirname :: env.nav_path else env.nav_path in
+  let env = {env with nav_path = nav_path} in
+  let pages = list_page_files src_path in
+  let dirs = List.map (FP.basename) (list_dirs src_path) in
+  List.iter (_process_page settings env dst_path) pages;
+  ignore @@ List.iter (process_dir settings env src_path dst_path) dirs
 
 let initialize () =
   let settings = Defaults.default_settings in
