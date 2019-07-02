@@ -3,26 +3,20 @@ open Defaults
 module FU = FileUtil
 module FP = FilePath
 
-let (+/) left right =
-    FP.concat left right
-
-(* Yet another error monad *)
-let bind r f =
-  match r with
-    Ok r -> f r
-  | Error _ as err -> err
-
-let return x = Ok x
+(* Result monad *)
+let bind = CCResult.(>>=)
+let return = CCResult.return
 
 (* Logging setup *)
-
-
 let setup_logging verbose =
   let level = if verbose then Logs.Info else Logs.Warning in
   Logs.set_level (Some level);
   Logs.set_reporter (Logs_fmt.reporter ())
 
 (* Filesystem stuff *)
+let (+/) left right =
+    FP.concat left right
+
 let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 

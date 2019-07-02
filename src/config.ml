@@ -1,5 +1,6 @@
 open Defaults
-open Utils
+
+let default d o = CCOpt.get_or ~default:d o
 
 (* List all keys of a TOML table
    This is used to retrieve a list of widgets to call
