@@ -2,6 +2,9 @@ open Defaults
 
 let default d o = CCOpt.get_or ~default:d o
 
+(* Option monad *)
+let (>>=) = CCOpt.(>>=)
+
 (* List all keys of a TOML table
    This is used to retrieve a list of widgets to call
  *)
@@ -17,6 +20,11 @@ let read_config path =
   with
   | Sys_error err -> Error (Printf.sprintf "Could not read config file %s" err)
   | Toml.Parser.Error (err, _) -> Error (Printf.sprintf "Could not parse config file %s: %s" path err)
+
+let get_table name config = TomlLenses.(get config (key name |-- table))
+
+let get_string k tbl = TomlLenses.(get tbl (key k |-- string))
+let get_string_default default_value k tbl = get_string k tbl |> default default_value
 
 (* Update global settings with values from the config, if there are any *)
 let update_settings settings config =
@@ -39,3 +47,12 @@ let update_settings settings config =
        content_selector = content_selector
      }
 
+(* Get a widget config *)
+let get_widget_config config widget =
+  let widget_tbl = get_table Defaults.widgets_table config >>= get_table widget in
+  match widget_tbl with
+  | Some widget_tbl -> widget_tbl
+  | None ->
+    (* This function is, or should be used only with widget names already
+       retrieved from the config *)
+   failwith @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget;

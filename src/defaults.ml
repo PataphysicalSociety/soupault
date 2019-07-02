@@ -16,6 +16,7 @@ type env = {
 }
 
 let config_file = "soupault.conf"
+let widgets_table = "widgets"
 
 let default_settings = {
   verbose = false;
