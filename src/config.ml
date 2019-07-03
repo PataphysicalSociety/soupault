@@ -25,6 +25,14 @@ let get_table name config = TomlLenses.(get config (key name |-- table))
 
 let get_string k tbl = TomlLenses.(get tbl (key k |-- string))
 let get_string_default default_value k tbl = get_string k tbl |> default default_value
+let get_string_result err k tbl = get_string k tbl |> CCOpt.to_result err
+
+let get_bool k tbl = TomlLenses.(get tbl (key k |-- bool))
+let get_bool_default default_value k tbl = get_bool k tbl |> default default_value
+let get_bool_result err k tbl = get_bool k tbl |> CCOpt.to_result err
+
+
+
 
 (* Update global settings with values from the config, if there are any *)
 let update_settings settings config =

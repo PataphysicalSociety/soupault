@@ -12,7 +12,8 @@ type settings = {
 
 type env = {
   template : string;
-  nav_path : string list
+  nav_path : string list;
+  page_file : string
 }
 
 let config_file = "soupault.conf"

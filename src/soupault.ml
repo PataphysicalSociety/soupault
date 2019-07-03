@@ -79,36 +79,39 @@ let include_content selector html page_file =
     end
   | Error _ as e -> e
 
-let rec process_widgets strict ws config soup =
+(* Widget processing *)
+let rec process_widgets env strict ws config soup =
   match ws with
   | [] -> Ok ()
   | w :: ws' ->
     begin
       let open Widgets in
-      let res = w.func w.config soup in
+      let res = w.func env w.config soup in
       (* In non-strict mode, widget processing errors are tolerated *)
       match res, strict with
-      | Ok _, _ -> process_widgets strict ws' config soup
+      | Ok _, _ -> process_widgets env strict ws' config soup
       | Error _ as err, true -> err
       | Error msg, false ->
         let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" w.name msg in
-        process_widgets strict ws' config soup
+        process_widgets env strict ws' config soup
     end
 
-let process_page widgets config settings env target_dir page_file =
+let process_page env widgets config settings target_dir page_file =
   let page_name = FP.basename page_file |> FP.chop_extension in
   let%m target_dir = make_page_dir settings target_dir page_name in
   let%m target_file = Ok (target_dir +/ settings.index_file) in
   let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
   let html = Soup.parse env.template in
   let%m () = include_content settings.content_selector html page_file in
-  let%m () = process_widgets settings.strict widgets config html in
+  let%m () = process_widgets env settings.strict widgets config html in
   let%m () = save_html html target_file in
   Ok page_file
 
 (* Monad escape... for now *)
-let _process_page widgets config settings env target_dir page_file =
-    let res = process_page widgets config settings env target_dir page_file in
+let _process_page env widgets config settings target_dir page_file =
+    (* Make the page file name accessible to widgets *)
+    let env = {env with page_file=page_file} in
+    let res = process_page env widgets config settings target_dir page_file in
     match res with
       Ok _ -> ()
     | Error e -> Logs.warn @@ fun m -> m "Error processing page %s: %s" page_file e
@@ -116,7 +119,7 @@ let _process_page widgets config settings env target_dir page_file =
 (* Process the source directory recursively
    
  *)
-let rec process_dir widgets config settings env base_src_dir base_dst_dir dirname =
+let rec process_dir env widgets config settings base_src_dir base_dst_dir dirname =
   let src_path = base_src_dir +/ dirname in
   let dst_path = base_dst_dir +/ dirname in
   let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
@@ -124,8 +127,8 @@ let rec process_dir widgets config settings env base_src_dir base_dst_dir dirnam
   let env = {env with nav_path = nav_path} in
   let pages = list_page_files src_path in
   let dirs = List.map (FP.basename) (list_dirs src_path) in
-  List.iter (_process_page widgets config settings env dst_path) pages;
-  ignore @@ List.iter (process_dir widgets config settings env src_path dst_path) dirs
+  List.iter (_process_page env widgets config settings dst_path) pages;
+  ignore @@ List.iter (process_dir env widgets config settings src_path dst_path) dirs
 
 let initialize () =
   let settings = Defaults.default_settings in
@@ -133,14 +136,15 @@ let initialize () =
   let settings = Config.update_settings settings config in
   let%m widgets = Widgets.load_widgets config in
   let%m default_template = get_template settings.default_template settings.content_selector in
-  let default_env = {template=default_template; nav_path=[]} in
+  let default_env = {template=default_template; nav_path=[]; page_file=""} in
   Ok (config, widgets, settings, default_env)
   
 let main () =
+  let () = Unix.getcwd () |> print_endline in
   let%m config, widgets, settings, default_env = initialize () in
   let () = setup_logging settings.verbose in
   let%m () = make_build_dir settings.build_dir in
-  let%m () = Ok (process_dir widgets config settings default_env settings.site_dir settings.build_dir "") in
+  let%m () = Ok (process_dir default_env widgets config settings settings.site_dir settings.build_dir "") in
   return ()
 
 let () =

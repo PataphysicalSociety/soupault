@@ -1,8 +1,63 @@
-(* Option monad *)
+open Defaults
+
+(* Let Option monad be the default monad *)
 let (>>=) = CCOpt.(>>=)
 
-(* Built-in widgets *)
-let set_title config soup =
+
+(* Generic widgets *)
+
+let include_file _ config soup =
+  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  match selector with
+  | Error _ as e -> e
+  | Ok selector ->
+    let container = Soup.select_one selector soup in
+    let bind = CCResult.(>>=) in
+    begin
+      match container with
+      | None -> Ok ()
+      | Some container ->
+        let%m file = Config.get_string_result "Missing required option \"file\"" "file" config in
+        let parse_content = Config.get_bool_default true "parse" config in
+        let%m content = Utils.get_file_content file in
+        let () =
+          if parse_content then Soup.append_child container (Soup.parse content)
+          else Soup.append_child container (Soup.create_text content)
+        in Ok ()
+    end
+
+(* External program output inclusion *)
+
+let make_program_env env =
+  let make_var l r = Printf.sprintf "%s=%s" l r in
+  let page_file = make_var "PAGE_FILE" env.page_file in
+  [| page_file |]
+
+let include_program_output env config soup =
+  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  match selector with
+  | Error _ as e -> e
+  | Ok selector ->
+    let container = Soup.select_one selector soup in
+    let bind = CCResult.(>>=) in
+    begin
+      match container with
+      | None -> Ok ()
+      | Some container ->
+        let env_array = make_program_env env in
+        let parse_content = Config.get_bool_default true "parse" config in
+        let%m cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
+        let%m content = Utils.get_program_output cmd env_array in
+        let () =
+          if parse_content then Soup.append_child container (Soup.parse content)
+          else Soup.append_child container (Soup.create_text content)
+        in Ok ()
+    end
+
+
+(* High level widgets *)
+
+let set_title _ config soup =
   (* Retrieve config options. The "selector" option means title source element, by default the first <h1> *)
   let selector = Config.get_string_default "h1" "selector" config in
   let prepend = Config.get_string_default "" "prepend" config in
@@ -25,5 +80,11 @@ let set_title config soup =
     let () = Soup.replace title_node new_title_node in
     Ok ()
 
+
+
 (* This should better be a Map *)
-let widgets = [("title", set_title)]
+let widgets = [
+  ("include", include_file);
+  ("exec", include_program_output);
+  ("title", set_title)
+]
