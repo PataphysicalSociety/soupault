@@ -46,13 +46,3 @@ let update_settings settings config =
        build_dir = build_dir;
        content_selector = content_selector
      }
-
-(* Get a widget config *)
-let get_widget_config config widget =
-  let widget_tbl = get_table Defaults.widgets_table config >>= get_table widget in
-  match widget_tbl with
-  | Some widget_tbl -> widget_tbl
-  | None ->
-    (* This function is, or should be used only with widget names already
-       retrieved from the config *)
-   failwith @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget;

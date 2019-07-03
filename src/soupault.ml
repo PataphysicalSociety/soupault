@@ -79,35 +79,20 @@ let include_content selector html page_file =
     end
   | Error _ as e -> e
 
-(* Widget processing *)
-let list_widgets config =
-  let (>>=) = CCOpt.(>>=) in
-  let ws = Config.get_table Defaults.widgets_table config >>= (fun x -> Some (Config.list_config_keys x)) in
-  match ws with
-  | None -> []
-  | Some ws' -> ws'
-
 let rec process_widgets strict ws config soup =
   match ws with
   | [] -> Ok ()
   | w :: ws' ->
-    let widget_config = Config.get_widget_config config w in
-    let widget = Widgets.find_widget w in
-    let widget_name = w in
     begin
-      match widget with
-      | Some w ->
-        let res = w widget_config soup in
-        begin
-          (* In non-strict mode, widget processing errors are tolerated *)
-          match res, strict with
-          | Ok _, _ -> process_widgets strict ws' config soup
-          | Error _ as err, true -> err
-          | Error msg, false ->
-            let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" widget_name msg in
-            process_widgets strict ws' config soup
-        end
-      | None -> Error (Printf.sprintf "Invalid widget \"%s\"" widget_name)
+      let open Widgets in
+      let res = w.func w.config soup in
+      (* In non-strict mode, widget processing errors are tolerated *)
+      match res, strict with
+      | Ok _, _ -> process_widgets strict ws' config soup
+      | Error _ as err, true -> err
+      | Error msg, false ->
+        let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" w.name msg in
+        process_widgets strict ws' config soup
     end
 
 let process_page widgets config settings env target_dir page_file =
@@ -146,7 +131,7 @@ let initialize () =
   let settings = Defaults.default_settings in
   let%m config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
-  let widgets = list_widgets config in
+  let%m widgets = Widgets.load_widgets config in
   let%m default_template = get_template settings.default_template settings.content_selector in
   let default_env = {template=default_template; nav_path=[]} in
   Ok (config, widgets, settings, default_env)
