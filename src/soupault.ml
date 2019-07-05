@@ -120,6 +120,7 @@ let _process_page env widgets config settings target_dir page_file =
    
  *)
 let rec process_dir env widgets config settings base_src_dir base_dst_dir dirname =
+  print_endline dirname;
   let src_path = base_src_dir +/ dirname in
   let dst_path = base_dst_dir +/ dirname in
   let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
@@ -135,7 +136,9 @@ let initialize () =
   let%m config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
   let%m widgets = Widgets.load_widgets config in
-  let%m default_template = get_template settings.default_template settings.content_selector in
+  let template_file = Config.get_string_default settings.default_template "default_template" config in
+  let content_selector = Config.get_string_default settings.content_selector "content_selector" config in
+  let%m default_template = get_template template_file content_selector in
   let default_env = {template=default_template; nav_path=[]; page_file=""} in
   Ok (config, widgets, settings, default_env)
   
