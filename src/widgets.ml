@@ -59,3 +59,36 @@ let load_widgets config =
   let ws = List.rev ws in
   try Ok (_load_widgets config ws)
   with Failure msg -> Error msg
+
+(** Check if a widget should run or not.
+
+    There are two options for it: page= and section=
+    They are paths relative to the $site_dir, e.g.
+    page = "articles/theorems-for-free.html"
+
+    If both are present, then page path is checked first,
+    if it doesn't match, then the section path is checked.
+
+    If an option is absent, it means the widget doesn't need
+    that condition to run. If both options are absent,
+    the widget will run on all pages.
+ *)
+let should_widget_run config site_dir page_file =
+  let page_matches conf_path actual_path =
+    let conf_path = FilePath.concat site_dir conf_path in
+    (=) conf_path actual_path
+  in
+  let section_matches conf_path actual_path =
+     let conf_path = FilePath.concat site_dir conf_path in
+     let page_dir = FilePath.dirname actual_path in
+     FilePath.is_subdir conf_path page_dir
+  in
+  let page = Config.get_string "page" config in
+  let section = Config.get_string "section" config in
+  match page, section with
+  | None, None -> true
+  | Some p, None -> page_matches p page_file
+  | None, Some s -> section_matches s page_file
+  | Some p, Some s ->
+    if page_matches p page_file then true
+    else section_matches s page_file
