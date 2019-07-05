@@ -47,7 +47,7 @@ let rec _load_widgets config ws =
           match widget_func with
           | None -> failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w n)
           | Some wf ->
-            let widget_rec = {name=n; config=widget_config; func=wf} in
+            let widget_rec = {name=w; config=widget_config; func=wf} in
             widget_rec :: (_load_widgets config ws')
         end
     end
@@ -56,7 +56,6 @@ let rec _load_widgets config ws =
 let load_widgets config =
   let ws = list_widgets config in
   (* Keep widget order the same as in the config *)
-  let ws = List.rev ws in
   try Ok (_load_widgets config ws)
   with Failure msg -> Error msg
 
@@ -73,7 +72,7 @@ let load_widgets config =
     that condition to run. If both options are absent,
     the widget will run on all pages.
  *)
-let should_widget_run config site_dir page_file =
+let widget_should_run config site_dir page_file =
   let page_matches conf_path actual_path =
     let conf_path = FilePath.concat site_dir conf_path in
     (=) conf_path actual_path

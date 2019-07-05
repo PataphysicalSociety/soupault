@@ -80,38 +80,41 @@ let include_content selector html page_file =
   | Error _ as e -> e
 
 (* Widget processing *)
-let rec process_widgets env strict ws config soup =
+let rec process_widgets settings env ws config soup =
   match ws with
   | [] -> Ok ()
   | w :: ws' ->
     begin
       let open Widgets in
+      if not (widget_should_run w.config settings.site_dir env.page_file)
+      then (process_widgets settings env ws' config soup) else
+      let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w.name env.page_file in
       let res = w.func env w.config soup in
       (* In non-strict mode, widget processing errors are tolerated *)
-      match res, strict with
-      | Ok _, _ -> process_widgets env strict ws' config soup
+      match res, settings.strict with
+      | Ok _, _ -> process_widgets settings env ws' config soup
       | Error _ as err, true -> err
       | Error msg, false ->
         let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" w.name msg in
-        process_widgets env strict ws' config soup
+        process_widgets settings env ws' config soup
     end
 
-let process_page env widgets config settings target_dir page_file =
-  let page_name = FP.basename page_file |> FP.chop_extension in
+let process_page env widgets config settings target_dir =
+  let page_name = FP.basename env.page_file |> FP.chop_extension in
   let%m target_dir = make_page_dir settings target_dir page_name in
   let%m target_file = Ok (target_dir +/ settings.index_file) in
-  let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
+  let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let html = Soup.parse env.template in
-  let%m () = include_content settings.content_selector html page_file in
-  let%m () = process_widgets env settings.strict widgets config html in
+  let%m () = include_content settings.content_selector html env.page_file in
+  let%m () = process_widgets settings env widgets config html in
   let%m () = save_html html target_file in
-  Ok page_file
+  Ok env.page_file
 
 (* Monad escape... for now *)
 let _process_page env widgets config settings target_dir page_file =
     (* Make the page file name accessible to widgets *)
     let env = {env with page_file=page_file} in
-    let res = process_page env widgets config settings target_dir page_file in
+    let res = process_page env widgets config settings target_dir in
     match res with
       Ok _ -> ()
     | Error e -> Logs.warn @@ fun m -> m "Error processing page %s: %s" page_file e
@@ -120,7 +123,6 @@ let _process_page env widgets config settings target_dir page_file =
    
  *)
 let rec process_dir env widgets config settings base_src_dir base_dst_dir dirname =
-  print_endline dirname;
   let src_path = base_src_dir +/ dirname in
   let dst_path = base_dst_dir +/ dirname in
   let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
@@ -143,7 +145,6 @@ let initialize () =
   Ok (config, widgets, settings, default_env)
   
 let main () =
-  let () = Unix.getcwd () |> print_endline in
   let%m config, widgets, settings, default_env = initialize () in
   let () = setup_logging settings.verbose in
   let%m () = make_build_dir settings.build_dir in
