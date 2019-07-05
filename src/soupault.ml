@@ -47,8 +47,16 @@ let load_html file =
   try Ok (Soup.read_file file |> Soup.parse)
   with Sys_error e -> Error e
 
-let save_html soup file =
-  try Ok (Soup.pretty_print soup |> Soup.write_file file)
+let save_html settings soup file =
+  try
+    let html_str = Soup.pretty_print soup in
+    let chan = open_out file in
+    (* lambdasoup doesn't include the doctype even if it was present
+       in the source, so we have to do it ourselves *)
+    settings.doctype |> String.trim |> Printf.fprintf chan "%s\n";
+    Soup.write_channel chan html_str;
+    close_out chan;
+    Ok ()
   with Sys_error e -> Error e
 
 (* Feels wrong to mix the two, this probably should be split into separate functions
@@ -107,7 +115,7 @@ let process_page env widgets config settings target_dir =
   let html = Soup.parse env.template in
   let%m () = include_content settings.content_selector html env.page_file in
   let%m () = process_widgets settings env widgets config html in
-  let%m () = save_html html target_file in
+  let%m () = save_html settings html target_file in
   Ok env.page_file
 
 (* Monad escape... for now *)

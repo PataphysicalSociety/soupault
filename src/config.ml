@@ -48,10 +48,12 @@ let update_settings settings config =
     let site_dir = TomlLenses.(get st (key "site_dir" |-- string)) |> default settings.site_dir in
     let build_dir = TomlLenses.(get st (key "build_dir" |-- string)) |> default settings.build_dir in
     let content_selector = TomlLenses.(get st (key "content_selector" |-- string)) |> default settings.content_selector in
+    let doctype = TomlLenses.(get st (key "doctype" |-- string)) |> default settings.doctype in
     {settings with
        verbose = verbose;
        strict = strict;
        site_dir = site_dir;
        build_dir = build_dir;
-       content_selector = content_selector
+       content_selector = content_selector;
+       doctype = doctype
      }
