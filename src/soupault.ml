@@ -104,10 +104,25 @@ let rec process_widgets settings env ws config soup =
         process_widgets settings env ws' config soup
     end
 
+(** Removes index page's parent dir from its navigation path
+
+    When clean URLs are used, the "navigation path" as in the path
+    before the page doesn'a match the "real" path for index pages,
+    and if you try to use it for breadcrumbs for example,
+    section index pages will have links to themselves,
+    since the parent of foo/bar/index.html is technically "bar".
+    The only way to deal with it I could find is to remove the
+    last parent if the page is an index page.
+ *)
+let fix_nav_path settings path page_name =
+  if page_name = settings.index_page then Utils.safe_tl path
+  else path
+
 let process_page env widgets config settings target_dir =
   let page_name = FP.basename env.page_file |> FP.chop_extension in
   let%m target_dir = make_page_dir settings target_dir page_name in
   let%m target_file = Ok (target_dir +/ settings.index_file) in
+  let env = {env with nav_path = (fix_nav_path settings env.nav_path page_name)} in
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let html = Soup.parse env.template in
   let%m () = include_content settings.content_selector html env.page_file in

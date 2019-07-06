@@ -13,9 +13,15 @@ let get_program_output command env_array =
   | Unix.WEXITED 0 -> Ok output
   | _ -> Error (Printf.sprintf "Failed to execute \"%s\": %s" command err)
 
+(** Exception-safe list tail function that assumes that empty list's
+    tail is an empty list. Used for breadcrumbs. *)
+let safe_tl xs =
+    match xs with
+    | [] -> []
+    | _ :: xs' -> xs'
+
 (** Just prints a hardcoded program version *)
 let print_version () =
   print_endline "soupault 0.9";
   print_endline "Copyright 2019 Daniil Baturin, licensed under MIT";
   print_endline "Visit https://baturin.org/projects/soupault for documentation"
-
