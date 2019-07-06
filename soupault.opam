@@ -20,7 +20,6 @@ build: [
   ["dune" "build" "-p" name]
 ]
 depends: [
-  "ocamlfind" {build}
   "dune" {build & >= "1.4.0"}
   "lambdasoup"
   "toml"
