@@ -7,6 +7,7 @@ type 'a widget = {
 (* Option monad *)
 let (>>=) = CCOpt.(>>=)
 
+
 (* Quick and dirty widget lookup *)
 let find_widget name =
   try
@@ -25,11 +26,11 @@ let get_widget_config config widget =
    failwith @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget
 
 let list_widgets config =
-  let (>>=) = CCOpt.(>>=) in
   let ws = Config.get_table Defaults.widgets_table config >>= (fun x -> Some (Config.list_config_keys x)) in
   match ws with
   | None -> []
   | Some ws' -> ws'
+
 
 (* The real widget loading function *)
 let rec _load_widgets config ws =
@@ -54,10 +55,12 @@ let rec _load_widgets config ws =
 
 (* The monadic wrapping for it *)
 let load_widgets config =
-  let ws = list_widgets config in
-  (* Keep widget order the same as in the config *)
-  try Ok (_load_widgets config ws)
-  with Failure msg -> Error msg
+  match config with
+  | None -> Ok []
+  | Some config ->
+    let ws = list_widgets config in
+    try Ok (_load_widgets config ws)
+    with Failure msg -> Error msg
 
 (** Check if a widget should run or not.
 

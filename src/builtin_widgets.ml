@@ -27,6 +27,27 @@ let insert_html _ config soup =
         in Ok ()
     end
 
+(*
+let is_empty node =
+
+
+let delete_element _ config soup =
+  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let if_empty = Config.get_bool "if_empty" config in
+  match selector with
+  | Error _ as e -> e
+  | Ok selector ->
+    let container = Soup.select_one selector soup in
+    let bind = CCResult.(>>=) in
+    begin
+      match container with
+      | None -> Ok ()
+      | Some container ->
+        let () = Soup.delete_child container (Soup.parse html_str)
+        in Ok ()
+    end
+*)
+
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
 let include_file _ config soup =

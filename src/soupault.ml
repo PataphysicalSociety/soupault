@@ -29,7 +29,6 @@ let make_build_dir build_dir =
     let () = FU.mkdir build_dir in Ok ()
   with FileUtil.MkdirError e -> Error e
 
-
 (** Creates a directory for the page if necessary.
    If the page is the index page of its section, no directory is necessary.
    Otherwise, "site/foo.html" becomes "build/foo/index.html" to provide
@@ -66,16 +65,16 @@ let save_html settings soup file =
    We need a way to exit early if a template is unusable (that is, has no elements
    matching desired selector).
  *)
-let get_template file selector =
-  try
-    let template = Soup.read_file file in
-    let html = Soup.parse template in
-    let element = Soup.select_one selector html in
-    begin
-      match element with
-      | Some _ -> Ok template
-      | None -> Error (Printf.sprintf "Template %s has no element matching selector \"%s\"" file selector)
-    end
+
+let check_template filename template selector =
+  let soup = Soup.parse template in
+  let content_container = Soup.select_one selector soup in
+  match content_container with
+  | None -> Error (Printf.sprintf "Template %s has no element matching selector \"%s\"" filename selector)
+  | Some _ -> Ok ()
+
+let get_template file =
+  try Ok (Soup.read_file file)
   with Sys_error e -> Error e
 
 let include_content selector html page_file =
@@ -144,15 +143,32 @@ let rec process_dir env widgets config settings base_src_dir base_dst_dir dirnam
   List.iter (_process_page env widgets config settings dst_path) pages;
   ignore @@ List.iter (process_dir env widgets config settings src_path dst_path) dirs
 
+(* Option parsing and initialization *)
+
+let get_args settings =
+  let init = ref false in
+  let strict = ref settings.strict in
+  let verbose = ref settings.verbose in
+  let args = [
+    ("--init", Arg.Unit (fun () -> init := true), "Setup basic directory structure");
+    ("--verbose", Arg.Bool (fun v -> verbose := v), "Verbose output");
+    ("--strict", Arg.Bool (fun s -> strict := s), "Stop on page processing errors");
+    ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
+  ]
+  in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
+  let () = Arg.parse args (fun _ -> ()) usage in
+  let settings = {settings with verbose = !verbose; strict = !strict} in
+  if !init then (Project_init.init settings; exit 0) else Ok settings
+
 let initialize () =
   let settings = Defaults.default_settings in
   let%m config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
+  let%m settings = get_args settings in
   let%m widgets = Widgets.load_widgets config in
-  let template_file = Config.get_string_default settings.default_template "default_template" config in
-  let content_selector = Config.get_string_default settings.content_selector "content_selector" config in
-  let%m default_template = get_template template_file content_selector in
-  let default_env = {template=default_template; nav_path=[]; page_file=""} in
+  let%m default_template_str = get_template settings.default_template in
+  let%m () = check_template settings.default_template default_template_str settings.content_selector in
+  let default_env = {template=default_template_str; nav_path=[]; page_file=""} in
   Ok (config, widgets, settings, default_env)
   
 let main () =
