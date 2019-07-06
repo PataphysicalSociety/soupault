@@ -61,11 +61,6 @@ let save_html settings soup file =
     Ok ()
   with Sys_error e -> Error e
 
-(* Feels wrong to mix the two, this probably should be split into separate functions
-   We need a way to exit early if a template is unusable (that is, has no elements
-   matching desired selector).
- *)
-
 let check_template filename template selector =
   let soup = Soup.parse template in
   let content_container = Soup.select_one selector soup in

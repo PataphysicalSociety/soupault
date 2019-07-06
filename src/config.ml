@@ -12,6 +12,8 @@ let list_config_keys table =
     When config doesn't exist, soupault uses default settings,
     so this is considered a normal condition.
 
+    When we cannot even check if it exists or not, however, something is clearly
+    so wrong that there's no point in doing anything else.
     *)
 let config_exists file =
   try
@@ -70,4 +72,3 @@ let update_settings settings config =
   match config with
   | None -> settings
   | Some config -> _update_settings settings config
-
