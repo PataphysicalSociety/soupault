@@ -5,8 +5,30 @@ open Soup.Infix
 let (>>=) = CCOpt.(>>=)
 
 
-(* Generic widgets *)
+(** Generic widgets *)
 
+(** Element insertion and deletion *)
+
+(** Inserts an HTML snippet from the [html] config option
+    into the first element that matches the [selector] *)
+let insert_html _ config soup =
+  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  match selector with
+  | Error _ as e -> e
+  | Ok selector ->
+    let container = Soup.select_one selector soup in
+    let bind = CCResult.(>>=) in
+    begin
+      match container with
+      | None -> Ok ()
+      | Some container ->
+        let%m html_str = Config.get_string_result "Missing required option \"file\"" "html" config in
+        let () = Soup.append_child container (Soup.parse html_str)
+        in Ok ()
+    end
+
+(* Reads a file specified in the [file] config option and inserts its content into the first element
+   that matches the [selector] *)
 let include_file _ config soup =
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   match selector with
@@ -34,6 +56,7 @@ let make_program_env env =
   let page_file = make_var "PAGE_FILE" env.page_file in
   [| page_file |]
 
+(** Runs the [command] and inserts it output into the element that matches that [selector] *)
 let include_program_output env config soup =
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   match selector with
@@ -156,6 +179,7 @@ let add_breadcrumbs env config soup =
 (* This should better be a Map *)
 let widgets = [
   ("include", include_file);
+  ("insert_html", insert_html);
   ("exec", include_program_output);
   ("title", set_title);
   ("breadcrumbs", add_breadcrumbs)
