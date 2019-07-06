@@ -7,45 +7,52 @@ the French dadaist and surrealist poet Philippe Soupault.
 
 In a startup pitch style, it's a website generator for Markdown haters.
 
-# Motivation
+# Overview
 
-There are lots of static website generators around already, and most of them are variations on
+There are lots of static website generators around already, and most of them are variations on a single theme:
 "take a Markdown file, convert to HTML, and feed to a template processor".
 
-In practice, limitations of Markdown make people innvent ad hoc extensions or just mix Markdown with HTML,
-which defeats the purpose of Markdown. The need to store metadata such as page titles leads to Frankenstein
-formats that mix YAML headers with Markdown. That solution can work, but can there be any alternatives?
+Soupault turns this process inside out. It parses an HTML "template", inserts page content into
+an element with a certain selector, and runs the HTML tree through one or more "widgets" (rewriters).
 
-Any webmaster will learn to write HTML eventually, most of the inconvenience of having to close tags etc.
-can be offset with a good editor, and as many client-side scripts and microformats showed, HTML elements
-and attributes can store metadata just fine.
+You can use any CSS3 selector to choose where the widget output is inserted (appended, to be precise)
+and what it should take as its data source.
 
-HTML rewriting can also do things that are hard or impossible to do with templates, such as deleting something
-from a page if needed rather than just adding new content to a template.
+Right now it can:
+* Include files, snippets, and output of external programs
+* Set page title
+* Insert breadcrumbs in nested sections
+* Produce clean URLs for nested sections
 
-If anything, a Markdown/RST/whatever preprocessor can be plugged into the pipeline.
+Soupault is exactly a website generator, not a blog generator. Pages are first class entities,
+and the source directory structure closely mirrors the output structure.
+Every subdirectory of the site dir is a section, its subdirectories are subsections and so on.
+A directory with an `index.html` page is created for every page not named `index` to provide
+clean URLs, e.g. "site/foo/bar.html" turns into "build/foo/bar/index.html" so that it can be accessed
+as `http://example.com/foo/bar`.
 
-# Design goals
+Note that if there's no index page in a section, soupault will not make one for you. Some simple
+autoindexing will be added in the near future.
 
-* Do not use any special syntax other than HTML in templates and page files
-* Make it easy to create arbitrarily nested website structure
-* Provide built-in functionality for common tasks
+You can look into `sample-site/` for a halfway-realistic setup example.
 
-Right now soupault is a prototype and does not provide all that yet.
+# Getting started
 
-# Usage
+You can initialize a basic project with `soupault --init` and build it by running `soupault`
+without arguments.
 
-## Directory structure
+# Directory structure
 
 Website content is stored in a directory referred to as `site_dir`. By default it's `site/`.
 Every subdirectory is a section. Every subdirectory of a subdirectory is a subsection and so on.
 
-Soupault's behaviour and settings are controlled by a config file names `soupault.conf`.
+Page file extensions are not important. Everything is assumed to be an HTML page
+(in the future, there will be support for calling preprocessor based on extensions).
 
-Templates are stored in a directory named `templates/` by convention. They can be stored anywhere,
-but with default configuration soupault will look for `templates/main.html` file to use as a default template.
+Soupault's behaviour and settings are controlled by a config file named `soupault.conf`,
+in the TOML format.
 
-You can fine a real example in the `sample-site` directory here:
+A sample structure:
 
 ```
 sample-site/
@@ -67,36 +74,135 @@ build/
 
 ```
 
-## Creating page templates
-
-Complete pages are created for page skeletons, that is, HTML pages with all container tags left empty.
-Because they are processed by HTML rewriting rather than fed to a template processor, I avoid calling them templates.
-Since there's no template processor, there's no special syntax for elements to be replaced.
-The system simply inserts new HTML content into elements with certain selectors.
-
-This is what the minimum viable page skeleton looks like:
+Templates are stored in a directory named `templates/` by convention. They can be stored anywhere,
+but with default configuration soupault will look for `templates/main.html` file.
+A "template" is simply an HTML file devoid of content. This is the minimum viable template:
 
 ```
 <html>
   <head> </head>
-  <body>
-  </body>
+  <body> </body>
 </html>
 ```
 
-By default, soupault will insert page content into the `<body>` element. You can override it using the
-`content_selector` option in the config. You can use any valid CSS3 selector.
+By default soupault inserts the content into the `<body>` element, but you can use any
+CSS3 selector to choose where it's inserted.
 
-For example, this will make soupault insert the content into the element with `id="content"`:
+# Configuration
+
+The default config is the following:
+
 ```
 [settings]
-  content_selector = "#content"
+  # Stop on page processing errors
+  strict = true
+
+  # Don't output debug info
+  verbose = false
+
+  # Where generated pages go
+  build_dir = "build"
+
+  # Where pages are stores
+  site_dir = "site"
+
+  default_template = "templates/main.html"
+
+  # Where page content is inserted
+  content_selector = "body"
+
+  # DOCTYPE to set for generated pages
+  doctype = "<!DOCTYPE html>"
+
 ```
 
-# TODO
+The `content_selector` option can be any valid CSS3 selector. For example, `content_selector = "#content"`
+will make soupalt insert the page content into the element with `id="content"`.
 
-* Widget dispatch mechanism
-* Built-in widgets (include, exec, title, breadcrumbs, TOC...)
-* Per-section and per-page settings overrides
-* Generated page caching
-* Page preprocessors
+# Widgets
+
+Soupault includes a number of built-in HTML rewriters that we'll call "widgets" for lack of a better word.
+
+Right now the following widgets are supported:
+
+* `include` (includes a file)
+* `insert_html` (inserts HTML snippet from a string)
+* `exec` (inserts stdout of an external pgoram)
+* `title` (sets page title)
+* `breadcrumbs`
+
+Widget configs are stored in subtables of the `[widgets]` table. Subtable names are purely
+informational, widget type is determined by the "widget" option.
+
+Widgets are processed top down, and have access to content generated by previous widgets,
+so you can use output of one widget as an input for another.
+
+```
+# Inserts contents of the first <h1> into <title>
+[widgets.page-title]
+  widget = "title"
+  selector = "h1"
+  default = "My Homepage"
+  append = " on my website"
+  prepend = "Page named "
+
+# Includes a file into <div id="footer">
+[widgets.nav-menu]
+  widget = "include"
+  selector = "div#footer"
+
+  # Path relative to the project dir, not site/
+  file = "includes/footer.html"
+
+# Inserts output of `date -R`
+[widgets.generated-on]
+  widget = "exec"
+  selector = "#generated-on"
+  command = "date -R"
+
+[widgets.tracking-script]
+  widget = "insert_html"
+  selector = "head"
+  html = "<script src=\"/scripts/evil-tracking-script.js\"> </script>"
+
+[widgets.breadcrumbs]
+  widget = "breadcrumbs"
+  selector = "#breadcrumbs"
+  prepend = ".. / "
+  append = " /"
+  between = " / "
+  breadcrumb_template = "<a class=\"nav\"></a>"
+
+```
+
+The `exec` widget passes the page file path in `$PAGE_FILE` environment variable,
+which can be used for "last modified" scripts or custom processors.
+
+## Limiting widgets to specific pages or sections
+
+Widgets can be restricted to a specific page or section with `page` and `section` options.
+Those options require page file and directory names, rather than logical URL paths.
+
+You can use `page = "programming/goto-harmful.html"` or `section = "programming/".
+[Warning: I haven't tested sections yet, page overrides do work]
+
+```
+# News only on the main page
+[widgets.site-news]
+  page = "index.html"
+
+  widget = "include"
+  file = "includes/news.html"
+  selector = "body"
+
+```
+
+# Future plans
+
+* ToC widget
+* Footnotes widget
+* Page content preprocessors
+* Different templates for different sections/pages
+* Incremental builds (?)
+* Taxonomies (?)
+* Dynlinking plugins (if feasible)

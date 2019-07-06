@@ -1,0 +1,3 @@
+#!/bin/sh
+
+git log -n 1 --pretty=format:%ad --date=format:%Y-%m-%d -- $PAGE_FILE
