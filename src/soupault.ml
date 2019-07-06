@@ -30,18 +30,21 @@ let make_build_dir build_dir =
   with FileUtil.MkdirError e -> Error e
 
 
-(* Create a directory for the page if necessary.
+(** Creates a directory for the page if necessary.
    If the page is the index page of its section, no directory is necessary.
    Otherwise, "site/foo.html" becomes "build/foo/index.html" to provide
    a clean URL.
  *)
 let make_page_dir settings target_dir page_name =
-  if page_name = settings.index_page then Ok target_dir
-  else
-    let target_dir = target_dir +/ page_name in
-    try
-      FU.mkdir ~parent:true target_dir; Ok target_dir
-    with FileUtil.MkdirError e -> Error e
+  try
+    (* Note: FileUtil.mkdir returns success if the directory
+       already exists, this is why it's not checked *)
+    let dir_name =
+      if page_name = settings.index_page then target_dir
+      else target_dir +/ page_name
+    in
+    FU.mkdir ~parent:true dir_name; Ok dir_name
+  with FileUtil.MkdirError e -> Error e
 
 let load_html file =
   try Ok (Soup.read_file file |> Soup.parse)
