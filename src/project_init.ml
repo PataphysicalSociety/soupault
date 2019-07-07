@@ -32,21 +32,22 @@ let default_config = "
 
 let init settings  =
   try
+    print_endline "Initializing the project";
     (* Easier to just check from here than to pass another parameter
        around just for a single use in here *)
     if Config.config_exists Defaults.config_file
     then (print_endline "Config file exists, not overwriting it")
-    else Soup.write_file ("soupault.conf") Defaults.config_file;
+    else Soup.write_file Defaults.config_file default_config;
 
     if FileUtil.test (FileUtil.Is_dir) settings.site_dir then
       (print_endline "Site directory already exists. Are you running init in an existing project?";
       exit 1)
-    else FileUtil.mkdir settings.site_dir;
+    else Printf.printf "Creating site directory %s" settings.site_dir; FileUtil.mkdir settings.site_dir;
 
     FU.mkdir settings.site_dir;
     Soup.write_file (FP.concat settings.site_dir settings.index_file) default_page;
 
-    FilePath.dirname settings.default_template |> FU.mkdir ~parent:true;
+    FP.dirname settings.default_template |> FU.mkdir ~parent:true;
     Soup.write_file settings.default_template default_template;
 
     print_endline "Initialized the project directory."
