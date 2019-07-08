@@ -26,13 +26,14 @@ let default_config = "
   verbose = false
 
   build_dir = \"build\"
-
   site_dir = \"site\"
 
   default_template = \"templates/main.html\"
   content_selector = \"body\"
 
   doctype = \"<!DOCTYPE html>\"
+
+  clean_urls = true
 "
 
 let init settings  =

@@ -65,7 +65,8 @@ let _update_settings settings config =
        doctype = get_string_default settings.doctype "doctype" st;
        index_page = get_string_default settings.index_page "index_page" st;
        index_file = get_string_default settings.index_file "index_file" st;
-       default_template = get_string_default settings.default_template "default_template" st
+       default_template = get_string_default settings.default_template "default_template" st;
+       clean_urls = get_bool_default settings.clean_urls "clean_urls" st
      }
 
 let update_settings settings config =

@@ -30,16 +30,21 @@ let make_build_dir build_dir =
   with FileUtil.MkdirError e -> Error e
 
 (** Creates a directory for the page if necessary.
-   If the page is the index page of its section, no directory is necessary.
-   Otherwise, "site/foo.html" becomes "build/foo/index.html" to provide
-   a clean URL.
+
+    If clean URLs are used, then a subdirectory matching the page name
+    is created inside the section directory, unless the page is
+    a section index page.
+    E.g. "site/foo.html" becomes "build/foo/index.html" to provide
+    a clean URL.
+
+    If clean URLs are not used, only section dirs are created.
  *)
 let make_page_dir settings target_dir page_name =
   try
     (* Note: FileUtil.mkdir returns success if the directory
        already exists, this is why it's not checked *)
     let dir_name =
-      if page_name = settings.index_page then target_dir
+      if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
       else target_dir +/ page_name
     in
     FU.mkdir ~parent:true dir_name; Ok dir_name
@@ -120,8 +125,14 @@ let fix_nav_path settings path page_name =
 
 let process_page env widgets config settings target_dir =
   let page_name = FP.basename env.page_file |> FP.chop_extension in
+  (* If clean URLs are used, make_page_dir creates one,
+     if not, just returns the current dir *)
   let%m target_dir = make_page_dir settings target_dir page_name in
-  let%m target_file = Ok (target_dir +/ settings.index_file) in
+  let%m target_file =
+    if settings.clean_urls then Ok (target_dir +/ settings.index_file)
+    (* If clean URLs aren't used, keep the original extension *)
+    else Ok (target_dir +/ (FP.basename env.page_file))
+  in
   let env = {env with nav_path = (fix_nav_path settings env.nav_path page_name)} in
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let html = Soup.parse env.template in

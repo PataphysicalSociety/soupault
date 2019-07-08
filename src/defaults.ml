@@ -25,7 +25,10 @@ type settings = {
   default_template : string;
 
   (** element where page content is inserted in the template *)
-  content_selector : string
+  content_selector : string;
+
+  (** use clean URLs or mirror the site dir structure exactly *)
+  clean_urls : bool
 }
 
 type env = {
@@ -47,5 +50,6 @@ let default_settings = {
   index_page = "index";
   index_file = "index.html";
   default_template = "templates/main.html";
-  content_selector = "body"
+  content_selector = "body";
+  clean_urls = true
 }
