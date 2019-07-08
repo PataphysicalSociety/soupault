@@ -28,4 +28,5 @@ depends: [
   "fmt"
   "ppx_monadic"
   "containers"
+  "stringext"
 ]
