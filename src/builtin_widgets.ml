@@ -27,26 +27,37 @@ let insert_html _ config soup =
         in Ok ()
     end
 
-(*
-let is_empty node =
+(** Checks if a node is empty
 
+    A node is considered empty iff it has no children but whitespace nodes.
+    If a node has no children, it's clearly empty, and if it has more than one,
+    then clearly isn't.
+    The interesting case is one child. Sadly, lambdasoup has no function for checking
+    node type now, so instead we check if its content is empty when converted
+    to a string and stripped of whitespace.
+ *)
+let is_empty node =
+  let open Soup in
+  let children = children node in
+  match (Soup.count children) with
+  | 0 -> true
+  | 1 -> (children |> first |> Utils.unwrap_option |> to_string |> String.trim) = ""
+  | _ -> false
 
 let delete_element _ config soup =
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
-  let if_empty = Config.get_bool "if_empty" config in
+  let when_empty = Config.get_bool_default false "if_empty" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
     let container = Soup.select_one selector soup in
-    let bind = CCResult.(>>=) in
     begin
       match container with
       | None -> Ok ()
       | Some container ->
-        let () = Soup.delete_child container (Soup.parse html_str)
-        in Ok ()
+        if not (is_empty container) && when_empty then Ok ()
+        else Ok (Soup.delete container)
     end
-*)
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
@@ -201,6 +212,7 @@ let add_breadcrumbs env config soup =
 let widgets = [
   ("include", include_file);
   ("insert_html", insert_html);
+  ("delete_element", delete_element);
   ("exec", include_program_output);
   ("title", set_title);
   ("breadcrumbs", add_breadcrumbs)

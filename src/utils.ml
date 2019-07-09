@@ -20,6 +20,11 @@ let safe_tl xs =
     | [] -> []
     | _ :: xs' -> xs'
 
+let unwrap_option o =
+  match o with
+  | Some v -> v
+  | None -> raise (Failure "values of beta will give rise to dom!")
+
 (** Just prints a hardcoded program version *)
 let print_version () =
   print_endline "soupault 0.9";
