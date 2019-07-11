@@ -48,6 +48,26 @@ let get_int k tbl = TomlLenses.(get tbl (key k |-- int))
 let get_int_default default_value k tbl = get_int k tbl |> default default_value
 let get_int_result err k tbl = get_int k tbl |> CCOpt.to_result err
 
+let get_strings k tbl = TomlLenses.(get tbl (key k |-- array |-- strings))
+let get_strings_default default_value k tbl = get_strings k tbl |> default default_value
+let get_strings_result err k tbl = get_strings k tbl |> CCOpt.to_result err
+
+(** Tries to get a string list from a config
+    If there's actually a string list, just return it.
+    If there's a single string, consider it a single item list.
+    If there's nothing like a string at all, return an empty list.
+ *)
+let get_strings_relaxed k tbl =
+  let strs = get_strings k tbl in
+  match strs with
+  | Some strs -> strs
+  | None -> begin
+      let str = get_string k tbl in
+      match str with
+      | Some str -> [str]
+      | None -> []
+    end
+
 (* Update global settings with values from the config, if there are any *)
 let _update_settings settings config =
   let st = get_table Defaults.settings_table config in
