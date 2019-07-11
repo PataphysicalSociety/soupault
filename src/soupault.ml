@@ -90,23 +90,24 @@ let include_content selector html page_file =
   | Error _ as e -> e
 
 (* Widget processing *)
-let rec process_widgets settings env ws config soup =
+let rec process_widgets settings env ws wh config soup =
   match ws with
   | [] -> Ok ()
   | w :: ws' ->
     begin
       let open Widgets in
-      if not (widget_should_run w.config settings.site_dir env.page_file)
-      then (process_widgets settings env ws' config soup) else
-      let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w.name env.page_file in
-      let res = w.func env w.config soup in
+      let widget = Hashtbl.find wh w in
+      if not (widget_should_run widget.config settings.site_dir env.page_file)
+      then (process_widgets settings env ws' wh config soup) else
+      let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
+      let res = widget.func env widget.config soup in
       (* In non-strict mode, widget processing errors are tolerated *)
       match res, settings.strict with
-      | Ok _, _ -> process_widgets settings env ws' config soup
+      | Ok _, _ -> process_widgets settings env ws' wh config soup
       | Error _ as err, true -> err
       | Error msg, false ->
-        let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" w.name msg in
-        process_widgets settings env ws' config soup
+        let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" w msg in
+        process_widgets settings env ws' wh config soup
     end
 
 (** Removes index page's parent dir from its navigation path
@@ -137,7 +138,8 @@ let process_page env widgets config settings target_dir =
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let html = Soup.parse env.template in
   let%m () = include_content settings.content_selector html env.page_file in
-  let%m () = process_widgets settings env widgets config html in
+  let widgets, widget_hash = widgets in
+  let%m () = process_widgets settings env widgets widget_hash config html in
   let%m () = save_html settings html target_file in
   Ok env.page_file
 
@@ -186,7 +188,7 @@ let initialize () =
   let%m config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
   let%m settings = get_args settings in
-  let%m widgets = Widgets.load_widgets config in
+  let%m widgets = Widgets.get_widgets config in
   let%m default_template_str = get_template settings.default_template in
   let%m () = check_template settings.default_template default_template_str settings.content_selector in
   let default_env = {template=default_template_str; nav_path=[]; page_file=""} in

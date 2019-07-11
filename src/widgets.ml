@@ -1,8 +1,10 @@
 type 'a widget = {
-  name : string;
   config: TomlTypes.table;
   func: Defaults.env -> TomlTypes.table -> 'a Soup.node -> (unit, string) result
 }
+
+(* The widgets structure is widget priority list plus a hash with actual widgets *)
+type 'a widgets = string list * (string, 'a widget) Hashtbl.t
 
 (* Option monad *)
 let (>>=) = CCOpt.(>>=)
@@ -33,9 +35,9 @@ let list_widgets config =
 
 
 (* The real widget loading function *)
-let rec _load_widgets config ws =
+let rec _load_widgets config ws hash =
   match ws with
-  | [] -> []
+  | [] -> ()
   | w :: ws' ->
     let widget_config = get_widget_config config w in
     let name = Config.get_string "widget" widget_config in
@@ -48,19 +50,33 @@ let rec _load_widgets config ws =
           match widget_func with
           | None -> failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w n)
           | Some wf ->
-            let widget_rec = {name=w; config=widget_config; func=wf} in
-            widget_rec :: (_load_widgets config ws')
+            let widget_rec = {config=widget_config; func=wf} in
+            let () = Hashtbl.add hash w widget_rec in
+            _load_widgets config ws' hash
         end
     end
 
+let get_widget_order hash =
+  let dep_graph = CCHashtbl.map_list (fun k v -> (k, Config.get_strings_relaxed "after" v.config)) hash in
+  Tsort.sort dep_graph
+
 (* The monadic wrapping for it *)
 let load_widgets config =
+  let widgets_hash = Hashtbl.create 1024 in
   match config with
-  | None -> Ok []
+  | None -> Ok widgets_hash
   | Some config ->
     let ws = list_widgets config in
-    try Ok (_load_widgets config ws)
+    try
+      let () = _load_widgets config ws widgets_hash in
+      Ok widgets_hash
     with Failure msg -> Error msg
+
+let get_widgets config =
+  let bind = CCResult.(>>=) in
+  let%m wh = load_widgets config in
+  let%m wo = get_widget_order wh in
+  Ok (wo, wh)
 
 (** Check if a widget should run or not.
 
