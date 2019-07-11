@@ -46,7 +46,7 @@ let is_empty node =
 
 let delete_element _ config soup =
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
-  let when_empty = Config.get_bool_default false "if_empty" config in
+  let when_empty = Config.get_bool_default false "only_if_empty" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
