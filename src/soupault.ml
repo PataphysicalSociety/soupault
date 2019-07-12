@@ -174,8 +174,8 @@ let get_args settings =
   let verbose = ref settings.verbose in
   let args = [
     ("--init", Arg.Unit (fun () -> init := true), "Setup basic directory structure");
-    ("--verbose", Arg.Bool (fun v -> verbose := v), "Verbose output");
-    ("--strict", Arg.Bool (fun s -> strict := s), "Stop on page processing errors");
+    ("--verbose", Arg.Unit (fun () -> verbose := true), "Verbose output");
+    ("--strict", Arg.Bool (fun s -> strict := s), "<true|false> Stop on page processing errors or not");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
