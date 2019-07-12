@@ -185,6 +185,7 @@ let get_args settings =
 
 let initialize () =
   let settings = Defaults.default_settings in
+  let () = setup_logging settings.verbose in
   let%m config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
   let%m settings = get_args settings in

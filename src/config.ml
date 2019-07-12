@@ -25,7 +25,10 @@ let config_exists file =
 
 (** Read and parse a TOML file *)
 let read_config path =
-  if not (config_exists path) then Ok None else
+  if not (config_exists path) then
+    let () = Logs.warn @@ fun m -> m "Configuration file %s not found, using default settings" path in
+    Ok None
+  else
   try
     let open Toml.Parser in
     let conf = from_filename path |> unsafe in
