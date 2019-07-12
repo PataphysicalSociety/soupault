@@ -4,6 +4,12 @@ open Soup.Infix
 (* Let Option monad be the default monad *)
 let (>>=) = CCOpt.(>>=)
 
+let get_required_element selector err soup =
+  let e = Soup.select_one selector soup in
+  match e with
+  | Some e -> Ok e
+  | None -> Error err
+
 
 (** Generic widgets *)
 
@@ -207,6 +213,42 @@ let add_breadcrumbs env config soup =
         let () = Soup.append_child container breadcrumbs in Ok ()
     end
 
+(* Footnotes *)
+let rec _move_footnotes ref_wrapper note_wrapper notes container num =
+  match notes with
+  | [] -> ()
+  | n :: ns ->
+    let num = num + 1 in
+    let fn_id = Printf.sprintf "footnote-%d" num in
+    (* Create the footnote number element *)
+    let note_ref = Soup.create_element ~inner_text:(string_of_int num) ref_wrapper in
+    (* Create the footnote anchor that will be inserted in place of the original note *)
+    let note_a = Soup.create_element ~attributes:["href", "#" ^ fn_id] "a" in
+    let () = Soup.append_child note_a note_ref in
+    (* Insert the anchor before the original footnote element *)
+    let () = Soup.insert_before n note_a in
+    (* Create a wrapper for the footnote's new location *)
+    let note_wrapper' = Soup.create_element ~attributes:["id", fn_id] note_wrapper in
+    let () = Soup.append_child container note_wrapper' in
+    (* Reusing elements doesn't work and there's no node cloning yet, so we create a new one *)
+    let note_ref' = Soup.create_element ~inner_text:(string_of_int num) ref_wrapper in
+    (* Now insert the ref and the original children of the footnote element
+       into the new footnote wrapper and delete the original *)
+    let () = Soup.append_child note_wrapper' note_ref' in
+    let () = Soup.iter (Soup.append_child note_wrapper') (Soup.children n) in
+    let () = Soup.delete n in
+    _move_footnotes ref_wrapper note_wrapper ns container num
+
+let move_footnotes _ config soup =
+  let bind = CCResult.(>>=) in
+  let%m selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let%m note_selector = Config.get_string_result "Missing required option \"footnote_selector\"" "footnote_selector" config in
+  let container = Soup.select_one selector soup in
+  match container with
+  | None -> Ok ()
+  | Some container ->
+    let notes = Soup.select note_selector soup |> Soup.to_list in
+    Ok (_move_footnotes "sup" "p" notes container 0)
 
 (* This should better be a Map *)
 let widgets = [
@@ -215,5 +257,6 @@ let widgets = [
   ("delete_element", delete_element);
   ("exec", include_program_output);
   ("title", set_title);
-  ("breadcrumbs", add_breadcrumbs)
+  ("breadcrumbs", add_breadcrumbs);
+  ("footnotes", move_footnotes)
 ]
