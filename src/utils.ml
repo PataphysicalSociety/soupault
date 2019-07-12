@@ -20,10 +20,26 @@ let safe_tl xs =
     | [] -> []
     | _ :: xs' -> xs'
 
+(** Unsafely unwraps an option type.
+    There are many places where None is easy to prove to not happen *)
 let unwrap_option o =
   match o with
   | Some v -> v
   | None -> raise (Failure "values of beta will give rise to dom!")
+
+(** Checks if a "template" has a specific element in it.
+    For checking if there's any element at all, use "*" selector *)
+let check_template selector template =
+  let soup = Soup.parse template in
+  let content_container = Soup.select_one selector soup in
+  match content_container with
+  | None -> Error (Printf.sprintf "Template %s has no element matching selector \"%s\"" template selector)
+  | Some _ -> Ok template
+
+let add_class c e =
+  match c with
+  | Some c -> Soup.add_class c e
+  | None -> ()
 
 (** Just prints a hardcoded program version *)
 let print_version () =
