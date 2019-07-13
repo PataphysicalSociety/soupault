@@ -26,6 +26,7 @@ depends: [
   "fileutils"
   "logs"
   "fmt"
+  "re"
   "ppx_monadic"
   "containers"
   "stringext"

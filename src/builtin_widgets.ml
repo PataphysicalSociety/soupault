@@ -266,5 +266,6 @@ let widgets = [
   ("exec", include_program_output);
   ("title", set_title);
   ("breadcrumbs", add_breadcrumbs);
-  ("footnotes", move_footnotes)
+  ("footnotes", move_footnotes);
+  ("toc", Toc_widget.add_toc)
 ]

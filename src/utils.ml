@@ -36,10 +36,22 @@ let check_template selector template =
   | None -> Error (Printf.sprintf "Template %s has no element matching selector \"%s\"" template selector)
   | Some _ -> Ok template
 
+(** Adds class to an element if class is given *)
 let add_class c e =
   match c with
   | Some c -> Soup.add_class c e
   | None -> ()
+
+(** Gets the first text node from an element if there's any
+    non-empty text in it *)
+let get_element_text e =
+  let texts = Soup.texts e in
+  match texts with
+  | [] -> None
+  | t :: _ ->
+    let t = String.trim t in
+    if t = "" then None
+    else Some t
 
 (** Just prints a hardcoded program version *)
 let print_version () =
