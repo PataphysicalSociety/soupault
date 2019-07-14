@@ -45,6 +45,14 @@ let check_template selector template =
   | None -> Error (Printf.sprintf "Template %s has no element matching selector \"%s\"" template selector)
   | Some _ -> Ok template
 
+(** Gets an element and returns Error if it doesn't exist,
+    another bit of monadic convenience *)
+let get_required_element selector err soup =
+  let e = Soup.select_one selector soup in
+  match e with
+  | Some e -> Ok e
+  | None -> Error err
+
 (** Adds class to an element if class is given *)
 let add_class c e =
   match c with
@@ -62,16 +70,36 @@ let get_element_text e =
     if t = "" then None
     else Some t
 
+(** Retrieves the innerHTML of an element --
+    a string representation of its children *)
 let inner_html e =
   let children = Soup.children e in
   let soup = Soup.create_soup () in
   let () = Soup.iter (Soup.append_root soup) children in
   Some (Soup.to_string soup)
 
+(** Appends a child if child rather than None is given *)
 let append_child container child =
   match child with
   | None -> ()
   | Some c -> Soup.append_child container c
+
+(** Checks if a node is empty
+
+    A node is considered empty iff it has no children but whitespace nodes.
+    If a node has no children, it's clearly empty, and if it has more than one,
+    then clearly isn't.
+    The interesting case is one child. Sadly, lambdasoup has no function for checking
+    node type now, so instead we check if its content is empty when converted
+    to a string and stripped of whitespace.
+ *)
+let is_empty node =
+  let open Soup in
+  let children = children node in
+  match (Soup.count children) with
+  | 0 -> true
+  | 1 -> (children |> first |> unwrap_option |> to_string |> String.trim) = ""
+  | _ -> false
 
 (** Just prints a hardcoded program version *)
 let print_version () =

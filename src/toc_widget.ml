@@ -113,7 +113,7 @@ let rec _make_toc settings counter soup container cur_level headings =
         h :: hs
     end
 
-let add_toc _ config soup =
+let toc _ config soup =
   let settings = {
     min_level = Config.get_int_default 1 "min_level" config;
     max_level = Config.get_int_default 6 "max_level" config;
