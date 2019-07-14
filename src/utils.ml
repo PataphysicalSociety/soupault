@@ -10,10 +10,8 @@ let get_program_output ?(input=None) command env_array =
     match input with
     | None -> ()
     | Some i ->
-      Logs.info @@ fun m -> m "Writing line %s to stdin" i;
-      output_string std_in i;
-      (* Force newline and flush the buffer *)
-      Printf.fprintf std_in "\n%!"
+      let () = Logs.debug @@ fun m -> m "JSON index data: %s" i in
+      Printf.fprintf std_in "%s\n%!" i
   in
   let output = Soup.read_channel std_out in
   let err = Soup.read_channel std_err in

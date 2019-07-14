@@ -142,6 +142,7 @@ let insert_index settings soup index =
       | None -> Ok (Autoindex.add_index settings ic index)
       | Some p ->
         let json = Autoindex.json_of_entries settings index in
+        let () = Logs.info @@ fun m -> m "Calling index processor %s" p in
         let output = Utils.get_program_output ~input:(Some json) p [| |] in
         begin
           match output with
@@ -156,8 +157,6 @@ let make_page_url settings nav_path page_file =
     if settings.clean_urls then FP.basename page_file |> FP.chop_extension
     else FP.basename page_file
   in
-  let () = Logs.info @@ fun m -> m "Nav path: %s" (String.concat " " nav_path) in
-  let () = Logs.info @@ fun m -> m "Page: %s" page in
   let path = List.append nav_path [page] in
   (* URL path should be absolute *)
   String.concat "/" path |> Printf.sprintf "/%s"
