@@ -101,6 +101,6 @@ let is_empty node =
 
 (** Just prints a hardcoded program version *)
 let print_version () =
-  print_endline "soupault 0.9";
+  Printf.printf "soupault %s\n" Defaults.version;
   print_endline "Copyright 2019 Daniil Baturin, licensed under MIT";
   print_endline "Visit https://baturin.org/projects/soupault for documentation"

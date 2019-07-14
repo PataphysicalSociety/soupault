@@ -77,3 +77,5 @@ let default_settings = {
   index_processor = None;
   preprocessors = []
 }
+
+let version = "1.0-beta1"
