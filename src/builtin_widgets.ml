@@ -175,10 +175,11 @@ let make_breadcrumbs nav_path bc_tmpl_str prepend append between =
       aux xs bc_soup acc_href
   in
   let bc_soup = Soup.create_soup () in
-  (* XXX: reusing a soup for append_child seem to work,
+  (* XXX: reusing a soup for append_child doesn't seem to work as of 0.6.3,
+     nodes retain their context forever.
      this is why they are parsed into a new soup every time *)
   let () = Soup.append_root bc_soup (Soup.parse prepend) in
-  let () = aux (List.rev nav_path) bc_soup "" in
+  let () = aux nav_path bc_soup "" in
   let () = Soup.append_root bc_soup (Soup.parse append) in
   bc_soup
 

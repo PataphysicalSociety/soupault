@@ -214,7 +214,8 @@ let rec process_dir env widgets config settings base_src_dir base_dst_dir dirnam
   let src_path = base_src_dir +/ dirname in
   let dst_path = base_dst_dir +/ dirname in
   let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
-  let nav_path = if dirname <> "" then dirname :: env.nav_path else env.nav_path in
+(*  let nav_path = if dirname <> "" then dirname :: env.nav_path else env.nav_path in *)
+  let nav_path = if dirname <> "" then List.append env.nav_path [dirname] else env.nav_path in
   let env = {env with nav_path = nav_path} in
   let pages = list_page_files src_path |> reorder_pages settings in
   let dirs = List.map (FP.basename) (list_dirs src_path) in
