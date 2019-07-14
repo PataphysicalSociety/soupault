@@ -38,7 +38,9 @@ type settings = {
   index_author_selector : string;
   index_date_format : string;
   index_item_template : string;
-  index_processor : string option
+  index_processor : string option;
+
+  preprocessors : (string * string) list
 }
 
 type env = {
@@ -70,5 +72,6 @@ let default_settings = {
   index_author_selector = "#author";
   index_date_format = "%F";
   index_item_template = "<div> </div>";
-  index_processor = None
+  index_processor = None;
+  preprocessors = []
 }

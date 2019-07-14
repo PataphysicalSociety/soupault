@@ -55,6 +55,16 @@ let get_strings k tbl = TomlLenses.(get tbl (key k |-- array |-- strings))
 let get_strings_default default_value k tbl = get_strings k tbl |> default default_value
 let get_strings_result err k tbl = get_strings k tbl |> CCOpt.to_result err
 
+(** Converts a TOML table to an assoc list using a given value retrieval function,
+    ignoring None's it may return.
+  *)
+let assoc_of_table f tbl =
+  let has_value (_, v) = match v with Some _ -> true | None -> false in
+  let keys = list_config_keys tbl in
+  List.fold_left (fun xs k -> (k, f k tbl ) :: xs) [] keys |>
+  List.filter has_value |>
+  List.map (fun (k, v) -> k, Utils.unwrap_option v)
+
 (** Tries to get a string list from a config
     If there's actually a string list, just return it.
     If there's a single string, consider it a single item list.
@@ -71,7 +81,17 @@ let get_strings_relaxed k tbl =
       | None -> []
     end
 
+let string_of_assoc xs =
+  let xs = List.map (fun (k, v) -> Printf.sprintf "%s = %s" k v) xs in
+  String.concat ", " xs
+
 (* Update global settings with values from the config, if there are any *)
+let _get_preprocessors config =
+  let pt = get_table "preprocessors" config in
+  match pt with
+  | None -> []
+  | Some pt -> assoc_of_table get_string pt
+
 let _update_settings settings config =
   let st = get_table Defaults.settings_table config in
   match st with
@@ -99,6 +119,8 @@ let _update_settings settings config =
        index_date_format = get_string_default settings.index_date_format "index_date_format" st;
        index_item_template = get_string_default settings.index_item_template "index_item_template" st;
        index_processor = get_string "index_processor" st;
+
+       preprocessors = _get_preprocessors config
      }
 
 let update_settings settings config =

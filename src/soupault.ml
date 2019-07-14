@@ -4,6 +4,7 @@ module FU = FileUtil
 module FP = FilePath
 
 (* Result monad *)
+let (>>=) = CCResult.(>>=)
 let bind = CCResult.(>>=)
 let return = CCResult.return
 
@@ -50,8 +51,16 @@ let make_page_dir settings target_dir page_name =
     FU.mkdir ~parent:true dir_name; Ok dir_name
   with FileUtil.MkdirError e -> Error e
 
-let load_html file =
-  try Ok (Soup.read_file file |> Soup.parse)
+let load_html settings file =
+  let ext = FP.get_extension file in
+  let preprocessor = CCList.assoc_opt ~eq:(=) ext settings.preprocessors in
+  try
+    match preprocessor with
+    | None -> Ok (Soup.read_file file |> Soup.parse)
+    | Some prep ->
+      let prep_cmd = Printf.sprintf "%s %s" prep file in
+      let () = Logs.info @@ fun m -> m "Calling preprocessor %s on page %s" prep file in
+      Utils.get_program_output prep_cmd [| |] >>= (fun h -> Ok (Soup.parse h))
   with Sys_error e -> Error e
 
 let save_html settings soup file =
@@ -77,15 +86,17 @@ let get_template file =
   try Ok (Soup.read_file file)
   with Sys_error e -> Error e
 
-let include_content selector html page_file =
-  let content = load_html page_file in
+let include_content settings html page_file =
+  let content = load_html settings page_file in
   match content with
   | Ok c ->
-    let element = Soup.select_one selector html in
+    let element = Soup.select_one settings.content_selector html in
     begin
       match element with
       | Some element -> Ok (Soup.append_child element c)
-      | None -> Error (Printf.sprintf "Failed to insert page content: no element matches selector \"%s\"" selector)
+      | None ->
+        Error (Printf.sprintf "Failed to insert page content: no element matches selector \"%s\""
+               settings.content_selector)
     end
   | Error _ as e -> e
 
@@ -174,7 +185,7 @@ let process_page env index widgets config settings target_dir =
   let env = {env with nav_path = (fix_nav_path settings env.nav_path page_name)} in
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let html = Soup.parse env.template in
-  let%m () = include_content settings.content_selector html env.page_file in
+  let%m () = include_content settings html env.page_file in
   let widgets, widget_hash = widgets in
   let%m () = process_widgets settings env widgets widget_hash config html in
   (* Section index injection *)
