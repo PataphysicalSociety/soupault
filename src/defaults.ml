@@ -51,6 +51,8 @@ type env = {
 
 let config_file = "soupault.conf"
 let settings_table = "settings"
+let index_settings_table = "index"
+let preprocessors_table = "preprocessors"
 let widgets_table = "widgets"
 
 let default_settings = {

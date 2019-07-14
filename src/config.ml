@@ -87,10 +87,27 @@ let string_of_assoc xs =
 
 (* Update global settings with values from the config, if there are any *)
 let _get_preprocessors config =
-  let pt = get_table "preprocessors" config in
+  let pt = get_table Defaults.preprocessors_table config in
   match pt with
   | None -> []
   | Some pt -> assoc_of_table get_string pt
+
+let _get_index_settings settings config =
+  let st = get_table Defaults.index_settings_table config in
+  match st with
+  | None -> settings
+  | Some st ->
+    {settings with
+       index = get_bool_default settings.index "index" st;
+       index_selector = get_string_default settings.index_selector "index_selector" st;
+       index_title_selector = get_string_default settings.index_title_selector "index_title_selector" st;
+       index_excerpt_selector = get_string_default settings.index_excerpt_selector "index_excerpt_selector" st;
+       index_date_selector = get_string_default settings.index_date_selector "index_date_selector" st;
+       index_author_selector = get_string_default settings.index_author_selector "index_author_selector" st;
+       index_date_format = get_string_default settings.index_date_format "index_date_format" st;
+       index_item_template = get_string_default settings.index_item_template "index_item_template" st;
+       index_processor = get_string "index_processor" st;
+    }
 
 let _update_settings settings config =
   let st = get_table Defaults.settings_table config in
@@ -99,7 +116,7 @@ let _update_settings settings config =
      let () = Logs.warn @@ fun m -> m "Could not find the [settings] table in the config, using defaults" in
      settings
   | Some st ->
-    {
+    {default_settings with
        verbose = get_bool_default settings.verbose "verbose" st;
        strict = get_bool_default settings.strict "strict" st;
        site_dir = get_string_default settings.site_dir "site_dir" st;
@@ -110,15 +127,6 @@ let _update_settings settings config =
        index_file = get_string_default settings.index_file "index_file" st;
        default_template = get_string_default settings.default_template "default_template" st;
        clean_urls = get_bool_default settings.clean_urls "clean_urls" st;
-       index = get_bool_default settings.index "index" st;
-       index_selector = get_string_default settings.index_selector "index_selector" st;
-       index_title_selector = get_string_default settings.index_title_selector "index_title_selector" st;
-       index_excerpt_selector = get_string_default settings.index_excerpt_selector "index_excerpt_selector" st;
-       index_date_selector = get_string_default settings.index_date_selector "index_date_selector" st;
-       index_author_selector = get_string_default settings.index_author_selector "index_author_selector" st;
-       index_date_format = get_string_default settings.index_date_format "index_date_format" st;
-       index_item_template = get_string_default settings.index_item_template "index_item_template" st;
-       index_processor = get_string "index_processor" st;
 
        preprocessors = _get_preprocessors config
      }
@@ -126,4 +134,6 @@ let _update_settings settings config =
 let update_settings settings config =
   match config with
   | None -> settings
-  | Some config -> _update_settings settings config
+  | Some config ->
+    let settings = _update_settings settings config in
+    _get_index_settings settings config
