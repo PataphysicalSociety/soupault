@@ -132,7 +132,7 @@ let rec process_widgets settings env ws wh config soup =
     last parent if the page is an index page.
  *)
 let fix_nav_path settings path page_name =
-  if page_name = settings.index_page then Utils.safe_tl path
+  if page_name = settings.index_page then Utils.drop_tail path
   else path
 
 (*

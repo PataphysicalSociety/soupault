@@ -27,6 +27,9 @@ let safe_tl xs =
     | [] -> []
     | _ :: xs' -> xs'
 
+(** Removes the last element of a list *)
+let drop_tail xs = List.rev xs |> safe_tl |> List.rev
+
 (** Unsafely unwraps an option type.
     There are many places where None is easy to prove to not happen *)
 let unwrap_option o =
