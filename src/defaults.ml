@@ -28,7 +28,17 @@ type settings = {
   content_selector : string;
 
   (** use clean URLs or mirror the site dir structure exactly *)
-  clean_urls : bool
+  clean_urls : bool;
+
+  index : bool;
+  index_selector : string;
+  index_title_selector : string;
+  index_excerpt_selector : string;
+  index_date_selector : string;
+  index_author_selector : string;
+  index_date_format : string;
+  index_item_template : string;
+  index_processor : string option
 }
 
 type env = {
@@ -51,5 +61,14 @@ let default_settings = {
   index_file = "index.html";
   default_template = "templates/main.html";
   content_selector = "body";
-  clean_urls = true
+  clean_urls = true;
+  index = false;
+  index_selector = "body";
+  index_title_selector = "h1";
+  index_excerpt_selector = "p";
+  index_date_selector = "time";
+  index_author_selector = "#author";
+  index_date_format = "%F";
+  index_item_template = "<div> </div>";
+  index_processor = None
 }

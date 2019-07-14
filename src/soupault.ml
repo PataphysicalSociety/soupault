@@ -124,7 +124,45 @@ let fix_nav_path settings path page_name =
   if page_name = settings.index_page then Utils.safe_tl path
   else path
 
-let process_page env widgets config settings target_dir =
+(*
+let run_index_processor settings processor index =
+  let json = Autoindex.json_of_entries settings index in
+  match processor with
+  | None -> Ok ""
+  | Some p -> Utils.get_program_output ~input:(Some json) p [| |]
+*)
+
+let insert_index settings soup index =
+  let index_container = Soup.select_one settings.index_selector soup in
+  match index_container with
+  | None -> Ok ()
+  | Some ic ->
+    begin
+      match settings.index_processor with
+      | None -> Ok (Autoindex.add_index settings ic index)
+      | Some p ->
+        let json = Autoindex.json_of_entries settings index in
+        let output = Utils.get_program_output ~input:(Some json) p [| |] in
+        begin
+          match output with
+          | Error _ as e -> e
+          | Ok output ->
+            Ok (Soup.append_child ic (Soup.parse output))
+        end
+    end
+
+let make_page_url settings nav_path page_file =
+  let page =
+    if settings.clean_urls then FP.basename page_file |> FP.chop_extension
+    else FP.basename page_file
+  in
+  let () = Logs.info @@ fun m -> m "Nav path: %s" (String.concat " " nav_path) in
+  let () = Logs.info @@ fun m -> m "Page: %s" page in
+  let path = List.append nav_path [page] in
+  (* URL path should be absolute *)
+  String.concat "/" path |> Printf.sprintf "/%s"
+
+let process_page env index widgets config settings target_dir =
   let page_name = FP.basename env.page_file |> FP.chop_extension in
   (* If clean URLs are used, make_page_dir creates one,
      if not, just returns the current dir *)
@@ -140,30 +178,47 @@ let process_page env widgets config settings target_dir =
   let%m () = include_content settings.content_selector html env.page_file in
   let widgets, widget_hash = widgets in
   let%m () = process_widgets settings env widgets widget_hash config html in
+  (* Section index injection *)
+  let%m () =
+    if not settings.index then Ok () else
+    let url = make_page_url settings env.nav_path env.page_file in
+    if page_name <> settings.index_page
+    then let () = index := (Autoindex.get_entry settings url env.nav_path html) :: !index in Ok ()
+    else insert_index settings html !index
+  in
   let%m () = save_html settings html target_file in
   Ok env.page_file
 
 (* Monad escape... for now *)
-let _process_page env widgets config settings target_dir page_file =
+let _process_page env index widgets config settings target_dir page_file =
     (* Make the page file name accessible to widgets *)
     let env = {env with page_file=page_file} in
-    let res = process_page env widgets config settings target_dir in
+    let res = process_page env index widgets config settings target_dir in
     match res with
       Ok _ -> ()
     | Error e -> Logs.warn @@ fun m -> m "Error processing page %s: %s" page_file e
+
+(* Reorders the pages so that the index page is processed last,
+   when the section index is available *)
+let reorder_pages settings ps =
+  let find_index = fun p -> (FP.basename p |> FP.chop_extension) = settings.index_page in
+  let index_page = List.find find_index ps in
+  let ps = CCList.remove ~eq:(=) ~key:index_page ps in
+  List.append ps [index_page]
 
 (* Process the source directory recursively
    
  *)
 let rec process_dir env widgets config settings base_src_dir base_dst_dir dirname =
+  let index = ref [] in
   let src_path = base_src_dir +/ dirname in
   let dst_path = base_dst_dir +/ dirname in
   let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
   let nav_path = if dirname <> "" then dirname :: env.nav_path else env.nav_path in
   let env = {env with nav_path = nav_path} in
-  let pages = list_page_files src_path in
+  let pages = list_page_files src_path |> reorder_pages settings in
   let dirs = List.map (FP.basename) (list_dirs src_path) in
-  List.iter (_process_page env widgets config settings dst_path) pages;
+  List.iter (_process_page env index widgets config settings dst_path) pages;
   ignore @@ List.iter (process_dir env widgets config settings src_path dst_path) dirs
 
 (* Option parsing and initialization *)

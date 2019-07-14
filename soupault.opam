@@ -27,6 +27,7 @@ depends: [
   "logs"
   "fmt"
   "re"
+  "yojson"
   "ppx_monadic"
   "containers"
   "stringext"
