@@ -124,10 +124,14 @@ let toc _ config soup =
     link_here_text = Config.get_string_default "#" "heading_link_text" config;
     link_here_class = Config.get_string "heading_link_class" config;
     link_here_append = Config.get_bool_default false "heading_links_append" config;
-    use_text = Config.get_bool_default false "use_header_text" config;
-    use_slugs = Config.get_bool_default false "use_header_slug" config;
+    use_text = Config.get_bool_default false "use_heading_text" config;
+    use_slugs = Config.get_bool_default false "use_heading_slug" config;
   } in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let () =
+    Utils.deprecation_warning Config.get_bool "use_header_text" "use \"use_heading_text\" instead" config;
+    Utils.deprecation_warning Config.get_bool "use_header_slug" "use \"use_heading_slug\" instead" config
+  in
   match selector with
   | Error _ as e -> e
   | Ok selector ->

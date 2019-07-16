@@ -107,3 +107,10 @@ let print_version () =
   Printf.printf "soupault %s\n" Defaults.version;
   print_endline "Copyright 2019 Daniil Baturin, licensed under MIT";
   print_endline "Visit https://baturin.org/projects/soupault for documentation"
+
+(** Warns about a deprecated option *)
+let deprecation_warning f opt msg config =
+  let value = f opt config in
+  match value with
+  | None -> ()
+  | Some _ -> Logs.warn @@ fun m -> m "Deprecated option %s: %s" opt msg
