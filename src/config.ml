@@ -99,6 +99,7 @@ let _get_index_settings settings config =
   | Some st ->
     {settings with
        index = get_bool_default settings.index "index" st;
+       dump_json = get_string "dump_json" st;
        index_selector = get_string_default settings.index_selector "index_selector" st;
        index_title_selector = get_strings_relaxed ~default:settings.index_title_selector "index_title_selector" st;
        index_excerpt_selector = get_strings_relaxed ~default:settings.index_excerpt_selector "index_excerpt_selector" st;

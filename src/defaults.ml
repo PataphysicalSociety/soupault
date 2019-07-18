@@ -31,6 +31,7 @@ type settings = {
   clean_urls : bool;
 
   index : bool;
+  dump_json : string option;
   index_selector : string;
   index_title_selector : string list;
   index_excerpt_selector : string list;
@@ -67,6 +68,7 @@ let default_settings = {
   content_selector = "body";
   clean_urls = true;
   index = false;
+  dump_json = None;
   index_selector = "body";
   index_title_selector = ["h1"];
   index_excerpt_selector = ["p"];
