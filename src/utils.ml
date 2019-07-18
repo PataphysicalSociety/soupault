@@ -71,6 +71,17 @@ let get_element_text e =
     if t = "" then None
     else Some t
 
+let rec select_any_of selectors soup =
+  match selectors with
+  | [] -> None
+  | s :: ss ->
+    let e = Soup.select_one s soup in
+    begin
+      match e with
+      | Some _ as e -> e
+      | None -> select_any_of ss soup
+    end
+
 (** Retrieves the innerHTML of an element --
     a string representation of its children *)
 let inner_html e =
