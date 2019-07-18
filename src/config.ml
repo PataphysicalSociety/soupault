@@ -100,10 +100,10 @@ let _get_index_settings settings config =
     {settings with
        index = get_bool_default settings.index "index" st;
        index_selector = get_string_default settings.index_selector "index_selector" st;
-       index_title_selector = get_string_default settings.index_title_selector "index_title_selector" st;
-       index_excerpt_selector = get_string_default settings.index_excerpt_selector "index_excerpt_selector" st;
-       index_date_selector = get_string_default settings.index_date_selector "index_date_selector" st;
-       index_author_selector = get_string_default settings.index_author_selector "index_author_selector" st;
+       index_title_selector = get_strings_relaxed ~default:settings.index_title_selector "index_title_selector" st;
+       index_excerpt_selector = get_strings_relaxed ~default:settings.index_excerpt_selector "index_excerpt_selector" st;
+       index_date_selector = get_strings_relaxed ~default:settings.index_date_selector "index_date_selector" st;
+       index_author_selector = get_strings_relaxed ~default:settings.index_author_selector "index_author_selector" st;
        index_date_format = get_string_default settings.index_date_format "index_date_format" st;
        index_item_template = get_string_default settings.index_item_template "index_item_template" st;
        index_processor = get_string "index_processor" st;

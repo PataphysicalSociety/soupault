@@ -82,6 +82,15 @@ let rec select_any_of selectors soup =
       | None -> select_any_of ss soup
     end
 
+let select_all selectors soup =
+  let rec aux selectors soup acc =
+    match selectors with
+    | [] -> acc
+    | s :: ss ->
+        let acc = List.append (Soup.select s soup |> Soup.to_list) acc in
+        aux ss soup acc
+  in aux selectors soup []
+
 (** Retrieves the innerHTML of an element --
     a string representation of its children *)
 let inner_html e =

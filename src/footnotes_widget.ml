@@ -32,7 +32,7 @@ let rec move_footnotes link_class ref_tmpl note_tmpl notes container num =
 let footnotes _ config soup =
   let bind = CCResult.(>>=) in
   let%m selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
-  let%m note_selector = Config.get_string_result "Missing required option \"footnote_selector\"" "footnote_selector" config in
+  let note_selector = Config.get_strings_relaxed ~default:[".footnote"] "footnote_selector" config in
   let%m ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Utils.check_template "*" in
   let%m note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
   let fn_link_class = Config.get_string "footnote_link_class" config in
@@ -40,6 +40,6 @@ let footnotes _ config soup =
   match container with
   | None -> Ok ()
   | Some container ->
-    let notes = Soup.select note_selector soup |> Soup.to_list in
+    let notes = Utils.select_all note_selector soup in
     Ok (move_footnotes fn_link_class ref_tmpl note_tmpl notes container 0)
 

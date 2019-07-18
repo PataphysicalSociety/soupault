@@ -15,10 +15,10 @@ let get_entry settings url nav_path soup =
   {
     url = url;
     nav_path = nav_path;
-    title = Soup.select_one settings.index_title_selector soup;
-    excerpt = Soup.select_one settings.index_excerpt_selector soup;
-    date = Soup.select_one settings.index_date_selector soup;
-    author = Soup.select_one settings.index_author_selector soup;
+    title = Utils.select_any_of settings.index_title_selector soup;
+    excerpt = Utils.select_any_of settings.index_excerpt_selector soup;
+    date = Utils.select_any_of settings.index_date_selector soup;
+    author = Utils.select_any_of settings.index_author_selector soup;
   }
 
 (** Compares entries by their dates according to these rules:

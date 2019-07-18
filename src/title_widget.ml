@@ -13,7 +13,7 @@ let set_title _ config soup =
       title
   in
   (* Retrieve config options. The "selector" option means title source element, by default the first <h1> *)
-  let selector = Config.get_string_default "h1" "selector" config in
+  let selectors = Config.get_strings_relaxed ~default:["h1"] "selector" config in
   let prepend = Config.get_string_default "" "prepend" config in
   let append = Config.get_string_default "" "append" config in
   let default_title = Config.get_string_default "" "default" config in
@@ -25,7 +25,7 @@ let set_title _ config soup =
     Ok ()
   | Some title_node ->
     let title_string =
-      Soup.select_one selector soup >>= Soup.leaf_text |> make_title_string default_title prepend append in
+      Utils.select_any_of selectors soup >>= Soup.leaf_text |> make_title_string default_title prepend append in
     (* XXX: Both Soup.create_text and Soup.create_element ~inner_text:... escape special characters
        instead of expanding entities, so "&mdash;" becomes "&amp;mdash", which is not what we want.
        Soup.parse expands them, which is why it's used here *)

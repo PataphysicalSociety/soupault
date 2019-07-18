@@ -32,10 +32,10 @@ type settings = {
 
   index : bool;
   index_selector : string;
-  index_title_selector : string;
-  index_excerpt_selector : string;
-  index_date_selector : string;
-  index_author_selector : string;
+  index_title_selector : string list;
+  index_excerpt_selector : string list;
+  index_date_selector : string list;
+  index_author_selector : string list;
   index_date_format : string;
   index_item_template : string;
   index_processor : string option;
@@ -68,10 +68,10 @@ let default_settings = {
   clean_urls = true;
   index = false;
   index_selector = "body";
-  index_title_selector = "h1";
-  index_excerpt_selector = "p";
-  index_date_selector = "time";
-  index_author_selector = "#author";
+  index_title_selector = ["h1"];
+  index_excerpt_selector = ["p"];
+  index_date_selector = ["time"];
+  index_author_selector = ["#author"];
   index_date_format = "%F";
   index_item_template = "<div> </div>";
   index_processor = None;
