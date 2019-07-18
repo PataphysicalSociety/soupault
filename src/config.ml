@@ -70,7 +70,7 @@ let assoc_of_table f tbl =
     If there's a single string, consider it a single item list.
     If there's nothing like a string at all, return an empty list.
  *)
-let get_strings_relaxed k tbl =
+let get_strings_relaxed ?(default=[]) k tbl =
   let strs = get_strings k tbl in
   match strs with
   | Some strs -> strs
@@ -78,7 +78,7 @@ let get_strings_relaxed k tbl =
       let str = get_string k tbl in
       match str with
       | Some str -> [str]
-      | None -> []
+      | None -> default
     end
 
 let string_of_assoc xs =
