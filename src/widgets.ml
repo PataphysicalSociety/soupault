@@ -92,21 +92,19 @@ let get_widgets config =
     the widget will run on all pages.
  *)
 let widget_should_run config site_dir page_file =
-  let page_matches conf_path actual_path =
+  let page_matches actual_path conf_path =
     let conf_path = FilePath.concat site_dir conf_path in
     (=) conf_path actual_path
   in
-  let section_matches conf_path actual_path =
+  let section_matches actual_path conf_path =
      let conf_path = FilePath.concat site_dir conf_path in
      let page_dir = FilePath.dirname actual_path in
      FilePath.is_subdir conf_path page_dir
   in
-  let page = Config.get_string "page" config in
-  let section = Config.get_string "section" config in
-  match page, section with
-  | None, None -> true
-  | Some p, None -> page_matches p page_file
-  | None, Some s -> section_matches s page_file
-  | Some p, Some s ->
-    if page_matches p page_file then true
-    else section_matches s page_file
+  let pages = Config.get_strings_relaxed "page" config in
+  let sections = Config.get_strings_relaxed "section" config in
+  match pages, sections with
+  | [], [] -> true
+  | _, _ ->
+    if (List.exists (page_matches page_file) pages) then true
+    else List.exists (section_matches page_file) sections
