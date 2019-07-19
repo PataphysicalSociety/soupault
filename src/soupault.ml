@@ -79,17 +79,6 @@ let save_html settings soup file =
     Ok ()
   with Sys_error e -> Error e
 
-let check_template filename template selector =
-  let soup = Soup.parse template in
-  let content_container = Soup.select_one selector soup in
-  match content_container with
-  | None -> Error (Printf.sprintf "Template %s has no element matching selector \"%s\"" filename selector)
-  | Some _ -> Ok ()
-
-let get_template file =
-  try Ok (Soup.read_file file)
-  with Sys_error e -> Error e
-
 let include_content settings html page_file =
   let content = load_html settings page_file in
   match content with
@@ -261,8 +250,7 @@ let initialize () =
   let settings = Config.update_settings settings config in
   let%m settings = get_args settings in
   let%m widgets = Widgets.get_widgets config in
-  let%m default_template_str = get_template settings.default_template in
-  let%m () = check_template settings.default_template default_template_str settings.content_selector in
+  let%m default_template_str = Utils.get_file_content settings.default_template in
   let default_env = {template=default_template_str; nav_path=[]; page_file=""} in
   Ok (config, widgets, settings, default_env)
 
