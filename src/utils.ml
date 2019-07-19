@@ -3,6 +3,11 @@ let get_file_content file =
   try Ok (Soup.read_file file)
   with Sys_error msg -> Error msg
 
+(* Result wrapper for FileUtil.cp *)
+let cp fs d =
+  try Ok (FileUtil.cp fs d)
+  with FileUtil.CpError msg -> Error msg
+
 (** Executes an external program and returns its stdout *)
 let get_program_output ?(input=None) command env_array =
   let std_out, std_in, std_err = Unix.open_process_full command env_array in
@@ -39,6 +44,18 @@ let unwrap_option o =
   match o with
   | Some v -> v
   | None -> raise (Failure "values of beta will give rise to dom!")
+
+(** Result-aware iteration *)
+let rec iter f xs =
+  match xs with
+  | [] -> Ok ()
+  | x :: xs ->
+    let res = f x in
+    begin
+      match res with
+      | Ok _ -> iter f xs
+      | Error _ as e -> e
+    end
 
 (** Checks if a "template" has a specific element in it.
     For checking if there's any element at all, use "*" selector *)
