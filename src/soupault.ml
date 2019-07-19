@@ -21,8 +21,12 @@ let (+/) left right =
 let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
-let list_page_files path =
-    FU.ls path |> FU.filter (FU.Is_file)
+let list_section_files settings path =
+  let is_page_file f = Utils.in_list settings.page_extensions (FP.get_extension f) in
+  let files = FU.ls path |> FU.filter (FU.Is_file) in
+  let page_files = List.find_all is_page_file files in
+  let other_files = List.find_all (fun f -> not (is_page_file f)) files in
+  page_files, other_files
 
 let make_build_dir build_dir =
   let () = Logs.info @@ fun m -> m "Build directory \"%s\" does not exist, creating" build_dir in
@@ -225,9 +229,11 @@ let rec process_dir env index widgets config settings base_src_dir base_dst_dir 
   let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
   let nav_path = if dirname <> "" then List.append env.nav_path [dirname] else env.nav_path in
   let env = {env with nav_path = nav_path} in
-  let pages = list_page_files src_path |> reorder_pages settings in
+  let pages, assets = list_section_files settings src_path in
+  let pages = reorder_pages settings pages in
   let dirs = List.map (FP.basename) (list_dirs src_path) in
   List.iter (_process_page env section_index widgets config settings dst_path) pages;
+  FU.cp assets dst_path;
   save_index settings section_index index;
   ignore @@ List.iter (process_dir env index widgets config settings src_path dst_path) dirs
 

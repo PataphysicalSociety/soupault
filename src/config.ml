@@ -128,6 +128,7 @@ let _update_settings settings config =
        index_file = get_string_default settings.index_file "index_file" st;
        default_template = get_string_default settings.default_template "default_template" st;
        clean_urls = get_bool_default settings.clean_urls "clean_urls" st;
+       page_extensions = get_strings_relaxed ~default:settings.page_extensions "page_file_extensions" st;
 
        preprocessors = _get_preprocessors config
      }

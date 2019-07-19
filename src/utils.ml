@@ -30,6 +30,9 @@ let safe_tl xs =
 (** Removes the last element of a list *)
 let drop_tail xs = List.rev xs |> safe_tl |> List.rev
 
+(** Shortcut for checking if a list has this element *)
+let in_list xs x = List.exists ((=) x) xs
+
 (** Unsafely unwraps an option type.
     There are many places where None is easy to prove to not happen *)
 let unwrap_option o =

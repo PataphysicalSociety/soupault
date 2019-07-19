@@ -30,6 +30,9 @@ type settings = {
   (** use clean URLs or mirror the site dir structure exactly *)
   clean_urls : bool;
 
+  (** Extensions of files assumed to be pages *)
+  page_extensions : string list;
+
   index : bool;
   dump_json : string option;
   index_selector : string;
@@ -67,6 +70,7 @@ let default_settings = {
   default_template = "templates/main.html";
   content_selector = "body";
   clean_urls = true;
+  page_extensions = ["htm"; "html"; "md"; "rst"];
   index = false;
   dump_json = None;
   index_selector = "body";
