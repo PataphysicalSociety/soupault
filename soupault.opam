@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "soupault"
-version: "0.1"
+version: "1.0-beta1"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
 A templateless website generator that allows you to store metadata
@@ -31,4 +31,5 @@ depends: [
   "ppx_monadic"
   "containers"
   "stringext"
+  "calendar"
 ]
