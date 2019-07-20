@@ -267,12 +267,21 @@ let get_args settings =
   let settings = {settings with verbose = !verbose; strict = !strict} in
   if !init then (Project_init.init settings; exit 0) else Ok settings
 
+let check_project_dir settings =
+  if (not (FU.test FU.Exists settings.default_template)) &&
+     (not (FU.test FU.Is_dir settings.site_dir)) then
+  Logs.warn @@ fun m -> m "Site directory %s and default template %s do not exist"
+    settings.site_dir settings.default_template;
+  Logs.warn @@ fun m -> m "Use %s --init to initialize a basic project" Sys.argv.(0);
+  exit 1
+
 let initialize () =
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose in
   let%m config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
   let%m settings = get_args settings in
+  let () = check_project_dir settings in
   let%m widgets = Widgets.get_widgets config in
   let%m default_template_str = Utils.get_file_content settings.default_template in
   let default_env = {template=default_template_str; nav_path=[]; page_file=""} in
