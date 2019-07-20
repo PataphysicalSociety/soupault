@@ -1,0 +1,29 @@
+os: osx
+
+language: generic
+
+env:
+  - SWITCH=4.07.1
+
+before_script:
+  - set -e
+  - wget https://github.com/ocaml/opam/releases/download/2.0.5/opam-2.0.5-x86_64-macos
+  - sudo mv opam-2.0.5-x86_64-macos /usr/local/bin/opam
+  - sudo chmod a+x /usr/local/bin/opam
+  - opam init -y --compiler $SWITCH --disable-sandboxing
+  - eval `opam env`
+  - ocaml -version
+
+script:
+  - opam pin add -y --no-action soupault .
+  - opam install -y soupault
+
+notifications:
+  email:
+    recipients:
+      - daniil+soupault@baturin.org
+    on_success: always
+on_failure: always
+
+addons:
+  artifacts: true
