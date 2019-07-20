@@ -34,7 +34,7 @@ let read_config path =
     let conf = from_filename path |> unsafe in
     Ok (Some conf)
   with
-  | Sys_error err -> Error (Printf.sprintf "Could not read config fil: %s" err)
+  | Sys_error err -> Error (Printf.sprintf "Could not read config file: %s" err)
   | Toml.Parser.Error (err, _) -> Error (Printf.sprintf "Could not parse config file %s: %s" path err)
 
 let get_table name config = TomlLenses.(get config (key name |-- table))
@@ -66,9 +66,9 @@ let assoc_of_table f tbl =
   List.map (fun (k, v) -> k, Utils.unwrap_option v)
 
 (** Tries to get a string list from a config
-    If there's actually a string list, just return it.
-    If there's a single string, consider it a single item list.
-    If there's nothing like a string at all, return an empty list.
+    If there's actually a string list, just returns it.
+    If there's a single string, considers it a single item list.
+    If there's nothing like a string at all, return the default.
  *)
 let get_strings_relaxed ?(default=[]) k tbl =
   let strs = get_strings k tbl in

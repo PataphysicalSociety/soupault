@@ -8,13 +8,22 @@ let (>>=) = CCResult.(>>=)
 let bind = CCResult.(>>=)
 let return = CCResult.return
 
-(* Logging setup *)
+(*** Logging setup ***)
+
+(* Omit the executable name from the logs, the user knows already *)
+let pp_header ppf (l, h) =
+  match h with
+  | None -> if l = Logs.App then () else Format.fprintf ppf "[%a] " Logs.pp_level l
+  | Some h -> Format.fprintf ppf "[%s] " h
+
+let log_reporter = Logs.format_reporter ~pp_header:pp_header  ()
+
 let setup_logging verbose =
   let level = if verbose then Logs.Info else Logs.Warning in
   Logs.set_level (Some level);
-  Logs.set_reporter (Logs_fmt.reporter ())
+  Logs.set_reporter log_reporter
 
-(* Filesystem stuff *)
+(*** Filesystem stuff ***)
 let (+/) left right =
     FP.concat left right
 
@@ -289,4 +298,7 @@ let () =
   let res = main () in
   match res with
   | Ok _ -> exit 0
-  | Error e -> Printf.printf "Error: %s\n" e; exit 1
+  | Error e ->
+    Logs.err @@ fun m -> m "%s" e;
+    exit 1
+
