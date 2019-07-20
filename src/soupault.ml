@@ -221,9 +221,12 @@ let _process_page env index widgets config settings target_dir page_file =
    when the section index is available *)
 let reorder_pages settings ps =
   let find_index = fun p -> (FP.basename p |> FP.chop_extension) = settings.index_page in
-  let index_page = List.find find_index ps in
-  let ps = CCList.remove ~eq:(=) ~key:index_page ps in
-  List.append ps [index_page]
+  let index_page = CCList.find_opt find_index ps in
+  match index_page with
+  | None -> ps
+  | Some p ->
+    let ps = CCList.remove ~eq:(=) ~key:p ps in
+    List.append ps [p]
 
 (** If index file path is configured, add section index to the global index
    that will be saved to the file *)
@@ -244,6 +247,7 @@ let rec process_dir env index widgets config settings base_src_dir base_dst_dir 
   let env = {env with nav_path = nav_path} in
   let pages, assets = list_section_files settings src_path in
   let pages = reorder_pages settings pages in
+  let () = FU.mkdir ~parent:true dst_path in
   let dirs = List.map (FP.basename) (list_dirs src_path) in
   let%m () = Utils.iter (_process_page env section_index widgets config settings dst_path) pages in
   let%m () = Utils.cp assets dst_path in
