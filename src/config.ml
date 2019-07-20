@@ -38,6 +38,7 @@ let read_config path =
   | Toml.Parser.Error (err, _) -> Error (Printf.sprintf "Could not parse config file %s: %s" path err)
 
 let get_table name config = TomlLenses.(get config (key name |-- table))
+let get_table_result err name config = get_table name config |> CCOpt.to_result err
 
 let get_string k tbl = TomlLenses.(get tbl (key k |-- string))
 let get_string_default default_value k tbl = get_string k tbl |> default default_value
@@ -92,6 +93,32 @@ let _get_preprocessors config =
   | None -> []
   | Some pt -> assoc_of_table get_string pt
 
+let _get_index_queries index_table =
+  let bind = CCResult.(>>=) in
+  let get_query k queries =
+    let%m qt = get_table_result "value is not an inline table" k queries in
+    let%m selector = get_string_result "selector option is missing or value is not a string" "selector" qt in
+    let select_all = get_bool_default false "select_all" qt in
+    Ok {field_name = k; field_selector = selector; select_all = select_all}
+  in
+  let rec get_queries ks queries acc =
+    match ks with
+    | [] -> acc
+    | k :: ks ->
+      begin
+        let q = get_query k queries in
+        match q with
+        | Error e ->
+          let () = Logs.warn @@ fun m -> m "Malformed index field query \"%s\": %s" k e in
+          get_queries ks queries acc
+        | Ok q -> get_queries ks queries (q :: acc)
+      end
+  in
+  let qt = get_table "custom_fields" index_table in
+  match qt with
+  | None -> []
+  | Some qt -> get_queries (list_config_keys qt) qt []
+
 let _get_index_settings settings config =
   let st = get_table Defaults.index_settings_table config in
   match st with
@@ -108,6 +135,7 @@ let _get_index_settings settings config =
        index_date_format = get_string_default settings.index_date_format "index_date_format" st;
        index_item_template = get_string_default settings.index_item_template "index_item_template" st;
        index_processor = get_string "index_processor" st;
+       index_custom_fields = _get_index_queries st;
     }
 
 let _update_settings settings config =

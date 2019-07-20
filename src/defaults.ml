@@ -1,4 +1,10 @@
 (** global settings that can be updated from config file or command line options *)
+type index_field = {
+  field_name : string;
+  field_selector : string;
+  select_all : bool
+}
+
 type settings = {
   (** show debug information *)
   verbose : bool;
@@ -43,6 +49,7 @@ type settings = {
   index_date_format : string;
   index_item_template : string;
   index_processor : string option;
+  index_custom_fields : index_field list;
 
   preprocessors : (string * string) list
 }
@@ -81,6 +88,8 @@ let default_settings = {
   index_date_format = "%F";
   index_item_template = "<div> </div>";
   index_processor = None;
+  index_custom_fields = [];
+
   preprocessors = []
 }
 

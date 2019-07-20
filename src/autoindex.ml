@@ -9,7 +9,24 @@ type 'a index_entry = {
   excerpt: 'a Soup.node option;
   date: 'a Soup.node option;
   author: 'a Soup.node option;
+  custom_fields : (string * Yojson.Safe.t) list
 }
+
+let rec get_custom_fields fields soup =
+  let inner_html e = Utils.inner_html e |> CCOpt.get_or ~default:"" in
+  let get_field f soup =
+  if f.select_all then
+    `List (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> `String (inner_html e)))
+  else let e = Soup.select_one f.field_selector soup in
+  match e with
+    | None -> `Null
+    | Some e -> `String (inner_html e)
+  in
+  match fields with
+  | [] -> []
+  | f :: fs ->
+    let field = (f.field_name, get_field f soup) in
+    field :: (get_custom_fields fs soup)
 
 let get_entry settings url nav_path soup =
   {
@@ -19,6 +36,7 @@ let get_entry settings url nav_path soup =
     excerpt = Utils.select_any_of settings.index_excerpt_selector soup;
     date = Utils.select_any_of settings.index_date_selector soup;
     author = Utils.select_any_of settings.index_author_selector soup;
+    custom_fields = get_custom_fields settings.index_custom_fields soup
   }
 
 (** Compares entries by their dates according to these rules:
@@ -86,6 +104,7 @@ let json_of_entry e =
   let fields = List.map (fun (k, v) -> (k, json_of_element v)) fields in
   let fields = ("url", `String e.url) :: fields in
   let fields = ("nav_path", `List (List.map (fun x -> `String x) e.nav_path)) :: fields in
+  let fields = List.append fields e.custom_fields in
   `Assoc fields
 
 let json_of_entries settings es =
