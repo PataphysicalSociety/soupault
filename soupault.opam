@@ -1,10 +1,11 @@
 opam-version: "2.0"
 name: "soupault"
-version: "1.0-beta1"
+version: "1.0"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
 A templateless website generator that allows you to store metadata
-inside HTML and retrieve it using arbitrary selectors.
+inside HTML and retrieve it using arbitrary CSS selectors.
+
 Includes built-in widgets for setting page title, generating
 breadcrumbs and page ToC, deleting elements, including a file or output of a program
 into the page and a few others.
