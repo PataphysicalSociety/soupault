@@ -34,6 +34,8 @@ let default_config = "
   doctype = \"<!DOCTYPE html>\"
 
   clean_urls = true
+
+  page_extensions = [\"htm\", \"html\", \"md\", \"rst\"]
 "
 
 let init settings  =
