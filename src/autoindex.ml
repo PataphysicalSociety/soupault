@@ -13,14 +13,13 @@ type 'a index_entry = {
 }
 
 let rec get_custom_fields fields soup =
-  let inner_html e = Utils.inner_html e |> CCOpt.get_or ~default:"" in
   let get_field f soup =
   if f.select_all then
-    `List (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> `String (inner_html e)))
+    `List (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> `String (Utils.inner_html e)))
   else let e = Soup.select_one f.field_selector soup in
   match e with
     | None -> `Null
-    | Some e -> `String (inner_html e)
+    | Some e -> `String (Utils.inner_html e)
   in
   match fields with
   | [] -> []
@@ -91,13 +90,7 @@ let add_index settings soup entries =
 let json_of_element e =
   match e with
   | None -> `Null
-  | Some e ->
-    begin
-      let text =  Utils.inner_html e in
-      match text with
-      | None -> `Null
-      | Some t -> `String t
-    end
+  | Some e -> `String (Utils.inner_html e)
 
 let json_of_entry e =
   let fields = ["title", e.title; "date", e.date; "author", e.author; "excerpt", e.excerpt] in

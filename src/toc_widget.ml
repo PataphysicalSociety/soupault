@@ -64,8 +64,8 @@ let add_item settings counter heading container =
   let li = Soup.create_element "li" in
   let heading_id = get_heading_id settings counter heading in
   let h_link = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
-  let h_text = Utils.get_element_text heading |> CCOpt.get_or ~default:"empty heading" |> Soup.create_text in
-  Soup.append_child h_link h_text;
+  let h_content = Utils.child_nodes heading in
+  Soup.append_child h_link h_content;
   Soup.append_child li h_link;
   Soup.append_child container li;
   Soup.set_attribute "id" heading_id heading;
