@@ -16,7 +16,7 @@ before_script:
 
 script:
   - opam pin add -y --no-action soupault .
-  - opam install -y soupault
+  - opam install -y --destdir . soupault
 
 notifications:
   email:
@@ -26,4 +26,5 @@ notifications:
 on_failure: always
 
 addons:
-  artifacts: true
+  artifacts:
+    working_dir: bin
