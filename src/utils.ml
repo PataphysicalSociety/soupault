@@ -86,10 +86,11 @@ let get_element_text e =
   let texts = Soup.texts e in
   match texts with
   | [] -> None
-  | t :: _ ->
-    let t = String.trim t in
-    if t = "" then None
-    else Some t
+  | _ ->
+    (* "Normalize" the whitespace *)
+    let texts = List.map String.trim texts in
+    let text = String.concat " " texts |> String.trim in
+    if text = "" then None else Some text
 
 let rec select_any_of selectors soup =
   match selectors with
