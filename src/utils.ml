@@ -111,13 +111,21 @@ let select_all selectors soup =
         aux ss soup acc
   in aux selectors soup []
 
+(** Creates a soup with child nodes of an element ripped out of their context *)
+let child_nodes e =
+  (* XXX: Rendering and re-parsing seems to be the only way to
+     rip nodes out of their parent context now,
+     and thus make them safe for adding to a different place *)
+  let cs = Soup.children e |> Soup.to_list |> List.map (fun e -> Soup.to_string e |> Soup.parse) in
+  let soup = Soup.create_soup () in
+  let () = List.iter (Soup.append_root soup) cs in
+  soup
+
 (** Retrieves the innerHTML of an element --
     a string representation of its children *)
 let inner_html e =
-  let children = Soup.children e in
-  let soup = Soup.create_soup () in
-  let () = Soup.iter (Soup.append_root soup) children in
-  Some (Soup.to_string soup)
+  let children = child_nodes e in
+  Soup.to_string children
 
 (** Appends a child if child rather than None is given *)
 let append_child container child =
