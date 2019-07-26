@@ -110,9 +110,9 @@ let rec process_widgets settings env ws wh config soup =
     begin
       let open Widgets in
       let widget = Hashtbl.find wh w in
+      let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
       if not (widget_should_run widget.config settings.site_dir env.page_file)
       then (process_widgets settings env ws' wh config soup) else
-      let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
       let res = widget.func env widget.config soup in
       (* In non-strict mode, widget processing errors are tolerated *)
       match res, settings.strict with

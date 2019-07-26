@@ -80,7 +80,10 @@ let get_widgets config =
 
 (** Check if a widget should run or not.
 
-    There are two options for it: page= and section=
+    If exlude_pages or exclude_section options
+    are present, they are checked first.
+
+    If not, there are two options for it: page= and section=
     They are paths relative to the $site_dir, e.g.
     page = "articles/theorems-for-free.html"
 
@@ -103,7 +106,12 @@ let widget_should_run config site_dir page_file =
   in
   let pages = Config.get_strings_relaxed "page" config in
   let sections = Config.get_strings_relaxed "section" config in
-  match pages, sections with
+  let pages_exclude = Config.get_strings_relaxed "exclude_page" config in
+  let sections_exclude = Config.get_strings_relaxed "exclude_section" config in
+  if (List.exists (page_matches page_file) pages_exclude) ||
+     (List.exists (section_matches page_file) sections_exclude)
+  then let () = Logs.info @@ fun m -> m "Page excluded, not running the widget" in false
+  else match pages, sections with
   | [], [] -> true
   | _, _ ->
     if (List.exists (page_matches page_file) pages) then true
