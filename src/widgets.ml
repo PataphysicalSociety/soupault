@@ -80,19 +80,19 @@ let get_widgets config =
 
 (** Check if a widget should run or not.
 
-    If exlude_pages or exclude_section options
+    If any of exlude_page, exclude_section, or exclude_path_regex options
     are present, they are checked first.
+    If any of them matches, page is excluded and widget doesn't run.
 
-    If not, there are two options for it: page= and section=
-    They are paths relative to the $site_dir, e.g.
-    page = "articles/theorems-for-free.html"
+    If any of page, section, or path_regex options are present,
+    the widget runs if any of them matches.
+    If not, page is excluded.
 
-    If both are present, then page path is checked first,
-    if it doesn't match, then the section path is checked.
+    page and section options take relative paths, such as "section/page.html"
+    or "section/subsection".
+    path_regex is a Perl-compatible regex.
 
-    If an option is absent, it means the widget doesn't need
-    that condition to run. If both options are absent,
-    the widget will run on all pages.
+    If none of those options are present, widget always runs.
  *)
 let widget_should_run config site_dir page_file =
   let page_matches actual_path conf_path =
@@ -104,15 +104,33 @@ let widget_should_run config site_dir page_file =
      let page_dir = FilePath.dirname actual_path in
      FilePath.is_subdir conf_path page_dir
   in
+  let regex_matches actual_path path_re =
+    let matches = Utils.get_matching_strings path_re actual_path in
+    match matches with
+    | Ok ms -> List.length ms <> 0
+    | Error msg ->
+      let () = Logs.warn @@ fun m -> m "Could not check regex, assuming false: %s" msg in
+      false
+  in
   let pages = Config.get_strings_relaxed "page" config in
   let sections = Config.get_strings_relaxed "section" config in
+  let regex = Config.get_strings_relaxed "path_regex" config in
   let pages_exclude = Config.get_strings_relaxed "exclude_page" config in
   let sections_exclude = Config.get_strings_relaxed "exclude_section" config in
-  if (List.exists (page_matches page_file) pages_exclude) ||
+  let regex_exclude = Config.get_strings_relaxed "exclude_path_regex" config in
+  if (List.exists (regex_matches page_file) regex_exclude) ||
+     (List.exists (page_matches page_file) pages_exclude)  ||
      (List.exists (section_matches page_file) sections_exclude)
   then let () = Logs.info @@ fun m -> m "Page excluded, not running the widget" in false
-  else match pages, sections with
-  | [], [] -> true
-  | _, _ ->
-    if (List.exists (page_matches page_file) pages) then true
-    else List.exists (section_matches page_file) sections
+  else match pages, sections, regex with
+  | [], [], [] -> true
+  | _, _, _ ->
+    let should_run =
+      (List.exists (regex_matches page_file) regex) ||
+      (List.exists (page_matches page_file) pages) ||
+      (List.exists (section_matches page_file) sections)
+    in
+    let () =
+      if not should_run then
+      Logs.info @@ fun m -> m "Page doesn't match any options, not running the widget"
+    in should_run

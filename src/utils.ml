@@ -151,6 +151,13 @@ let is_empty node =
   | 1 -> (children |> first |> unwrap_option |> to_string |> String.trim) = ""
   | _ -> false
 
+(** Just a convenience function for Re.matches *)
+let get_matching_strings r s =
+  try
+    let re = Re.Perl.compile_pat r in
+    Ok (Re.matches re s)
+  with Re__Perl.Parse_error -> Error (Printf.sprintf "Failed to parse regex %s" r)
+
 (** Just prints a hardcoded program version *)
 let print_version () =
   Printf.printf "soupault %s\n" Defaults.version;
