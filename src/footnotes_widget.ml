@@ -11,46 +11,74 @@ let get_backlink_id el num =
   | Some el_id -> el_id
   | None -> Printf.sprintf "footnote-ref-%d" num
 
+(** Creates a footnote reference number element --
+    what appears in front of the footnote at the end of the document.
+
+    If back_links option is true, it wraps the number in a link
+    back to the original location.
+ *)
+let make_footnote_ref back_links backlink_id link_class ref_tmpl num =
+  let open Soup.Infix in
+  let ref_text = string_of_int num in
+  let fn_ref = (Soup.parse ref_tmpl) $ "*" in
+  let () =
+    if back_links then
+      let ref_content =
+        Soup.create_element ~attributes:["href", "#" ^ backlink_id] ~inner_text:ref_text "a"
+      in
+      Utils.add_class link_class ref_content;
+      Soup.append_child fn_ref ref_content
+    else string_of_int num |> Soup.create_text |> Soup.append_child fn_ref
+  in fn_ref
+
+(** Creates the footnote link that will replace the original
+    footnote element in the document *)
+let make_footnote_link back_links backlink_id link_class ref_tmpl fn_id num =
+  let open Soup.Infix in
+  let fn_ref =(Soup.parse ref_tmpl) $ "*" in
+  let () =
+    Soup.create_text (string_of_int num) |> Soup.append_child fn_ref;
+    if back_links then Soup.set_attribute "id" backlink_id fn_ref
+  in
+  let fn_link = Soup.create_element ~attributes:["href", "#" ^ fn_id] "a" in
+  let () = Soup.append_child fn_link fn_ref; Utils.add_class link_class fn_link in
+  fn_link
+
+(* Creates a container for the footnote content
+   that appears at the end of the document *)
+let make_footnote_wrapper note_tmpl fn_id =
+  let open Soup.Infix in
+  let note_wrapper = (Soup.parse note_tmpl) $ "*" in
+  let () = Soup.set_attribute "id" fn_id  note_wrapper in
+  note_wrapper
+
+(** Moves footnotes from the document text to a container element
+    and replaces them with links *)
 let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container num =
   match notes with
   | [] -> ()
   | n :: ns ->
-    let open Soup.Infix in
     let num = num + 1 in
     let fn_id = Printf.sprintf "footnote-%d" num in
     let backlink_id = get_backlink_id n num in
-    (* Create the footnote number element *)
-    let note_ref =(Soup.parse ref_tmpl) $ "*" in
-    let () = Soup.append_child note_ref (Soup.create_text (string_of_int num)) in
-    let () = if back_links then Soup.set_attribute "id" backlink_id note_ref in
-    (* Create the footnote anchor that will be inserted in place of the original note *)
-    let note_link = Soup.create_element ~attributes:["href", "#" ^ fn_id] "a" in
-    let () = Soup.append_child note_link note_ref in
-    let () = Utils.add_class link_class note_link in
+    (* Create the footnote link that will replace the original footnote element *)
+    let fn_link = make_footnote_link back_links backlink_id link_class ref_tmpl fn_id num in
     (* Insert the anchor before the original footnote element *)
-    let () = Soup.insert_before n note_link in
+    let () = Soup.insert_before n fn_link in
     (* Create a wrapper for the footnote's new location *)
-    let note_wrapper = (Soup.parse note_tmpl) $ "*" in
-    let () = Soup.set_attribute "id" fn_id  note_wrapper in
-    let () = Soup.append_child container note_wrapper in
-    (* Reusing elements doesn't work and there's no node cloning yet, so we create a new one *)
-    let note_ref' = (Soup.parse ref_tmpl) $ "*" in
-    let ref_text = string_of_int num in
-    let ref_content =
-      if back_links then
-        let rc = Soup.create_element ~attributes:["href", "#" ^ backlink_id] ~inner_text:ref_text "a" in
-        let () = Utils.add_class link_class rc in
-        rc
-     else Soup.create_element ~inner_text:ref_text "span"
-    in
-    let () = Soup.append_child note_ref' ref_content in
-    (* Now insert the ref and the original children of the footnote element
+    let fn_wrapper = make_footnote_wrapper note_tmpl fn_id in
+    (* Create a reference number that will appear in front of the footnote *)
+    let fn_ref = make_footnote_ref back_links backlink_id link_class ref_tmpl num in
+    (* Now insert the reference and the original children of the footnote element
        into the new footnote wrapper and delete the original *)
-    let () = Soup.append_child note_wrapper note_ref' in
-    let () = Soup.iter (Soup.append_child note_wrapper) (Soup.children n) in
-    let () = Soup.delete n in
-    move_footnotes link_class back_links ref_tmpl note_tmpl ns container num
+    let () =
+      Soup.append_child fn_wrapper fn_ref;
+      Soup.iter (Soup.append_child fn_wrapper) (Soup.children n);
+      Soup.append_child container fn_wrapper;
+      Soup.delete n
+    in move_footnotes link_class back_links ref_tmpl note_tmpl ns container num
 
+(** Footnotes widget wrapper *)
 let footnotes _ config soup =
   let bind = CCResult.(>>=) in
   let%m selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
