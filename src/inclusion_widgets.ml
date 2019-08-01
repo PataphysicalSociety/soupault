@@ -15,7 +15,7 @@ let insert_html _ config soup =
       match container with
       | None -> Ok ()
       | Some container ->
-        let%m html_str = Config.get_string_result "Missing required option \"file\"" "html" config in
+        let%m html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
         let () = Soup.append_child container (Soup.parse html_str)
         in Ok ()
     end
