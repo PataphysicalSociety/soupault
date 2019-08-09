@@ -1,0 +1,163 @@
+exception Plugin_error of string
+
+module Re_wrapper = struct
+  let replace ?(all=false) s pat sub =
+    try
+      let re = Re.Perl.compile_pat pat in
+      Re.replace ~all:all ~f:(fun _ -> sub) re s
+    with Re__Perl.Parse_error | Re__Perl.Not_supported ->
+      raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
+
+  let find_all s pat =
+    try
+      let re = Re.Perl.compile_pat pat in
+      Re.matches re s
+    with Re__Perl.Parse_error -> raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
+
+  let re_match s pat =
+    let ms = find_all s pat in
+    List.length ms != 0
+end
+
+module Html = struct
+  type soup_wrapper = 
+    | GeneralNode of Soup.general Soup.node
+    | ElementNode of Soup.element Soup.node
+    | SoupNode of Soup.soup Soup.node
+
+  type 'a t = soup_wrapper
+
+  let from_soup s = SoupNode s
+
+  let from_element e = ElementNode e
+
+  let to_element n =
+    match n with
+    | ElementNode n -> n
+    | _ -> raise (Plugin_error "Expected an element, but found a document")
+
+  let to_general n =
+    match n with
+    | GeneralNode n -> n
+    | ElementNode n -> Soup.coerce n
+    | SoupNode n -> Soup.coerce n
+
+  let select soup selector =
+    to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x)
+
+  let select_one soup selector =
+    let n = to_general soup |> Soup.select_one selector in
+    match n with
+    | Some n -> Some (ElementNode n)
+    | None -> None
+
+  let get_attribute node attr_name =
+    to_element node |> Soup.attribute attr_name
+
+  let set_attribute node attr_name attr_value =
+    to_element node |> Soup.set_attribute attr_name attr_value
+
+  let add_class node class_name =
+    to_element node |> Soup.add_class class_name
+
+  let remove_class node class_name =
+    to_element node |> Soup.remove_class class_name
+
+  let append_child node child =
+    let child = to_general child in
+    match node with
+    | ElementNode n -> Soup.append_child n child
+    | SoupNode n -> Soup.append_root n child
+    | GeneralNode _ -> raise (Plugin_error "Cannot append a child to a GeneralNode")
+
+  let delete node =
+    to_general node |> Soup.delete
+
+  let create_element name text =
+    let text = CCOpt.get_or ~default:"" text in
+    ElementNode (Soup.create_element ~inner_text:text name)
+
+  let inner_html node =
+    to_general node |> Utils.inner_html
+  
+  let tname = "html"
+  let eq _ = fun x y -> Soup.equal_modulo_whitespace (to_general x) (to_general y)
+  let to_string _ s = Soup.to_string (to_general s)
+end
+
+module T =
+  Lua.Lib.Combine.T2 (Luaiolib.T) (Html)
+
+module LuaioT = T.TV1
+module HtmlT  = T.TV2
+
+module MakeLib
+  (HtmlV: Lua.Lib.TYPEVIEW with type 'a t = 'a Html.t) :
+  Lua.Lib.USERCODE with type 'a userdata' = 'a HtmlV.combined =
+struct
+  type 'a userdata' = 'a HtmlV.combined
+  module M (C: Lua.Lib.CORE with type 'a V.userdata' = 'a userdata') = struct
+    module V = C.V
+    let ( **-> ) = V.( **-> )
+    let ( **->> ) x y = x **-> V.result y
+    module Map = struct
+      let html = HtmlV.makemap V.userdata V.projection
+    end (* Map *)
+   
+    let init g = 
+      C.register_module "HTML" [
+        "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
+        "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
+        "select", V.efunc (Map.html **-> V.string **->> (V.list Map.html)) Html.select;
+        "select_one", V.efunc (Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
+        "get_attribute", V.efunc (Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
+        "set_attribute", V.efunc (Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
+        "add_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.add_class;
+        "remove_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.remove_class;
+        "append_child", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_child;
+        "delete", V.efunc (Map.html **->> V.unit) Html.delete;
+        "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
+        "inner_html", V.efunc (Map.html **->> V.string) Html.inner_html
+      ] g;
+      
+      C.register_module "Regex" [
+        "replace", V.efunc (V.string **-> V.string **-> V.string **->> V.string)
+          (Re_wrapper.replace ~all:false);
+        "replace_all", V.efunc (V.string **-> V.string **-> V.string **->> V.string)
+          (Re_wrapper.replace ~all:true);
+        "find_all", V.efunc (V.string **-> V.string **->> (V.list V.string)) Re_wrapper.find_all;
+        "match", V.efunc (V.string **-> V.string **->> V.bool) Re_wrapper.re_match
+      ] g
+  end (* M *)
+end (* MakeLib *)
+
+module W = Lua.Lib.WithType (T)
+module C  =
+    Lua.Lib.Combine.C5  (* C5 == combine 4 code modules *)
+        (Luaiolib.Make(LuaioT))
+        (Luacamllib.Make(LuaioT))
+        (W (Luastrlib.M))
+        (W (Luamathlib.M))
+        (MakeLib (HtmlT))
+
+
+module I = (* interpreter *)  
+    Lua.MakeInterp
+        (Lua.Parser.MakeStandard)
+        (Lua.MakeEval (T) (C))
+
+let lua_of_soup s =
+  let v = HtmlT.makemap I.Value.userdata I.Value.projection in
+  v.embed s
+
+let soup_of_lua l =
+  let v = HtmlT.makemap I.Value.userdata I.Value.projection in
+  v.project l
+
+let run_plugin lua_str _ _ soup =
+  try
+    let state = I.mk () in
+    let () = I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state in
+    let _ = I.dostring state lua_str in
+    Ok ()
+  with Plugin_error msg -> Error msg

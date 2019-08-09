@@ -65,6 +65,7 @@ let settings_table = "settings"
 let index_settings_table = "index"
 let preprocessors_table = "preprocessors"
 let widgets_table = "widgets"
+let plugins_table = "plugins"
 
 let default_settings = {
   verbose = false;

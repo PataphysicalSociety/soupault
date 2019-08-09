@@ -286,7 +286,8 @@ let initialize () =
   let settings = Config.update_settings settings config in
   let%m settings = get_args settings in
   let () = check_project_dir settings in
-  let%m widgets = Widgets.get_widgets config in
+  let%m plugins = Plugins.get_plugins config in
+  let%m widgets = Widgets.get_widgets config plugins in
   let%m default_template_str = Utils.get_file_content settings.default_template in
   let default_env = {template=default_template_str; nav_path=[]; page_file=""} in
   Ok (config, widgets, settings, default_env)

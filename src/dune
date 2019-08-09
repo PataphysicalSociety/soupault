@@ -1,5 +1,16 @@
 (executable
  (name soupault)
  (public_name soupault)
- (libraries lambdasoup toml containers fileutils logs logs.fmt stringext re calendar yojson)
+ (libraries
+   lambdasoup
+   toml
+   containers
+   fileutils
+   logs
+   logs.fmt
+   stringext
+   re
+   calendar
+   yojson
+   lua-ml)
  (preprocess (pps ppx_monadic)))

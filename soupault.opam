@@ -33,4 +33,5 @@ depends: [
   "containers"
   "stringext"
   "calendar"
+  "lua-ml"
 ]

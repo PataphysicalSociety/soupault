@@ -11,11 +11,16 @@ let (>>=) = CCOpt.(>>=)
 
 
 (* Quick and dirty widget lookup *)
-let find_widget name =
-  try
-    Some (List.assoc name Builtin_widgets.widgets)
-  with Not_found -> None
-
+let find_widget plugins name =
+  let plugin_w = Hashtbl.find_opt plugins name in
+  let builtin_w = List.assoc_opt name Builtin_widgets.widgets in
+  match plugin_w, builtin_w with
+  | Some p, Some _ ->
+    let () = Logs.warn @@ fun m -> m "Widget name %s is redefined by a plugin" name in
+    Some p
+  | Some p, None -> Some p
+  | None, Some b -> Some b
+  | _ -> None
 
 (* Widget config loading *)
 let get_widget_config config widget =
@@ -35,7 +40,7 @@ let list_widgets config =
 
 
 (* The real widget loading function *)
-let rec _load_widgets config ws hash =
+let rec _load_widgets config plugins ws hash =
   match ws with
   | [] -> ()
   | w :: ws' ->
@@ -45,14 +50,14 @@ let rec _load_widgets config ws hash =
       match name with
       | None -> failwith (Printf.sprintf "In [widgets.%s]: missing required option widget=\"<some widget>\"" w)
       | Some n ->
-        let widget_func = find_widget n in
+        let widget_func = find_widget plugins n in
         begin
           match widget_func with
           | None -> failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w n)
           | Some wf ->
             let widget_rec = {config=widget_config; func=wf} in
             let () = Hashtbl.add hash w widget_rec in
-            _load_widgets config ws' hash
+            _load_widgets config plugins ws' hash
         end
     end
 
@@ -61,20 +66,20 @@ let get_widget_order hash =
   Tsort.sort dep_graph
 
 (* The monadic wrapping for it *)
-let load_widgets config =
+let load_widgets config plugins =
   let widgets_hash = Hashtbl.create 1024 in
   match config with
   | None -> Ok widgets_hash
   | Some config ->
     let ws = list_widgets config in
     try
-      let () = _load_widgets config ws widgets_hash in
+      let () = _load_widgets config plugins ws widgets_hash in
       Ok widgets_hash
     with Failure msg -> Error msg
 
-let get_widgets config =
+let get_widgets config plugins =
   let bind = CCResult.(>>=) in
-  let%m wh = load_widgets config in
+  let%m wh = load_widgets config plugins in
   let%m wo = get_widget_order wh in
   Ok (wo, wh)
 
