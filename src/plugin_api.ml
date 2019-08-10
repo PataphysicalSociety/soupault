@@ -12,7 +12,8 @@ module Re_wrapper = struct
     try
       let re = Re.Perl.compile_pat pat in
       Re.matches re s
-    with Re__Perl.Parse_error -> raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
+    with Re__Perl.Parse_error | Re__Perl.Not_supported->
+      raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
 
   let re_match s pat =
     let ms = find_all s pat in
