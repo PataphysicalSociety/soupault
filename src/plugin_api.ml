@@ -155,10 +155,17 @@ let soup_of_lua l =
   let v = HtmlT.makemap I.Value.userdata I.Value.projection in
   v.project l
 
-let run_plugin lua_str _ _ soup =
+let run_plugin lua_code env _ soup =
+  let open Defaults in
+  let lua_str_list = I.Value.list I.Value.string in
+  let lua_str = I.Value.string in
   try
     let state = I.mk () in
-    let () = I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state in
-    let _ = I.dostring state lua_str in
+    let () =
+      I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state;
+      I.register_globals ["nav_path", lua_str_list.embed env.nav_path] state;
+      I.register_globals ["page_file", lua_str.embed env.page_file] state
+    in
+    let _ = I.dostring state lua_code in
     Ok ()
   with Plugin_error msg -> Error msg
