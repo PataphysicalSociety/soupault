@@ -58,5 +58,7 @@ let sort nodes =
   let remaining_ids = CCHashtbl.keys_list nodes_hash in
   match remaining_ids with
   | [] -> Ok sorted_node_ids
-  | _ -> Error "Dependency graph has a cycle"
+  | _ ->
+    Error (Printf.sprintf "Circular widget dependency or dependency on an undefined widget: %s"
+           (String.concat " " remaining_ids))
 
