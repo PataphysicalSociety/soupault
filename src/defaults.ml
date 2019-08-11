@@ -94,4 +94,4 @@ let default_settings = {
   preprocessors = []
 }
 
-let version = "1.1"
+let version = "1.2"
