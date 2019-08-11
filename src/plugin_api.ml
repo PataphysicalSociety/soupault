@@ -155,7 +155,13 @@ let soup_of_lua l =
   let v = HtmlT.makemap I.Value.userdata I.Value.projection in
   v.project l
 
-let run_plugin lua_code env _ soup =
+let lua_of_config c =
+  let cs = Config.assoc_of_table Config.get_string c in
+  let cs = List.map (fun (k, v) -> (k, I.Value.string.embed v)) cs in
+  let config_hash = I.Value.Table.of_list cs in
+  I.Value.table.embed config_hash
+
+let run_plugin lua_code env config soup =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
@@ -164,7 +170,8 @@ let run_plugin lua_code env _ soup =
     let () =
       I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state;
       I.register_globals ["nav_path", lua_str_list.embed env.nav_path] state;
-      I.register_globals ["page_file", lua_str.embed env.page_file] state
+      I.register_globals ["page_file", lua_str.embed env.page_file] state;
+      I.register_globals ["config", lua_of_config config] state
     in
     let _ = I.dostring state lua_code in
     Ok ()

@@ -1,10 +1,22 @@
 -- Replaces relative URLs with absolute
 -- e.g. "/about" -> "https://www.example.com/about"
+--
+-- To run it, you need to add something like this to soupault.conf:
+-- [plugins.site-url]
+--   file = "plugins/site-url.lua"
+-- [widgets.set-site-url]
+--   widget = "site-url"
+--   site_url = "https://www.example.com"
 
 -- Configuration
-site_url = "https://www.example.com"
+site_url = config["site_url"]
 
 -- Plugin code
+
+if not site_url then
+  print("Warning: site_url is not configured, using default")
+  site_url = ""
+end
 
 if not Regex.match(site_url, "(.*)/$") then
   site_url = site_url .. "/"
