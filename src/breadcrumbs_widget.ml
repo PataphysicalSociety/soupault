@@ -40,6 +40,9 @@ let check_breadcrumb_template tmpl_str =
   | None -> Error (Printf.sprintf "No <a> elements in breadcrumb template \"%s\", nowhere to set the link target" tmpl_str)
 
 let breadcrumbs env config soup =
+  let valid_options = List.append Config.common_widget_options
+    ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"] in
+  let () = Config.check_options valid_options config "widget \"breadcrumbs\"" in
   let min_depth = Config.get_int_default 1 "min_depth" config in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   match selector with

@@ -23,6 +23,26 @@ let config_exists file =
     let () = Logs.warn @@ fun m -> m "Could not check if config file %s exists: %s" file msg in
     exit 1
 
+let common_widget_options = [
+  "widget";
+  "path_regex"; "exclude_path_regex";
+  "page"; "exclude_page";
+  "section"; "exclude_section";
+  "after"
+]
+
+let bad_option_msg opt ident =
+  Printf.sprintf "Option %s is not valid for %s" opt ident
+
+(** Checks for invalid config options *)
+let check_options ?(fmt=bad_option_msg) valid_options config ident =
+  let check_option valid_options opt =
+    if not (List.exists ((=) opt) valid_options)
+    then Logs.warn @@ fun m -> m "%s" (fmt opt ident)
+  in
+  let keys = list_config_keys config in
+  List.iter (check_option valid_options) keys
+
 (** Read and parse a TOML file *)
 let read_config path =
   if not (config_exists path) then
@@ -119,11 +139,19 @@ let _get_index_queries index_table =
   | None -> []
   | Some qt -> get_queries (list_config_keys qt) qt []
 
+let valid_index_options = [
+  "index"; "dump_json";
+  "index_selector"; "index_title_selector"; "index_excerpt_selector";
+  "index_date_selector"; "index_author_selector";
+  "index_date_format"; "index_item_template"; "index_processor"
+]
+
 let _get_index_settings settings config =
   let st = get_table Defaults.index_settings_table config in
   match st with
   | None -> settings
   | Some st ->
+    let () = check_options valid_index_options st "table \"index\"" in
     {settings with
        index = get_bool_default settings.index "index" st;
        dump_json = get_string "dump_json" st;
@@ -138,13 +166,20 @@ let _get_index_settings settings config =
        index_custom_fields = _get_index_queries st;
     }
 
+let valid_settings = [
+  "verbose"; "strict"; "site_dir"; "build_dir";
+  "content_selector"; "doctype"; "index_page"; "index_file";
+  "default_template"; "clean_urls"; "page_file_extensions"
+]
+
 let _update_settings settings config =
   let st = get_table Defaults.settings_table config in
   match st with
   | None ->
-     let () = Logs.warn @@ fun m -> m "Could not find the [settings] table in the config, using defaults" in
+     let () = Logs.warn @@ fun m -> m "Could not find the [settings] section in the config, using defaults" in
      settings
   | Some st ->
+    let () = check_options valid_settings st "table \"settings\"" in
     {default_settings with
        verbose = get_bool_default settings.verbose "verbose" st;
        strict = get_bool_default settings.strict "strict" st;
@@ -161,9 +196,13 @@ let _update_settings settings config =
        preprocessors = _get_preprocessors config
      }
 
+let valid_tables = ["settings"; "index"; "plugins"; "widgets"]
+
 let update_settings settings config =
   match config with
   | None -> settings
   | Some config ->
+    let fmt = fun tbl _ -> Printf.sprintf "\"%s\" is not a valid config section" tbl in
+    let () = check_options ~fmt:fmt valid_tables config "table \"settings\"" in
     let settings = _update_settings settings config in
     _get_index_settings settings config

@@ -13,6 +13,8 @@ let set_title _ config soup =
       title
   in
   (* Retrieve config options. The "selector" option means title source element, by default the first <h1> *)
+  let valid_options = List.append Config.common_widget_options ["selector"; "default"; "prepend"; "append"] in
+  let () = Config.check_options valid_options config "widget \"title\"" in
   let selectors = Config.get_strings_relaxed ~default:["h1"] "selector" config in
   let prepend = Config.get_string_default "" "prepend" config in
   let append = Config.get_string_default "" "append" config in

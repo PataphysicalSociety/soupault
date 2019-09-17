@@ -21,6 +21,7 @@ let rec _load_plugins ps config hash =
   | [] -> Ok ()
   | p :: ps' ->
     let plugin_cfg = get_plugin_config config p in
+    let () = Config.check_options ["file"] plugin_cfg "a plugin config" in
     let file = Config.get_string "file" plugin_cfg in
     begin
       match file with

@@ -114,6 +114,12 @@ let rec _make_toc settings counter soup container cur_level headings =
     end
 
 let toc _ config soup =
+  let valid_options = List.append Config.common_widget_options
+    ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
+     "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append";
+     "use_heading_text"; "use_heading_slug"; "use_header_text"; "use_header_slug"]
+  in
+  let () = Config.check_options valid_options config "widget \"toc\"" in
   let settings = {
     min_level = Config.get_int_default 1 "min_level" config;
     max_level = Config.get_int_default 6 "max_level" config;

@@ -5,6 +5,8 @@ open Defaults
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
 let insert_html _ config soup =
+  let valid_options = List.append Config.common_widget_options ["selector"; "html"] in
+  let () = Config.check_options valid_options config "widget \"insert_html\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   match selector with
   | Error _ as e -> e
@@ -23,6 +25,8 @@ let insert_html _ config soup =
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
 let include_file _ config soup =
+  let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"] in
+  let () = Config.check_options valid_options config "widget \"include\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   match selector with
   | Error _ as e -> e
@@ -51,6 +55,8 @@ let make_program_env env =
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
 let include_program_output env config soup =
+  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"] in
+  let () = Config.check_options valid_options config "widget \"exec\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   match selector with
   | Error _ as e -> e

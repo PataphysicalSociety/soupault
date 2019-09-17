@@ -2,6 +2,8 @@
 
 (** Deletes an element from the tree *)
 let delete_element _ config soup =
+  let valid_options = List.append Config.common_widget_options ["selector"; "only_if_empty"] in
+  let () = Config.check_options valid_options config "widget \"delete_element\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let when_empty = Config.get_bool_default false "only_if_empty" config in
   match selector with
