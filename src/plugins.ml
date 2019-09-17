@@ -42,7 +42,7 @@ let get_plugins config =
   | None -> Ok hash
   | Some config ->
     let plugins = list_plugins config in
-    let%m () = _load_plugins plugins config hash in
+    let%bind () = _load_plugins plugins config hash in
     Ok hash
 
   

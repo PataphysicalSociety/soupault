@@ -15,7 +15,7 @@ let insert_html _ config soup =
       match container with
       | None -> Ok ()
       | Some container ->
-        let%m html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
+        let%bind html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
         let () = Soup.append_child container (Soup.parse html_str)
         in Ok ()
     end
@@ -33,9 +33,9 @@ let include_file _ config soup =
       match container with
       | None -> Ok ()
       | Some container ->
-        let%m file = Config.get_string_result "Missing required option \"file\"" "file" config in
+        let%bind file = Config.get_string_result "Missing required option \"file\"" "file" config in
         let parse_content = Config.get_bool_default true "parse" config in
-        let%m content = Utils.get_file_content file in
+        let%bind content = Utils.get_file_content file in
         let () =
           if parse_content then Soup.append_child container (Soup.parse content)
           else Soup.append_child container (Soup.create_text content)
@@ -63,8 +63,8 @@ let include_program_output env config soup =
       | Some container ->
         let env_array = make_program_env env in
         let parse_content = Config.get_bool_default true "parse" config in
-        let%m cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
-        let%m content = Utils.get_program_output cmd env_array in
+        let%bind cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
+        let%bind content = Utils.get_program_output cmd env_array in
         let () =
           if parse_content then Soup.append_child container (Soup.parse content)
           else Soup.append_child container (Soup.create_text content)

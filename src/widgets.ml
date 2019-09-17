@@ -79,8 +79,8 @@ let load_widgets config plugins =
 
 let get_widgets config plugins =
   let bind = CCResult.(>>=) in
-  let%m wh = load_widgets config plugins in
-  let%m wo = get_widget_order wh in
+  let%bind wh = load_widgets config plugins in
+  let%bind wo = get_widget_order wh in
   Ok (wo, wh)
 
 (** Check if a widget should run or not.

@@ -180,7 +180,7 @@ let process_page env index widgets config settings target_dir =
   let page_name = FP.basename env.page_file |> FP.chop_extension in
   (* If clean URLs are used, make_page_dir creates one,
      if not, just returns the current dir *)
-  let%m target_dir = make_page_dir settings target_dir page_name in
+  let%bind target_dir = make_page_dir settings target_dir page_name in
   let target_file =
     if settings.clean_urls then (target_dir +/ settings.index_file)
     (* If clean URLs aren't used, keep the original extension *)
@@ -189,11 +189,11 @@ let process_page env index widgets config settings target_dir =
   let env = {env with nav_path = (fix_nav_path settings env.nav_path page_name)} in
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let html = Soup.parse env.template in
-  let%m () = include_content settings html env.page_file in
+  let%bind () = include_content settings html env.page_file in
   let widgets, widget_hash = widgets in
-  let%m () = process_widgets settings env widgets widget_hash config html in
+  let%bind () = process_widgets settings env widgets widget_hash config html in
   (* Section index injection *)
-  let%m () =
+  let%bind () =
     if not settings.index then Ok () else
     let url = make_page_url settings env.nav_path env.page_file in
     (* Section index is inserted only into the index page *)
@@ -201,7 +201,7 @@ let process_page env index widgets config settings target_dir =
     then let () = index := (Autoindex.get_entry settings url env.nav_path html) :: !index  in Ok ()
     else insert_index settings html !index
   in
-  let%m () = save_html settings html target_file in
+  let%bind () = save_html settings html target_file in
   Ok ()
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
@@ -249,8 +249,8 @@ let rec process_dir env index widgets config settings base_src_dir base_dst_dir 
   let pages = reorder_pages settings pages in
   let () = FU.mkdir ~parent:true dst_path in
   let dirs = List.map (FP.basename) (list_dirs src_path) in
-  let%m () = Utils.iter (_process_page env section_index widgets config settings dst_path) pages in
-  let%m () = Utils.cp assets dst_path in
+  let%bind () = Utils.iter (_process_page env section_index widgets config settings dst_path) pages in
+  let%bind () = Utils.cp assets dst_path in
   let () = save_index settings section_index index in
   Utils.iter (process_dir env index widgets config settings src_path dst_path) dirs
 
@@ -282,13 +282,13 @@ let check_project_dir settings =
 let initialize () =
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose in
-  let%m config = Config.read_config Defaults.config_file in
+  let%bind config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
-  let%m settings = get_args settings in
+  let%bind settings = get_args settings in
   let () = check_project_dir settings in
-  let%m plugins = Plugins.get_plugins config in
-  let%m widgets = Widgets.get_widgets config plugins in
-  let%m default_template_str = Utils.get_file_content settings.default_template in
+  let%bind plugins = Plugins.get_plugins config in
+  let%bind widgets = Widgets.get_widgets config plugins in
+  let%bind default_template_str = Utils.get_file_content settings.default_template in
   let default_env = {template=default_template_str; nav_path=[]; page_file=""} in
   Ok (config, widgets, settings, default_env)
 
@@ -300,12 +300,12 @@ let dump_index_json settings index =
     with Sys_error e -> Error e
   
 let main () =
-  let%m config, widgets, settings, default_env = initialize () in
+  let%bind config, widgets, settings, default_env = initialize () in
   let () = setup_logging settings.verbose in
-  let%m () = make_build_dir settings.build_dir in
+  let%bind () = make_build_dir settings.build_dir in
   let index = ref [] in
-  let%m () = process_dir default_env index widgets config settings settings.site_dir settings.build_dir "" in
-  let%m () = dump_index_json settings !index in
+  let%bind () = process_dir default_env index widgets config settings settings.site_dir settings.build_dir "" in
+  let%bind () = dump_index_json settings !index in
   return ()
 
 let () =

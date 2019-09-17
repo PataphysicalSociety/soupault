@@ -13,4 +13,4 @@
    calendar
    yojson
    lua-ml)
- (preprocess (pps ppx_monadic)))
+ (preprocess (pps ocaml-monadic)))

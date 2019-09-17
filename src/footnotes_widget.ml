@@ -81,10 +81,10 @@ let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container 
 (** Footnotes widget wrapper *)
 let footnotes _ config soup =
   let bind = CCResult.(>>=) in
-  let%m selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let%bind selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let note_selector = Config.get_strings_relaxed ~default:[".footnote"] "footnote_selector" config in
-  let%m ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Utils.check_template "*" in
-  let%m note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
+  let%bind ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Utils.check_template "*" in
+  let%bind note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
   let fn_link_class = Config.get_string "footnote_link_class" config in
   let back_links = Config.get_bool_default true "back_links" config in
   let container = Soup.select_one selector soup in
