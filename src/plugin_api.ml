@@ -20,6 +20,12 @@ module Re_wrapper = struct
     List.length ms != 0
 end
 
+module Log = struct
+  let info s = Logs.info @@ fun m -> m "%s" s
+  let warning s = Logs.warn @@ fun m -> m "%s" s
+  let error s = Logs.err @@ fun m -> m "%s" s
+end
+
 module Html = struct
   type soup_wrapper = 
     | GeneralNode of Soup.general Soup.node
@@ -128,6 +134,12 @@ struct
           (Re_wrapper.replace ~all:true);
         "find_all", V.efunc (V.string **-> V.string **->> (V.list V.string)) Re_wrapper.find_all;
         "match", V.efunc (V.string **-> V.string **->> V.bool) Re_wrapper.re_match
+      ] g;
+
+      C.register_module "Log" [
+        "info", V.efunc (V.string **->> V.unit) Log.info;
+        "warning", V.efunc (V.string **->> V.unit) Log.warning;
+        "error", V.efunc (V.string **->> V.unit) Log.error
       ] g
   end (* M *)
 end (* MakeLib *)
