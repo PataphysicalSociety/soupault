@@ -1,15 +1,36 @@
 (* Footnotes *)
 
-(** Gets, or makes a unique id for a footnote.
+(** Makes a unique id for a footnote element--
+    the footnote text that is taken out of the document body and
+    moved to a designated footnotes container.
 
     If a footnote element already has an id, uses it,
     if not, uses "footnote-$num".
+
+    If the prepend option is configured, prepends it to the id
+    to create a footnotes "namespace", e.g. "fn-my-footnote".
  *)
-let make_footnote_id el num =
+let make_footnote_id ?(prepend="") el num =
   let el_id = Soup.attribute "id" el in
   match el_id with
-  | Some el_id -> el_id
+  | Some el_id -> Printf.sprintf "%s%s" prepend el_id
   | None -> Printf.sprintf "footnote-%d" num
+
+(** Makes a unique id for the footnote reference element
+    (the one the original footnote text is replaced with)
+    for jumping from the footnote back to the paragraph
+    that refers to it.
+
+    If a footnote element has an id, appends some text to it ("-ref" by default)
+    to make it different from the footnote id.
+    If the prepend option is configured, it also prepends that text
+    to the id, e.g. "fn-my-footnote-ref".
+ *)
+let make_backlink_id ?(append="-ref") ?(prepend="") el num =
+  let el_id = Soup.attribute "id" el in
+  match el_id with
+  | Some el_id -> Printf.sprintf "%s%s%s" prepend el_id append
+  | None -> Printf.sprintf "footnote-ref-%d" num
 
 (** Creates a footnote reference number element --
     what appears in front of the footnote at the end of the document.
@@ -54,13 +75,13 @@ let make_footnote_wrapper note_tmpl fn_id =
 
 (** Moves footnotes from the document text to a container element
     and replaces them with links *)
-let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container num =
+let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container append prepend num =
   match notes with
   | [] -> ()
   | n :: ns ->
     let num = num + 1 in
-    let fn_id = make_footnote_id n num in
-    let backlink_id = Printf.sprintf "footnote-ref-%d" num in
+    let fn_id = make_footnote_id ~prepend:prepend n num in
+    let backlink_id = make_backlink_id ~append:append ~prepend:prepend n num in
     (* Create the footnote link that will replace the original footnote element *)
     let fn_link = make_footnote_link back_links backlink_id link_class ref_tmpl fn_id num in
     (* Insert the anchor before the original footnote element *)
@@ -76,13 +97,13 @@ let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container 
       Soup.iter (Soup.append_child fn_wrapper) (Soup.children n);
       Soup.append_child container fn_wrapper;
       Soup.delete n
-    in move_footnotes link_class back_links ref_tmpl note_tmpl ns container num
+    in move_footnotes link_class back_links ref_tmpl note_tmpl ns container append prepend num
 
 (** Footnotes widget wrapper *)
 let footnotes _ config soup =
   let bind = CCResult.(>>=) in
   let valid_options = List.append Config.common_widget_options
-    ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class"; "back_links"] in
+    ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class"; "back_links"; "back_link_id_append"; "link_id_prepend"] in
   let () = Config.check_options valid_options config "widget \"footnotes\"" in
   let%bind selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let note_selector = Config.get_strings_relaxed ~default:[".footnote"] "footnote_selector" config in
@@ -90,10 +111,12 @@ let footnotes _ config soup =
   let%bind note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
   let fn_link_class = Config.get_string "footnote_link_class" config in
   let back_links = Config.get_bool_default true "back_links" config in
+  let back_link_append = Config.get_string_default "-ref" "back_link_id_append" config in
+  let link_prepend = Config.get_string_default "" "link_id_prepend" config in
   let container = Soup.select_one selector soup in
   match container with
   | None -> Ok ()
   | Some container ->
     let notes = Utils.select_all note_selector soup in
-    Ok (move_footnotes fn_link_class back_links ref_tmpl note_tmpl notes container 0)
+    Ok (move_footnotes fn_link_class back_links ref_tmpl note_tmpl notes container back_link_append link_prepend 0)
 
