@@ -1,15 +1,15 @@
 (* Footnotes *)
 
-(** Gets, or makes a unique id for a footnote "back link".
+(** Gets, or makes a unique id for a footnote.
 
     If a footnote element already has an id, uses it,
-    if not, uses "footnote-ref-$num".
+    if not, uses "footnote-$num".
  *)
-let get_backlink_id el num =
+let make_footnote_id el num =
   let el_id = Soup.attribute "id" el in
   match el_id with
   | Some el_id -> el_id
-  | None -> Printf.sprintf "footnote-ref-%d" num
+  | None -> Printf.sprintf "footnote-%d" num
 
 (** Creates a footnote reference number element --
     what appears in front of the footnote at the end of the document.
@@ -59,8 +59,8 @@ let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container 
   | [] -> ()
   | n :: ns ->
     let num = num + 1 in
-    let fn_id = Printf.sprintf "footnote-%d" num in
-    let backlink_id = get_backlink_id n num in
+    let fn_id = make_footnote_id n num in
+    let backlink_id = Printf.sprintf "footnote-ref-%d" num in
     (* Create the footnote link that will replace the original footnote element *)
     let fn_link = make_footnote_link back_links backlink_id link_class ref_tmpl fn_id num in
     (* Insert the anchor before the original footnote element *)
