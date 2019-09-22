@@ -35,8 +35,8 @@ let bad_option_msg opt ident suggestion =
   let suggestion_msg =
     (match suggestion with
     | None -> ""
-    | Some s -> Printf.sprintf ". Did you mean \"%s\"?" s)
-  in Printf.sprintf "Option \"%s\" is not valid for %s%s" opt ident suggestion_msg
+    | Some s -> Printf.sprintf "Did you mean \"%s\"?" s)
+  in Printf.sprintf "Option \"%s\" is not valid for %s. %s" opt ident suggestion_msg
 
 (** Checks for invalid config options *)
 let check_options ?(fmt=bad_option_msg) valid_options config ident =
