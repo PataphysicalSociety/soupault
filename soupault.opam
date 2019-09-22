@@ -33,5 +33,6 @@ depends: [
   "containers"
   "stringext"
   "calendar"
+  "spelll"
   "lua-ml"
 ]

@@ -31,14 +31,20 @@ let common_widget_options = [
   "after"
 ]
 
-let bad_option_msg opt ident =
-  Printf.sprintf "Option %s is not valid for %s" opt ident
+let bad_option_msg opt ident suggestion =
+  let suggestion_msg =
+    (match suggestion with
+    | None -> ""
+    | Some s -> Printf.sprintf "Did you mean \"%s\"?" s)
+  in Printf.sprintf "Option %s is not valid for %s %s" opt ident suggestion_msg
 
 (** Checks for invalid config options *)
 let check_options ?(fmt=bad_option_msg) valid_options config ident =
   let check_option valid_options opt =
-    if not (List.exists ((=) opt) valid_options)
-    then Logs.warn @@ fun m -> m "%s" (fmt opt ident)
+    if not (List.exists ((=) opt) valid_options) then
+    let index = Spellcheck.make_index valid_options in
+    let suggestion = Spellcheck.get_suggestion index opt in
+    Logs.warn @@ fun m -> m "%s" (fmt opt ident suggestion)
   in
   let keys = list_config_keys config in
   List.iter (check_option valid_options) keys
@@ -199,10 +205,17 @@ let _update_settings settings config =
 let valid_tables = ["settings"; "index"; "plugins"; "widgets"]
 
 let update_settings settings config =
+  let bad_section_msg tbl _ suggestion =
+    (* Yay, duplicate code! *)
+    let suggestion_msg =
+      (match suggestion with
+      | None -> ""
+      | Some s -> Printf.sprintf "Did you mean [%s]?" s)
+    in Printf.sprintf "[%s] is not a valid config section. %s" tbl suggestion_msg
+  in
   match config with
   | None -> settings
   | Some config ->
-    let fmt = fun tbl _ -> Printf.sprintf "\"%s\" is not a valid config section" tbl in
-    let () = check_options ~fmt:fmt valid_tables config "table \"settings\"" in
+    let () = check_options ~fmt:bad_section_msg valid_tables config "table \"settings\"" in
     let settings = _update_settings settings config in
     _get_index_settings settings config

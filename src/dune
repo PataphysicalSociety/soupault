@@ -12,5 +12,6 @@
    re
    calendar
    yojson
+   spelll
    lua-ml)
  (preprocess (pps ocaml-monadic)))
