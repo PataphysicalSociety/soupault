@@ -35,7 +35,7 @@ let default_config = "
 
   clean_urls = true
 
-  page_extensions = [\"htm\", \"html\", \"md\", \"rst\"]
+  page_extensions = [\"htm\", \"html\", \"md\", \"rst\", \"adoc\"]
 "
 
 let init settings  =
