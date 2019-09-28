@@ -38,6 +38,7 @@ let list_section_files settings path =
   page_files, other_files
 
 let make_build_dir build_dir =
+  if (FU.test FU.Exists build_dir) then Ok () else
   let () = Logs.info @@ fun m -> m "Build directory \"%s\" does not exist, creating" build_dir in
   try
     let () = FU.mkdir build_dir in Ok ()
