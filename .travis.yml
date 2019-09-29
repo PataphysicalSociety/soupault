@@ -3,7 +3,7 @@ os: osx
 language: generic
 
 env:
-  - SWITCH=4.07.1
+  - SWITCH=4.09.0
 
 before_script:
   - set -e
