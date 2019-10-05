@@ -22,7 +22,7 @@ let get_program_output ?(input=None) command env_array =
     match input with
     | None -> ()
     | Some i ->
-      let () = Logs.debug @@ fun m -> m "JSON index data: %s" i in
+      let () = Logs.debug @@ fun m -> m "Data sent to program \"%s\": %s" command i in
       Printf.fprintf std_in "%s\n%!" i
   in
   let output = Soup.read_channel std_out in
