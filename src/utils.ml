@@ -27,7 +27,7 @@ let get_program_output ?(input=None) command env_array =
   let res = Unix.close_process_full (std_out, std_in, std_err) in
   match res with
   | Unix.WEXITED 0 -> Ok output
-  | _ -> Error (Printf.sprintf "Failed to execute \"%s\": %s" command err)
+  | _ -> Error (Printf.sprintf "Failed to execute \"%s\": %s%s" command output err)
 
 (** Exception-safe list tail function that assumes that empty list's
     tail is an empty list. Used for breadcrumbs. *)
