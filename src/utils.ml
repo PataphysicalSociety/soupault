@@ -13,10 +13,7 @@ let get_program_output ?(input=None) command env_array =
   (* On Windows, child process environment is completely overwritten
      if you use open_process_full, so we add %PATH% by hand here to allow
      calling external programs *)
-  let env_array =
-    if Sys.os_type = "Win32" then Array.append env_array [|("PATH=" ^ Unix.getenv "PATH")|]
-    else env_array
-  in
+  let env_array = Array.append (Unix.environment ()) env_array in
   let std_out, std_in, std_err = Unix.open_process_full command env_array in
   let () =
     match input with
