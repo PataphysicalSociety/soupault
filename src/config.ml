@@ -146,7 +146,7 @@ let _get_index_queries index_table =
   | Some qt -> get_queries (list_config_keys qt) qt []
 
 let valid_index_options = [
-  "index"; "dump_json";
+  "index"; "dump_json"; "newest_entries_first";
   "index_selector"; "index_title_selector"; "index_excerpt_selector";
   "index_date_selector"; "index_author_selector";
   "index_date_format"; "index_item_template"; "index_processor"
@@ -161,6 +161,7 @@ let _get_index_settings settings config =
     {settings with
        index = get_bool_default settings.index "index" st;
        dump_json = get_string "dump_json" st;
+       newest_entries_first = get_bool_default settings.newest_entries_first "newest_entries_first" st;
        index_selector = get_string_default settings.index_selector "index_selector" st;
        index_title_selector = get_strings_relaxed ~default:settings.index_title_selector "index_title_selector" st;
        index_excerpt_selector = get_strings_relaxed ~default:settings.index_excerpt_selector "index_excerpt_selector" st;

@@ -41,7 +41,7 @@ let get_entry settings url nav_path soup =
 (** Compares entries by their dates according to these rules:
     1. Entries without known dates are equal
     2. Entries with a known date are newer than those without
-    3. Of entries with known dated, ones with a later date are newer (who could guess!)
+    3. Of entries with known dates, ones with later dates are newer (who could guess!)
   *)
 let compare_entries settings l r =
   let (>>=) = CCOpt.(>>=) in
@@ -53,14 +53,18 @@ let compare_entries settings l r =
       let () = Logs.warn @@ fun m -> m "Could not parse date: %s" msg in
       None
   in
+  let compare_dates l_date r_date =
+    match l_date, r_date with
+    | None, None -> 0
+    | Some _, None -> 1
+    | None, Some _ -> -1
+    | Some l_date, Some r_date ->
+      CalendarLib.Date.compare l_date r_date
+  in
   let l_date = get_date l in
   let r_date = get_date r in
-  match l_date, r_date with
-  | None, None -> 0
-  | Some _, None -> 1
-  | None, Some _ -> -1
-  | Some l_date, Some r_date ->
-    CalendarLib.Date.compare l_date r_date
+  let result = compare_dates l_date r_date in
+  if settings.newest_entries_first then (~- result) else result
 
 let make_title_link entry =
   match entry.title with

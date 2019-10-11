@@ -41,6 +41,7 @@ type settings = {
 
   index : bool;
   dump_json : string option;
+  newest_entries_first : bool;
   index_selector : string;
   index_title_selector : string list;
   index_excerpt_selector : string list;
@@ -81,6 +82,7 @@ let default_settings = {
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
   index = false;
   dump_json = None;
+  newest_entries_first = false;
   index_selector = "body";
   index_title_selector = ["h1"];
   index_excerpt_selector = ["p"];
