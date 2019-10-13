@@ -7,7 +7,7 @@ the French dadaist and surrealist poet Philippe Soupault.
 
 In a startup pitch style, it's a website generator for Markdown haters.
 
-Visit https://baturin.org/projects/soupault for documentation.
+Visit https://soupault.neocities.org for details.
 
 ## Building from source
 
