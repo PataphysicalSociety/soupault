@@ -27,15 +27,27 @@ let default_page = "
 "
 
 let default_config = "
-# To learn about configuring soupalt, visit https://soupault.neocities.org
+# To learn about configuring soupalt, visit https://soupault.neocities.org/reference-manual
 [settings]
+  # Stop on page processing errors?
   strict = true
+
+  # Display progress?
   verbose = false
 
+  # Display detailed debug output?
+  debug = false
+
+  # Where to output pages
   build_dir = \"build\"
+
+  # Where page content files are stored
   site_dir = \"site\"
 
+  # Where page template is stored
   default_template = \"templates/main.html\"
+
+  # Where to insert the page content inside the template
   content_selector = \"body\"
 
   doctype = \"<!DOCTYPE html>\"
