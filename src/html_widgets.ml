@@ -12,9 +12,13 @@ let delete_element _ config soup =
     let container = Soup.select_one selector soup in
     begin
       match container with
-      | None -> Ok ()
+      | None ->
+        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nothing to delete" selector in
+        Ok ()
       | Some container ->
-        if not (Utils.is_empty container) && when_empty then Ok ()
+        if not (Utils.is_empty container) && when_empty then
+          let () = Logs.debug @@ fun m -> m "Element matching selector \"%s\" is not empty, configured to delete only when empty" selector in
+          Ok ()
         else Ok (Soup.delete container)
     end
 

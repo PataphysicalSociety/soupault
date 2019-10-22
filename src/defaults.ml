@@ -6,8 +6,11 @@ type index_field = {
 }
 
 type settings = {
-  (** show debug information *)
+  (** show processing steps *)
   verbose : bool;
+
+  (** show debug information *)
+  debug : bool;
 
   (** stop on page processing errors *)
   strict : bool;
@@ -70,6 +73,7 @@ let plugins_table = "plugins"
 
 let default_settings = {
   verbose = false;
+  debug = false;
   strict = true;
   doctype = "<!DOCTYPE html>";
   build_dir = "build";

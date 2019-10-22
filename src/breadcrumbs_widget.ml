@@ -52,7 +52,9 @@ let breadcrumbs env config soup =
     let bind = CCResult.(>>=) in
     begin
       match container with
-      | None -> Ok ()
+      | None ->
+        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the breadcrumbs" selector in
+        Ok ()
       | Some container ->
         let path_length = List.length env.nav_path in
         if path_length < min_depth then Ok () else
@@ -65,4 +67,3 @@ let breadcrumbs env config soup =
 
         let () = Soup.append_child container breadcrumbs in Ok ()
     end
-

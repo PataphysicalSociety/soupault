@@ -174,7 +174,7 @@ let _get_index_settings settings config =
     }
 
 let valid_settings = [
-  "verbose"; "strict"; "site_dir"; "build_dir";
+  "verbose"; "debug"; "strict"; "site_dir"; "build_dir";
   "content_selector"; "doctype"; "index_page"; "index_file";
   "default_template"; "clean_urls"; "page_file_extensions"
 ]
@@ -189,6 +189,7 @@ let _update_settings settings config =
     let () = check_options valid_settings st "table \"settings\"" in
     {default_settings with
        verbose = get_bool_default settings.verbose "verbose" st;
+       debug = get_bool_default settings.debug "debug" st;
        strict = get_bool_default settings.strict "strict" st;
        site_dir = get_string_default settings.site_dir "site_dir" st;
        build_dir = get_string_default settings.build_dir "build_dir" st;

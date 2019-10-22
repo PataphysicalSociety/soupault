@@ -23,7 +23,7 @@ let set_title _ config soup =
   let title_node = Soup.select_one "title" soup in
   match title_node with
   | None ->
-    let () = Logs.info @@ fun m -> m "Page has no <title> node, assuming you don't want to set it" in
+    let () = Logs.debug @@ fun m -> m "Page has no <title> node, assuming you don't want to set it" in
     Ok ()
   | Some title_node ->
     let title_string =

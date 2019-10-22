@@ -114,7 +114,7 @@ let widget_should_run config site_dir page_file =
     match matches with
     | Ok ms -> List.length ms <> 0
     | Error msg ->
-      let () = Logs.warn @@ fun m -> m "Could not check regex, assuming false: %s" msg in
+      let () = Logs.warn @@ fun m -> m "Failed to execute a regex check (malformed regex?), assuming false: %s" msg in
       false
   in
   let pages = Config.get_strings_relaxed "page" config in
@@ -126,7 +126,7 @@ let widget_should_run config site_dir page_file =
   if (List.exists (regex_matches page_file) regex_exclude) ||
      (List.exists (page_matches page_file) pages_exclude)  ||
      (List.exists (section_matches page_file) sections_exclude)
-  then let () = Logs.info @@ fun m -> m "Page excluded, not running the widget" in false
+  then let () = Logs.debug @@ fun m -> m "Page excluded by a page/section/regex option, not running the widget" in false
   else match pages, sections, regex with
   | [], [], [] -> true
   | _, _, _ ->
@@ -137,5 +137,5 @@ let widget_should_run config site_dir page_file =
     in
     let () =
       if not should_run then
-      Logs.info @@ fun m -> m "Page doesn't match any options, not running the widget"
+      Logs.debug @@ fun m -> m "Page does not match any of the page/section/regex options, not running the widget"
     in should_run

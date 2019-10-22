@@ -115,7 +115,9 @@ let footnotes _ config soup =
   let link_prepend = Config.get_string_default "" "link_id_prepend" config in
   let container = Soup.select_one selector soup in
   match container with
-  | None -> Ok ()
+  | None ->
+    let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the footnotes" selector in
+    Ok ()
   | Some container ->
     let notes = Utils.select_all note_selector soup in
     Ok (move_footnotes fn_link_class back_links ref_tmpl note_tmpl notes container back_link_append link_prepend 0)

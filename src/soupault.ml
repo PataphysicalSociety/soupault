@@ -18,8 +18,12 @@ let pp_header ppf (l, h) =
 
 let log_reporter = Logs.format_reporter ~pp_header:pp_header  ()
 
-let setup_logging verbose =
-  let level = if verbose then Logs.Info else Logs.Warning in
+let setup_logging verbose debug =
+  let level =
+    if debug then Logs.Debug
+    else if verbose then Logs.Info
+    else Logs.Warning
+  in
   Logs.set_level (Some level);
   Logs.set_reporter log_reporter
 
@@ -261,15 +265,17 @@ let get_args settings =
   let init = ref false in
   let strict = ref settings.strict in
   let verbose = ref settings.verbose in
+  let debug = ref settings.debug in
   let args = [
     ("--init", Arg.Unit (fun () -> init := true), "Setup basic directory structure");
     ("--verbose", Arg.Unit (fun () -> verbose := true), "Verbose output");
+    ("--debug", Arg.Unit (fun () -> debug := true), "Debug output");
     ("--strict", Arg.Bool (fun s -> strict := s), "<true|false> Stop on page processing errors or not");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
   let () = Arg.parse args (fun _ -> ()) usage in
-  let settings = {settings with verbose = !verbose; strict = !strict} in
+  let settings = {settings with verbose = !verbose; debug = !debug; strict = !strict} in
   if !init then (Project_init.init settings; exit 0) else Ok settings
 
 let check_project_dir settings =
@@ -282,7 +288,7 @@ let check_project_dir settings =
 
 let initialize () =
   let settings = Defaults.default_settings in
-  let () = setup_logging settings.verbose in
+  let () = setup_logging settings.verbose settings.debug in
   let%bind config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
   let%bind settings = get_args settings in
@@ -302,7 +308,7 @@ let dump_index_json settings index =
   
 let main () =
   let%bind config, widgets, settings, default_env = initialize () in
-  let () = setup_logging settings.verbose in
+  let () = setup_logging settings.verbose settings.debug in
   let%bind () = make_build_dir settings.build_dir in
   let index = ref [] in
   let%bind () = process_dir default_env index widgets config settings settings.site_dir settings.build_dir "" in

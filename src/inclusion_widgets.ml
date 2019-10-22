@@ -15,7 +15,9 @@ let insert_html _ config soup =
     let bind = CCResult.(>>=) in
     begin
       match container with
-      | None -> Ok ()
+      | None ->
+        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the snippet" selector in
+        Ok ()
       | Some container ->
         let%bind html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
         let () = Soup.append_child container (Soup.parse html_str)
@@ -35,7 +37,9 @@ let include_file _ config soup =
     let bind = CCResult.(>>=) in
     begin
       match container with
-      | None -> Ok ()
+      | None ->
+        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the file" selector in
+        Ok ()
       | Some container ->
         let%bind file = Config.get_string_result "Missing required option \"file\"" "file" config in
         let parse_content = Config.get_bool_default true "parse" config in
@@ -65,7 +69,9 @@ let include_program_output env config soup =
     let bind = CCResult.(>>=) in
     begin
       match container with
-      | None -> Ok ()
+      | None ->
+        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the script output" selector in
+        Ok ()
       | Some container ->
         let env_array = make_program_env env in
         let parse_content = Config.get_bool_default true "parse" config in

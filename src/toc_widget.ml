@@ -141,13 +141,18 @@ let toc _ config soup =
   match selector with
   | Error _ as e -> e
   | Ok selector ->
-    let container = Soup.select_one selector soup in
-    if CCOpt.is_none container then Ok () else
-    let container = Utils.unwrap_option container in
     begin
-      let counter = make_counter 0 in
-      let toc_container = make_toc_container settings settings.min_level in
-      let headings = find_headings soup in
-      let _ = _make_toc settings counter soup toc_container settings.min_level headings in
-      Ok (Soup.append_child container toc_container)
+      let container = Soup.select_one selector soup in
+      match container with
+      | None ->
+        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the ToC" selector in
+        Ok ()
+      | Some container ->
+      begin
+        let counter = make_counter 0 in
+        let toc_container = make_toc_container settings settings.min_level in
+        let headings = find_headings soup in
+        let _ = _make_toc settings counter soup toc_container settings.min_level headings in
+        Ok (Soup.append_child container toc_container)
+      end
     end
