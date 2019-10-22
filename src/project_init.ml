@@ -9,18 +9,25 @@ let replace_newlines s =
   else s
 
 let default_template = "
-<html>
-  <head></head>
+<html lang=\"en\">
+  <head>
+    <title> <!-- set automatically, see soupault.conf --> </title>
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+  </head>
   <body>
-  <!-- your page content here -->
+    <!-- your page content will be inserted here,
+         see the content_selector option in soupault.conf -->
   </body>
 </html>
 "
 
-let default_page = "<p>Site powered by soupault</p>\n"
+let default_page = "
+<h1>Welcome!</h1>
+<p>Welcome to my homepage. It's under construction.</p>
+"
 
 let default_config = "
-# To learn about configuring soupalt, visit https://baturin.org/projects/soupault
+# To learn about configuring soupalt, visit https://soupault.neocities.org
 [settings]
   strict = true
   verbose = false
@@ -36,7 +43,28 @@ let default_config = "
   clean_urls = true
 
   page_file_extensions = [\"htm\", \"html\", \"md\", \"rst\", \"adoc\"]
+
+# Takes the content of the first <h1> and inserts it into the <title>
+[widgets.page-title]
+  widget = \"title\"
+  selector = \"h1\"
+  default = \"My Homepage\"
+  append = \" &mdash; My Homepage\"
+
+# Inserts a generator meta tag in the page <head>
+# Just for demonstration, feel free to remove
+[widgets.generator-meta]
+  widget = \"insert_html\"
+  html = '<meta name=\"generator\" content=\"soupault 1.4\">'
+  selector = \"head\"
 "
+
+let print_end_message settings = Printf.printf "Initialization complete.
+
+Now you can adjust the page layout in %s, add pages to the %s directory,
+run soupault and find processed pages in the %s directory.\n"
+
+settings.default_template settings.site_dir settings.build_dir
 
 let init settings  =
   try
@@ -58,7 +86,7 @@ let init settings  =
     FP.dirname settings.default_template |> FU.mkdir ~parent:true;
     replace_newlines default_template |> Soup.write_file settings.default_template;
 
-    print_endline "Initialized the project directory."
+    print_end_message settings
   with Unix.Unix_error (errno, _, _) ->
     let msg = Unix.error_message errno in
     let () = Printf.printf "Could not initialize the project directory: %s" msg in
