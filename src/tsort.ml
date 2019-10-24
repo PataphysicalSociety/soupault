@@ -1,4 +1,5 @@
-(* "Isolated" nodes in this context mean nodes with no dependencies *)
+(* Finds "isolated" nodes,
+   that is, nodes that have no dependencies *)
 let find_isolated_nodes hash =
   let aux id deps acc =
     match deps with
@@ -6,11 +7,11 @@ let find_isolated_nodes hash =
     | _  -> acc
   in Hashtbl.fold aux hash []
 
-(* Removes all nodes with ids from the node list*)
+(* Takes a node name list and removes all those nodes from a hash *)
 let remove_nodes nodes hash =
   List.iter (Hashtbl.remove hash) nodes
 
-(* Walks through the hash and removes a dependency
+(* Walks through a node:dependencies hash and removes a dependency
    from all nodes that have it in their dependency lists *)
 let remove_dependency hash dep =
   let aux dep hash id =
@@ -28,7 +29,22 @@ let remove_dependency hash dep =
   let ids = CCHashtbl.keys_list hash in
   List.iter (aux dep hash) ids
 
-(** The Kahn's algorithm:
+(* Finds non-existent nodes,
+   that is, nodes that are mentiones in the value part of the assoc list,
+   but don't exist among the assoc list keys *)
+let find_nonexistent_nodes nodes =
+  let keys = List.fold_left (fun acc (k, _) -> k :: acc) [] nodes in
+  let rec find_aux ns nonexistent =
+    match ns with
+    | n :: ns ->
+      if List.exists ((=) n) keys then find_aux ns nonexistent
+      else find_aux ns (n :: nonexistent)
+    | [] -> nonexistent
+  in
+  let nonexistent = List.fold_left (fun acc (_, vs) -> List.append acc (find_aux vs [])) [] nodes in
+  CCList.uniq ~eq:(=) nonexistent
+
+(* The Kahn's algorithm:
     1. Find nodes that have no dependencies ("isolated") and remove them from the graph hash.
        Add them to the initial sorted nodes list and the list of isolated nodes for the
        first sorting pass.
@@ -39,7 +55,7 @@ let remove_dependency hash dep =
        nodes list _and_ the list of isolated nodes to use for the next step
     4. Repeat until the list of isolated nodes is empty
     5. If the graph hash is still not empty, it means there is a cycle.
- *)  
+ *)
 let sort nodes =
   let rec sorting_loop deps hash acc =
     match deps with
@@ -58,7 +74,10 @@ let sort nodes =
   let remaining_ids = CCHashtbl.keys_list nodes_hash in
   match remaining_ids with
   | [] -> Ok sorted_node_ids
-  | _ ->
-    Error (Printf.sprintf "Circular widget dependency or dependency on an undefined widget: %s"
-           (String.concat " " remaining_ids))
-
+  | _  ->
+    let nonexistent_nodes = find_nonexistent_nodes nodes in
+    begin
+      match nonexistent_nodes with
+      | [] -> Error (Printf.sprintf "Found a circular dependency between widgets: %s" (String.concat " " remaining_ids))
+      | _  -> Error (Printf.sprintf "Found dependencies on non-existent widgets: %s" (String.concat " " nonexistent_nodes))
+    end
