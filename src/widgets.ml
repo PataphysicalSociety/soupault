@@ -81,6 +81,7 @@ let get_widgets config plugins =
   let bind = CCResult.(>>=) in
   let%bind wh = load_widgets config plugins in
   let%bind wo = get_widget_order wh in
+  let () = Logs.debug @@ fun m -> m "Widget processing order: %s" (String.concat " " wo) in
   Ok (wo, wh)
 
 (** Check if a widget should run or not.

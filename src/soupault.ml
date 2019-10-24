@@ -292,6 +292,8 @@ let initialize () =
   let%bind config = Config.read_config Defaults.config_file in
   let settings = Config.update_settings settings config in
   let%bind settings = get_args settings in
+  (* Update the log level from the config and arguments  *)
+  let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
   let%bind plugins = Plugins.get_plugins config in
   let%bind widgets = Widgets.get_widgets config plugins in
