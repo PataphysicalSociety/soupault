@@ -34,9 +34,13 @@ let (+/) left right =
 let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
+let remove_ignored_files settings files =
+  let ignored settings file = Utils.in_list settings.ignore_extensions (FP.get_extension file) in
+   List.filter (fun f -> not (ignored settings f)) files
+
 let list_section_files settings path =
   let is_page_file f = Utils.in_list settings.page_extensions (FP.get_extension f) in
-  let files = FU.ls path |> FU.filter (FU.Is_file) in
+  let files = FU.ls path |> FU.filter (FU.Is_file) |> remove_ignored_files settings in
   let page_files = List.find_all is_page_file files in
   let other_files = List.find_all (fun f -> not (is_page_file f)) files in
   page_files, other_files

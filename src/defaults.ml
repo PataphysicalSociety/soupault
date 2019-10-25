@@ -42,6 +42,9 @@ type settings = {
   (** Extensions of files assumed to be pages *)
   page_extensions : string list;
 
+  (** File extensions to ignore completely *)
+  ignore_extensions : string list;
+
   index : bool;
   dump_json : string option;
   newest_entries_first : bool;
@@ -84,6 +87,7 @@ let default_settings = {
   content_selector = "body";
   clean_urls = true;
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
+  ignore_extensions = [];
   index = false;
   dump_json = None;
   newest_entries_first = false;
