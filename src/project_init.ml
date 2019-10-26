@@ -54,7 +54,12 @@ let default_config = "
 
   clean_urls = true
 
+  # Files with this extensions are considered pages and processed
+  # All other files are copied to build/ unchanged
   page_file_extensions = [\"htm\", \"html\", \"md\", \"rst\", \"adoc\"]
+
+  # Files with these extensions are ignored
+  ignore_extensions = [\"draft\"]
 
 # Takes the content of the first <h1> and inserts it into the <title>
 [widgets.page-title]
