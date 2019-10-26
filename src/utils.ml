@@ -166,7 +166,7 @@ let get_matching_strings r s =
 let print_version () =
   Printf.printf "soupault %s\n" Defaults.version;
   print_endline "Copyright 2019 Daniil Baturin, licensed under MIT";
-  print_endline "Visit https://baturin.org/projects/soupault for documentation"
+  print_endline "Visit https://soupault.neocities.org/reference-manual for documentation"
 
 (** Warns about a deprecated option *)
 let deprecation_warning f opt msg config =
