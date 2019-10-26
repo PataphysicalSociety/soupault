@@ -54,7 +54,7 @@ let default_config = "
 
   clean_urls = true
 
-  # Files with this extensions are considered pages and processed
+  # Files with these extensions are considered pages and processed
   # All other files are copied to build/ unchanged
   page_file_extensions = [\"htm\", \"html\", \"md\", \"rst\", \"adoc\"]
 
