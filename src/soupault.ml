@@ -97,19 +97,24 @@ let save_html settings soup file =
     Ok ()
   with Sys_error e -> Error e
 
-let include_content settings html page_file =
-  let content = load_html settings page_file in
-  match content with
-  | Ok c ->
-    let element = Soup.select_one settings.content_selector html in
-    begin
-      match element with
-      | Some element -> Ok (Soup.append_child element c)
-      | None ->
-        Error (Printf.sprintf "No element in the template matches selector \"%s\", nowhere to insert the content"
-               settings.content_selector)
-    end
-  | Error _ as e -> e
+let include_content settings html content =
+  let element = Soup.select_one settings.content_selector html in
+  match element with
+  | Some element -> Ok (Soup.append_child element content)
+  | None ->
+    Error (Printf.sprintf "No element in the template matches selector \"%s\", nowhere to insert the content"
+           settings.content_selector)
+
+let make_page env settings content =
+  let page_wrapper_elem = Soup.select_one settings.complete_page_selector content in
+  (* If page file appears to be a complete page rather than a page body,
+     just return it *)
+  match page_wrapper_elem with
+  | Some _ -> Ok content
+  | None ->
+    let html = Soup.parse env.template in
+    let%bind () = include_content settings html content in
+    Ok html
 
 (* Widget processing *)
 let rec process_widgets settings env ws wh config soup =
@@ -197,8 +202,8 @@ let process_page env index widgets config settings target_dir =
   in
   let env = {env with nav_path = (fix_nav_path settings env.nav_path page_name)} in
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
-  let html = Soup.parse env.template in
-  let%bind () = include_content settings html env.page_file in
+  let%bind content = load_html settings env.page_file in
+  let%bind html = make_page env settings content in
   let widgets, widget_hash = widgets in
   let%bind () = process_widgets settings env widgets widget_hash config html in
   (* Section index injection *)

@@ -61,6 +61,11 @@ let default_config = "
   # Files with these extensions are ignored
   ignore_extensions = [\"draft\"]
 
+  # Files that contain an <html> element are considered complete pages
+  # rather than page bodies and are only run through widgets,
+  # not inserted into the templates/main.html page template
+  complete_page_selector = \"html\"
+
 # Takes the content of the first <h1> and inserts it into the <title>
 [widgets.page-title]
   widget = \"title\"

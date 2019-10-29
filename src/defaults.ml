@@ -45,6 +45,10 @@ type settings = {
   (** File extensions to ignore completely *)
   ignore_extensions : string list;
 
+  (** Pages that should be just run through the widgets
+      rather than inserted in the template *)
+  complete_page_selector : string;
+
   index : bool;
   dump_json : string option;
   newest_entries_first : bool;
@@ -88,6 +92,7 @@ let default_settings = {
   clean_urls = true;
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
   ignore_extensions = [];
+  complete_page_selector = "html";
   index = false;
   dump_json = None;
   newest_entries_first = false;
