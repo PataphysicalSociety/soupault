@@ -41,10 +41,11 @@ let check_breadcrumb_template tmpl_str =
 
 let breadcrumbs env config soup =
   let valid_options = List.append Config.common_widget_options
-    ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"] in
+    ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
   let () = Config.check_options valid_options config "widget \"breadcrumbs\"" in
   let min_depth = Config.get_int_default 1 "min_depth" config in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let action = Config.get_string_default "append_child" "action" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -64,6 +65,5 @@ let breadcrumbs env config soup =
         let append = Config.get_string_default "" "append" config in
         let between = Config.get_string_default "" "between" config in
         let breadcrumbs = make_breadcrumbs env.nav_path bc_tmpl_str prepend append between in
-
-        let () = Soup.append_child container breadcrumbs in Ok ()
+        Ok (Utils.insert_element action container breadcrumbs)
     end

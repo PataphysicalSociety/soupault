@@ -42,6 +42,9 @@ let drop_tail xs = List.rev xs |> safe_tl |> List.rev
 (** Shortcut for checking if a list has this element *)
 let in_list xs x = List.exists ((=) x) xs
 
+(** Extracts keys from an assoc list *)
+let assoc_keys xs = List.fold_left (fun acc (x, _) -> x :: acc) [] xs
+
 (** Unsafely unwraps an option type.
     There are many places where None is easy to prove to not happen *)
 let unwrap_option o =
@@ -138,6 +141,11 @@ let append_child container child =
   | None -> ()
   | Some c -> Soup.append_child container c
 
+(** Replaces all content of a container node with something else *)
+let replace_content container content =
+  let () = Soup.iter Soup.delete (Soup.children container) in
+  Soup.append_child container content
+
 (** Checks if a node is empty
 
     A node is considered empty iff it has no children but whitespace nodes.
@@ -154,6 +162,23 @@ let is_empty node =
   | 0 -> true
   | 1 -> (children |> first |> unwrap_option |> to_string |> String.trim) = ""
   | _ -> false
+
+(** Inserts a node into the page at desired position *)
+let insert_element action container content =
+  let actions =
+    [("append_child", Soup.append_child); ("prepend_child", Soup.prepend_child);
+     ("insert_before", Soup.insert_before); ("insert_after", Soup.insert_after);
+     ("replace_element", Soup.replace); ("replace_content", replace_content)]
+  in
+  let action_fun = CCList.assoc_opt ~eq:(=) action actions in
+  match action_fun with
+  | Some f -> f container content
+  | None ->
+    let index = Spellcheck.make_index (assoc_keys actions) in
+    let suggestion = Spellcheck.get_suggestion index action in
+    let suggestion = (match suggestion with Some s -> (Printf.sprintf " Did you mean \"%s?\"" s) | None -> "") in
+    let () = Logs.warn @@ fun m -> m "Invalid action \"%s\", using default (append child).%s" action suggestion in
+    Soup.append_child container content
 
 (** Just a convenience function for Re.matches *)
 let get_matching_strings r s =

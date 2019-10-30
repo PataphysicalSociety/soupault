@@ -117,7 +117,7 @@ let toc _ config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
      "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append";
-     "use_heading_text"; "use_heading_slug"; "use_header_text"; "use_header_slug"]
+     "use_heading_text"; "use_heading_slug"; "use_header_text"; "use_header_slug"; "action"]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
   let settings = {
@@ -134,6 +134,7 @@ let toc _ config soup =
     use_slugs = Config.get_bool_default false "use_heading_slug" config;
   } in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let action = Config.get_string_default "append_child" "action" config in
   let () =
     Utils.deprecation_warning Config.get_bool "use_header_text" "use \"use_heading_text\" instead" config;
     Utils.deprecation_warning Config.get_bool "use_header_slug" "use \"use_heading_slug\" instead" config
@@ -153,6 +154,6 @@ let toc _ config soup =
         let toc_container = make_toc_container settings settings.min_level in
         let headings = find_headings soup in
         let _ = _make_toc settings counter soup toc_container settings.min_level headings in
-        Ok (Soup.append_child container toc_container)
+        Ok (Utils.insert_element action container toc_container)
       end
     end

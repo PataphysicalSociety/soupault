@@ -5,9 +5,10 @@ open Defaults
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
 let insert_html _ config soup =
-  let valid_options = List.append Config.common_widget_options ["selector"; "html"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "html"; "action"] in
   let () = Config.check_options valid_options config "widget \"insert_html\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let action = Config.get_string_default "append_child" "action" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -20,16 +21,17 @@ let insert_html _ config soup =
         Ok ()
       | Some container ->
         let%bind html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
-        let () = Soup.append_child container (Soup.parse html_str)
-        in Ok ()
+        let content = Soup.parse html_str in
+        Ok (Utils.insert_element action container content)
     end
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
 let include_file _ config soup =
-  let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"] in
   let () = Config.check_options valid_options config "widget \"include\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let action = Config.get_string_default "append_child" "action" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -44,10 +46,10 @@ let include_file _ config soup =
         let%bind file = Config.get_string_result "Missing required option \"file\"" "file" config in
         let parse_content = Config.get_bool_default true "parse" config in
         let%bind content = Utils.get_file_content file in
-        let () =
-          if parse_content then Soup.append_child container (Soup.parse content)
-          else Soup.append_child container (Soup.create_text content)
-        in Ok ()
+        let content =
+          if parse_content then (Soup.parse content |> Soup.coerce)
+          else Soup.create_text content
+        in Ok (Utils.insert_element action container content)
     end
 
 (* External program output inclusion *)
@@ -59,9 +61,10 @@ let make_program_env env =
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
 let include_program_output env config soup =
-  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"] in
   let () = Config.check_options valid_options config "widget \"exec\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let action = Config.get_string_default "append_child" "action" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -77,9 +80,9 @@ let include_program_output env config soup =
         let parse_content = Config.get_bool_default true "parse" config in
         let%bind cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
         let%bind content = Utils.get_program_output cmd env_array in
-        let () =
-          if parse_content then Soup.append_child container (Soup.parse content)
-          else Soup.append_child container (Soup.create_text content)
-        in Ok ()
+        let content =
+          if parse_content then (Soup.parse content |> Soup.coerce)
+          else Soup.create_text content
+        in Ok (Utils.insert_element action container content)
     end
 

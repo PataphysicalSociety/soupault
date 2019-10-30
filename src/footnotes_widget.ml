@@ -95,7 +95,7 @@ let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container 
     let () =
       Soup.append_child fn_wrapper fn_ref;
       Soup.iter (Soup.append_child fn_wrapper) (Soup.children n);
-      Soup.append_child container fn_wrapper;
+      Soup.append_root container fn_wrapper;
       Soup.delete n
     in move_footnotes link_class back_links ref_tmpl note_tmpl ns container append prepend num
 
@@ -103,9 +103,11 @@ let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container 
 let footnotes _ config soup =
   let bind = CCResult.(>>=) in
   let valid_options = List.append Config.common_widget_options
-    ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class"; "back_links"; "back_link_id_append"; "link_id_prepend"] in
+    ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class";
+     "back_links"; "back_link_id_append"; "link_id_prepend"; "action"] in
   let () = Config.check_options valid_options config "widget \"footnotes\"" in
   let%bind selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let action = Config.get_string_default "append_child" "action" config in
   let note_selector = Config.get_strings_relaxed ~default:[".footnote"] "footnote_selector" config in
   let%bind ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Utils.check_template "*" in
   let%bind note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
@@ -120,5 +122,7 @@ let footnotes _ config soup =
     Ok ()
   | Some container ->
     let notes = Utils.select_all note_selector soup in
-    Ok (move_footnotes fn_link_class back_links ref_tmpl note_tmpl notes container back_link_append link_prepend 0)
+    let container_content = Soup.create_soup () in
+    let () = move_footnotes fn_link_class back_links ref_tmpl note_tmpl notes container_content back_link_append link_prepend 0 in
+    Ok (Utils.insert_element action container (Soup.coerce container_content))
 
