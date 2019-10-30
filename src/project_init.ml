@@ -44,6 +44,16 @@ let default_config = "
   # Where page content files are stored
   site_dir = \"site\"
 
+  # In the \"website generator\" mode, soupault considers files in site/ page bodies
+  # and inserts them into the empty page stored in templates/main.html
+  # Setting this option to false switches it to the \"HTML processor\" mode
+  # when it considers every file in site/ a complete page and only runs it through widgets/plugins
+  generator_mode = true
+
+  # Files that contain an <html> element are considered complete pages rather than page bodies,
+  # regardless of mode.
+  complete_page_selector = \"html\"
+
   # Where page template is stored
   default_template = \"templates/main.html\"
 
@@ -61,10 +71,6 @@ let default_config = "
   # Files with these extensions are ignored
   ignore_extensions = [\"draft\"]
 
-  # Files that contain an <html> element are considered complete pages
-  # rather than page bodies and are only run through widgets,
-  # not inserted into the templates/main.html page template
-  complete_page_selector = \"html\"
 
 # Takes the content of the first <h1> and inserts it into the <title>
 [widgets.page-title]

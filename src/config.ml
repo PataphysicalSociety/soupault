@@ -177,7 +177,7 @@ let valid_settings = [
   "verbose"; "debug"; "strict"; "site_dir"; "build_dir";
   "content_selector"; "doctype"; "index_page"; "index_file";
   "default_template"; "clean_urls"; "page_file_extensions";
-  "ignore_extensions"; "complete_page_selector"
+  "ignore_extensions"; "complete_page_selector"; "generator_mode"
 ]
 
 let _update_settings settings config =
@@ -203,6 +203,7 @@ let _update_settings settings config =
        page_extensions = get_strings_relaxed ~default:settings.page_extensions "page_file_extensions" st;
        ignore_extensions = get_strings_relaxed ~default:[] "ignore_extensions" st;
        complete_page_selector = get_string_default settings.complete_page_selector "complete_page_selector" st;
+       generator_mode = get_bool_default settings.generator_mode "generator_mode" st;
 
        preprocessors = _get_preprocessors config
      }

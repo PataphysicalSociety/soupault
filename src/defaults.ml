@@ -49,6 +49,10 @@ type settings = {
       rather than inserted in the template *)
   complete_page_selector : string;
 
+  (* If set to false, soupault doesn't use or require a page template,
+     but treats everything as a complete page *)
+  generator_mode : bool;
+
   index : bool;
   dump_json : string option;
   newest_entries_first : bool;
@@ -93,6 +97,7 @@ let default_settings = {
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
   ignore_extensions = [];
   complete_page_selector = "html";
+  generator_mode = true;
   index = false;
   dump_json = None;
   newest_entries_first = false;

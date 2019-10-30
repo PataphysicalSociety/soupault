@@ -106,6 +106,8 @@ let include_content settings html content =
            settings.content_selector)
 
 let make_page env settings content =
+  (* If generator mode is off, treat everything like a complete page *)
+  if not settings.generator_mode then Ok content else
   let page_wrapper_elem = Soup.select_one settings.complete_page_selector content in
   (* If page file appears to be a complete page rather than a page body,
      just return it *)
@@ -288,12 +290,14 @@ let get_args settings =
   if !init then (Project_init.init settings; exit 0) else Ok settings
 
 let check_project_dir settings =
-  if (not (FU.test FU.Exists settings.default_template)) &&
-     (not (FU.test FU.Is_dir settings.site_dir)) then
-  Logs.warn @@ fun m -> m "Site directory %s and default template %s do not exist"
-    settings.site_dir settings.default_template;
-  Logs.warn @@ fun m -> m "Use %s --init to initialize a basic project" Sys.argv.(0);
-  exit 1
+  if (not (FU.test FU.Exists settings.default_template)) && settings.generator_mode
+  then Logs.warn @@ fun m -> m "Default template %s does not exist" settings.default_template;
+  if (not (FU.test FU.Is_dir settings.site_dir))
+  then begin
+    Logs.warn @@ fun m -> m "Site directory %s does not exist" settings.site_dir;
+    Logs.warn @@ fun m -> m "Use %s --init to initialize a basic project" Sys.argv.(0);
+    exit 1
+  end
 
 let initialize () =
   let settings = Defaults.default_settings in
@@ -306,7 +310,10 @@ let initialize () =
   let () = check_project_dir settings in
   let%bind plugins = Plugins.get_plugins config in
   let%bind widgets = Widgets.get_widgets config plugins in
-  let%bind default_template_str = Utils.get_file_content settings.default_template in
+  let%bind default_template_str =
+    if settings.generator_mode then Utils.get_file_content settings.default_template
+    else Ok ""
+  in
   let default_env = {template=default_template_str; nav_path=[]; page_file=""} in
   Ok (config, widgets, settings, default_env)
 
