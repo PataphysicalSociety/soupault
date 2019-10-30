@@ -77,6 +77,41 @@ module Html = struct
     | SoupNode n -> Soup.append_root n child
     | GeneralNode _ -> raise (Plugin_error "Cannot append a child to a GeneralNode")
 
+  let prepend_child node child =
+    let child = to_general child in
+    match node with
+    | ElementNode n -> Soup.prepend_child n child
+    | SoupNode _ -> raise (Plugin_error "Cannot prepend a child to a document node")
+    | GeneralNode _ -> raise (Plugin_error "Cannot prepend a child to a general node")
+
+  let insert_before node child =
+    let child = to_general child in
+    match node with
+    | ElementNode n -> Soup.insert_before n child
+    | SoupNode _ -> raise (Plugin_error "Cannot use insert_before with a document node")
+    | GeneralNode _ -> raise (Plugin_error "Cannot user insert_before with a general node")
+
+  let insert_after node child =
+    let child = to_general child in
+    match node with
+    | ElementNode n -> Soup.insert_after n child
+    | SoupNode _ -> raise (Plugin_error "Cannot use insert_after with a document node")
+    | GeneralNode _ -> raise (Plugin_error "Cannot user insert_after with a general node")
+
+  let replace node child =
+    let child = to_general child in
+    match node with
+    | ElementNode n -> Soup.replace n child
+    | SoupNode _ -> raise (Plugin_error "Cannot use replace with a document node")
+    | GeneralNode _ -> raise (Plugin_error "Cannot use replace with a general node")
+
+  let replace_content node child =
+    let child = to_general child in
+    match node with
+    | ElementNode n -> Utils.replace_content n child
+    | SoupNode _ -> raise (Plugin_error "Cannot use replace_content with a document node")
+    | GeneralNode _ -> raise (Plugin_error "Cannot use replace_content with a general node")
+
   let delete node =
     to_general node |> Soup.delete
 
@@ -122,6 +157,11 @@ struct
         "add_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.add_class;
         "remove_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.remove_class;
         "append_child", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_child;
+        "prepend_child", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_child;
+        "insert_before", V.efunc (Map.html **-> Map.html **->> V.unit) Html.insert_before;
+        "insert_after", V.efunc (Map.html **-> Map.html **->> V.unit) Html.insert_after;
+        "replace", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace;
+        "replace_content", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace_content;
         "delete", V.efunc (Map.html **->> V.unit) Html.delete;
         "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
         "inner_html", V.efunc (Map.html **->> V.string) Html.inner_html
