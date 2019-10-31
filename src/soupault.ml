@@ -206,8 +206,6 @@ let process_page env index widgets config settings target_dir =
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let%bind content = load_html settings env.page_file in
   let%bind html = make_page env settings content in
-  let widgets, widget_hash = widgets in
-  let%bind () = process_widgets settings env widgets widget_hash config html in
   (* Section index injection *)
   let%bind () =
     if not settings.index then Ok () else
@@ -217,6 +215,8 @@ let process_page env index widgets config settings target_dir =
     then let () = index := (Autoindex.get_entry settings url env.nav_path html) :: !index  in Ok ()
     else insert_index settings html !index
   in
+  let widgets, widget_hash = widgets in
+  let%bind () = process_widgets settings env widgets widget_hash config html in
   let%bind () = save_html settings html target_file in
   Ok ()
 
