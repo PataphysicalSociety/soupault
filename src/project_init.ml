@@ -85,6 +85,15 @@ let default_config = "
   widget = \"insert_html\"
   html = '<meta name=\"generator\" content=\"soupault 1.4\">'
   selector = \"head\"
+
+# <blink> elements are evil, delete them all
+[widgets.no-blink]
+  widget = \"delete_element\"
+  selector = \"blink\"
+
+  # By default this widget deletes all elements matching the selector,
+  # but you can set this option to false to delete just the first one
+  delete_all = true
 "
 
 let print_end_message settings = Printf.printf "Initialization complete.
