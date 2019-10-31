@@ -28,6 +28,7 @@ let default_page = "
 
 let default_config = "
 # To learn about configuring soupalt, visit https://soupault.neocities.org/reference-manual
+
 [settings]
   # Stop on page processing errors?
   strict = true
@@ -38,39 +39,65 @@ let default_config = "
   # Display detailed debug output?
   debug = false
 
-  # Where to output pages
-  build_dir = \"build\"
-
-  # Where page content files are stored
+  # Where input files (pages and assets) are stored.
   site_dir = \"site\"
 
-  # In the \"website generator\" mode, soupault considers files in site/ page bodies
-  # and inserts them into the empty page stored in templates/main.html
+  # Where the output goes
+  build_dir = \"build\"
+
+  # Files inside the site/ directory can be treated as pages or static assets,
+  # depending on the extension.
+  #
+  # Files with extensions from this list are considered pages and processed.
+  # All other files are copied to build/ unchanged.
+  #
+  # Note that for formats other than HTML, you need to specify an external program
+  # for converting them to HTML (see below).
+  page_file_extensions = [\"htm\", \"html\", \"md\", \"rst\", \"adoc\"]
+
+  # Files with these extensions are ignored.
+  ignore_extensions = [\"draft\"]
+
+  # Soupault can work as a website generator or an HTML processor.
+  #
+  # In the \"website generator\" mode, it considers files in site/ page bodies
+  # and inserts them into the empty page template stored in templates/main.html
+  #
   # Setting this option to false switches it to the \"HTML processor\" mode
-  # when it considers every file in site/ a complete page and only runs it through widgets/plugins
+  # when it considers every file in site/ a complete page and only runs it through widgets/plugins.
   generator_mode = true
 
   # Files that contain an <html> element are considered complete pages rather than page bodies,
-  # regardless of mode.
+  # even in the \"website generator\" mode.
+  # This allows you to use a unique layout for some pages and still have them processed by widgets.
   complete_page_selector = \"html\"
 
-  # Where page template is stored
+  # Website generator mode requires a page template (an empty page to insert a page body into).
+  # If you use \"generator_mode = false\", this file is not required.
   default_template = \"templates/main.html\"
 
-  # Where to insert the page content inside the template
+  # Page content is inserted into a certain element of the page template. This option is a CSS selector
+  # used for locating that element.
+  # By default the content is inserted into the <body>
   content_selector = \"body\"
 
+  # Soupault currently doesn't preserve the original doctype declaration
+  # and uses the HTML5 doctype by default. You can change it using this option.
   doctype = \"<!DOCTYPE html>\"
 
+  # Enables or disables clean URLs.
+  # When false: site/about.html -> build/about.html
+  # When true: site/about.html -> build/about/index.html
   clean_urls = true
 
-  # Files with these extensions are considered pages and processed
-  # All other files are copied to build/ unchanged
-  page_file_extensions = [\"htm\", \"html\", \"md\", \"rst\", \"adoc\"]
+# It is possible to store pages in any format if you have a program
+# that converts it to HTML and writes it to standard output.
+# Example:
+#[preprocessors]
+#  md = \"cmark\"
+#  adoc = \"asciidoctor -o -\"
 
-  # Files with these extensions are ignored
-  ignore_extensions = [\"draft\"]
-
+# Pages can be further processed with \"widgets\"
 
 # Takes the content of the first <h1> and inserts it into the <title>
 [widgets.page-title]
@@ -83,7 +110,7 @@ let default_config = "
 # Just for demonstration, feel free to remove
 [widgets.generator-meta]
   widget = \"insert_html\"
-  html = '<meta name=\"generator\" content=\"soupault 1.4\">'
+  html = '<meta name=\"generator\" content=\"soupault 1.5\">'
   selector = \"head\"
 
 # <blink> elements are evil, delete them all
@@ -128,4 +155,3 @@ let init settings  =
     let msg = Unix.error_message errno in
     let () = Printf.printf "Could not initialize the project directory: %s" msg in
     exit 1
-

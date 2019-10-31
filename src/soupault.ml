@@ -301,7 +301,11 @@ let check_project_dir settings =
 let initialize () =
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose settings.debug in
-  let%bind config = Config.read_config Defaults.config_file in
+  let config_file =
+    try Unix.getenv Defaults.config_path_env_var
+    with Not_found -> Defaults.config_file
+  in
+  let%bind config = Config.read_config config_file in
   let settings = Config.update_settings settings config in
   let%bind settings = get_args settings in
   (* Update the log level from the config and arguments  *)

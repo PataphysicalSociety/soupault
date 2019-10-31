@@ -17,7 +17,7 @@ let list_config_keys table =
     *)
 let config_exists file =
   try
-     FileUtil.test (FileUtil.Exists) Defaults.config_file
+     FileUtil.test (FileUtil.Exists) file
   with Unix.Unix_error (errno, _, _) ->
     let msg = Unix.error_message errno in
     let () = Logs.warn @@ fun m -> m "Could not check if config file %s exists: %s" file msg in
