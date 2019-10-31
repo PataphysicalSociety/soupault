@@ -274,20 +274,19 @@ let rec process_dir env index widgets config settings base_src_dir base_dst_dir 
 
 let get_args settings =
   let init = ref false in
-  let strict = ref settings.strict in
-  let verbose = ref settings.verbose in
-  let debug = ref settings.debug in
+  let sr = ref settings in
   let args = [
     ("--init", Arg.Unit (fun () -> init := true), "Setup basic directory structure");
-    ("--verbose", Arg.Unit (fun () -> verbose := true), "Verbose output");
-    ("--debug", Arg.Unit (fun () -> debug := true), "Debug output");
-    ("--strict", Arg.Bool (fun s -> strict := s), "<true|false> Stop on page processing errors or not");
+    ("--verbose", Arg.Unit (fun () -> sr := {!sr with verbose=true}), "Verbose output");
+    ("--debug", Arg.Unit (fun () -> sr := {!sr with debug=true}), "Debug output");
+    ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false> Stop on page processing errors or not");
+    ("--site-dir", Arg.String (fun s -> sr := {!sr with site_dir=s}), "Directory with input files");
+    ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "Output directory");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
   let () = Arg.parse args (fun _ -> ()) usage in
-  let settings = {settings with verbose = !verbose; debug = !debug; strict = !strict} in
-  if !init then (Project_init.init settings; exit 0) else Ok settings
+  if !init then (Project_init.init !sr; exit 0) else Ok !sr
 
 let check_project_dir settings =
   if (not (FU.test FU.Exists settings.default_template)) && settings.generator_mode
