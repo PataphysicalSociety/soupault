@@ -11,6 +11,7 @@ let replace_newlines s =
 let default_template = "
 <html lang=\"en\">
   <head>
+    <meta charset=\"utf-8\">
     <title> <!-- set automatically, see soupault.conf --> </title>
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   </head>
