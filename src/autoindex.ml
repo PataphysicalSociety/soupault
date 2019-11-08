@@ -5,10 +5,10 @@ let bind = CCResult.(>>=)
 type 'a index_entry = {
   url: string;
   nav_path: string list;
-  title: 'a Soup.node option;
-  excerpt: 'a Soup.node option;
-  date: 'a Soup.node option;
-  author: 'a Soup.node option;
+  title: string option;
+  excerpt: string option;
+  date: string option;
+  author: string option;
   custom_fields : (string * Yojson.Safe.t) list
 }
 
@@ -28,13 +28,21 @@ let rec get_custom_fields fields soup =
     field :: (get_custom_fields fs soup)
 
 let get_entry settings url nav_path soup =
+  let (>>=) = CCOpt.(>>=) in
+  let string_of_elem selector soup =
+    Utils.select_any_of selector soup >>= (fun x -> Some (Utils.inner_html x))
+  in
   {
     url = url;
     nav_path = nav_path;
-    title = Utils.select_any_of settings.index_title_selector soup;
-    excerpt = Utils.select_any_of settings.index_excerpt_selector soup;
-    date = Utils.select_any_of settings.index_date_selector soup;
-    author = Utils.select_any_of settings.index_author_selector soup;
+    title = string_of_elem settings.index_title_selector soup;
+    excerpt = string_of_elem settings.index_excerpt_selector soup;
+    (* Try to extract only the texts from the date element,
+       to account for things like <em>1970</em>-01-01.
+       Probably futile and redundant, but at least no one can say it's not trying.
+     *)
+    date = Utils.select_any_of settings.index_date_selector soup >>= Utils.get_element_text;
+    author = string_of_elem settings.index_author_selector soup;
     custom_fields = get_custom_fields settings.index_custom_fields soup
   }
 
@@ -47,7 +55,7 @@ let compare_entries settings l r =
   let (>>=) = CCOpt.(>>=) in
   let get_date entry =
     try
-      entry.date >>= Utils.get_element_text >>=
+      entry.date >>=
       (fun s -> Some (CalendarLib.Printer.Date.from_fstring settings.index_date_format s))
     with Invalid_argument msg ->
       let () = Logs.warn @@ fun m -> m "Could not parse date: %s" msg in
@@ -71,7 +79,7 @@ let make_title_link entry =
   | None -> None
   | Some title ->
     let title_link = Soup.create_element ~attributes:["href", entry.url] "a" in
-    Soup.append_child title_link title;
+    Soup.append_child title_link (Soup.parse title);
     Some title_link
 
 let make_entry tmpl entry =
@@ -79,10 +87,6 @@ let make_entry tmpl entry =
   let entry_html = Soup.select_one "*" tmpl |> Soup.require in
   let title_link = make_title_link entry in
   Utils.append_child entry_html title_link;
-  Utils.append_child entry_html title_link;
-  Utils.append_child entry_html entry.date;
-  Utils.append_child entry_html entry.author;
-  Utils.append_child entry_html entry.excerpt;
   entry_html
 
 let add_index settings soup entries =
@@ -91,14 +95,14 @@ let add_index settings soup entries =
   List.iter (Soup.append_child soup) entries
 
 (* JSON conversion. Not sure if ppx_deriving_yojson would be easier here *)
-let json_of_element e =
-  match e with
+let json_of_string_opt s =
+  match s with
   | None -> `Null
-  | Some e -> `String (Utils.inner_html e)
+  | Some s -> `String s
 
 let json_of_entry e =
   let fields = ["title", e.title; "date", e.date; "author", e.author; "excerpt", e.excerpt] in
-  let fields = List.map (fun (k, v) -> (k, json_of_element v)) fields in
+  let fields = List.map (fun (k, v) -> (k, json_of_string_opt v)) fields in
   let fields = ("url", `String e.url) :: fields in
   let fields = ("nav_path", `List (List.map (fun x -> `String x) e.nav_path)) :: fields in
   let fields = List.append fields e.custom_fields in
