@@ -49,11 +49,11 @@ let rec _load_widgets config plugins ws hash =
     begin
       match name with
       | None -> failwith (Printf.sprintf "In [widgets.%s]: missing required option widget=\"<some widget>\"" w)
-      | Some n ->
-        let widget_func = find_widget plugins n in
+      | Some name ->
+        let widget_func = find_widget plugins name in
         begin
           match widget_func with
-          | None -> failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w n)
+          | None -> failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w name)
           | Some wf ->
             let widget_rec = {config=widget_config; func=wf} in
             let () = Hashtbl.add hash w widget_rec in
@@ -100,7 +100,8 @@ let get_widgets config plugins =
 
     If none of those options are present, widget always runs.
  *)
-let widget_should_run config site_dir page_file =
+let widget_should_run name widget site_dir page_file =
+  let config = widget.config in
   let page_matches actual_path conf_path =
     let conf_path = FilePath.concat site_dir conf_path in
     (=) conf_path actual_path
@@ -115,7 +116,7 @@ let widget_should_run config site_dir page_file =
     match matches with
     | Ok ms -> List.length ms <> 0
     | Error msg ->
-      let () = Logs.warn @@ fun m -> m "Failed to execute a regex check (malformed regex?), assuming false: %s" msg in
+      let () = Logs.warn @@ fun m -> m "Failed to check regex \"%s\" for widget %s (malformed regex?), assuming false: %s" path_re name msg in
       false
   in
   let pages = Config.get_strings_relaxed "page" config in
@@ -127,7 +128,7 @@ let widget_should_run config site_dir page_file =
   if (List.exists (regex_matches page_file) regex_exclude) ||
      (List.exists (page_matches page_file) pages_exclude)  ||
      (List.exists (section_matches page_file) sections_exclude)
-  then let () = Logs.debug @@ fun m -> m "Page excluded by a page/section/regex option, not running the widget" in false
+  then let () = Logs.debug @@ fun m -> m "Page excluded from widget %s by a page/section/regex option" name in false
   else match pages, sections, regex with
   | [], [], [] -> true
   | _, _, _ ->
@@ -138,5 +139,5 @@ let widget_should_run config site_dir page_file =
     in
     let () =
       if not should_run then
-      Logs.debug @@ fun m -> m "Page does not match any of the page/section/regex options, not running the widget"
+      Logs.debug @@ fun m -> m "Page does not match any of the page/section/regex options, not running widget %s" name
     in should_run
