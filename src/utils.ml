@@ -10,9 +10,8 @@ let cp fs d =
 
 (** Executes an external program and returns its stdout *)
 let get_program_output ?(input=None) command env_array =
-  (* On Windows, child process environment is completely overwritten
-     if you use open_process_full, so we add %PATH% by hand here to allow
-     calling external programs *)
+  (* open_process_full does not automatically pass the existing environment
+     to the child process, so we need to add it to our custom environment. *)
   let env_array = Array.append (Unix.environment ()) env_array in
   let std_out, std_in, std_err = Unix.open_process_full command env_array in
   let () =
