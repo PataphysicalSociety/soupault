@@ -160,7 +160,7 @@ let insert_index settings soup index =
   | Some ic ->
     begin
       match settings.index_processor with
-      | None -> Ok (Autoindex.add_index settings ic index)
+      | None -> Autoindex.add_index settings ic index
       | Some p ->
         let json = Autoindex.json_of_entries settings index in
         let () = Logs.info @@ fun m -> m "Calling index processor %s" p in

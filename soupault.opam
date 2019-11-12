@@ -30,7 +30,7 @@ depends: [
   "logs"
   "fmt"
   "re"
-  "yojson"
+  "ezjsonm"
   "ocaml-monadic" {build}
   "containers"
   "stringext"

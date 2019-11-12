@@ -9,13 +9,13 @@ type 'a index_entry = {
   excerpt: string option;
   date: string option;
   author: string option;
-  custom_fields : (string * Yojson.Safe.t) list
+  custom_fields : (string * Ezjsonm.value) list
 }
 
 let rec get_custom_fields fields soup =
   let get_field f soup =
   if f.select_all then
-    `List (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> `String (Utils.inner_html e)))
+    `A (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> `String (Utils.inner_html e)))
   else let e = Soup.select_one f.field_selector soup in
   match e with
     | None -> `Null
@@ -74,27 +74,7 @@ let compare_entries settings l r =
   let result = compare_dates l_date r_date in
   if settings.newest_entries_first then (~- result) else result
 
-let make_title_link entry =
-  match entry.title with
-  | None -> None
-  | Some title ->
-    let title_link = Soup.create_element ~attributes:["href", entry.url] "a" in
-    Soup.append_child title_link (Soup.parse title);
-    Some title_link
-
-let make_entry tmpl entry =
-  let tmpl = Soup.parse tmpl in
-  let entry_html = Soup.select_one "*" tmpl |> Soup.require in
-  let title_link = make_title_link entry in
-  Utils.append_child entry_html title_link;
-  entry_html
-
-let add_index settings soup entries =
-  let entries = List.sort (compare_entries settings) entries in
-  let entries = List.map (make_entry settings.index_item_template) entries in
-  List.iter (Soup.append_child soup) entries
-
-(* JSON conversion. Not sure if ppx_deriving_yojson would be easier here *)
+(* JSON conversion. *)
 let json_of_string_opt s =
   match s with
   | None -> `Null
@@ -104,13 +84,26 @@ let json_of_entry e =
   let fields = ["title", e.title; "date", e.date; "author", e.author; "excerpt", e.excerpt] in
   let fields = List.map (fun (k, v) -> (k, json_of_string_opt v)) fields in
   let fields = ("url", `String e.url) :: fields in
-  let fields = ("nav_path", `List (List.map (fun x -> `String x) e.nav_path)) :: fields in
+  let fields = ("nav_path", `A (List.map (fun x -> `String x) e.nav_path)) :: fields in
   let fields = List.append fields e.custom_fields in
-  `Assoc fields
+  `O fields
 
 let json_of_entries settings es =
   let es = List.sort (compare_entries settings) es in
   (* XXX: to_string instead of pretty_to_string is intentional,
      newline is used as an end of input marker when passing
      the data to index processor's stdin *)
-  `List (List.map json_of_entry es) |> Yojson.Safe.to_string
+  `A (List.map json_of_entry es) |> Ezjsonm.to_string
+
+let add_index settings soup entries =
+  let () = Logs.info @@ fun m -> m "Generating section index" in
+  let strict = not settings.ignore_template_errors in
+  let tmpl = settings.index_item_template in
+  try
+    let () = if settings.debug then Logs.debug @@ fun m -> m "Index data: %s" (json_of_entries settings entries) in
+    let entries = List.sort (compare_entries settings) entries in
+    let entries = List.map (fun e -> json_of_entry e |> Mustache.render ~strict:strict tmpl |> Soup.parse) entries in
+    let () = List.iter (Soup.append_child soup) entries in
+    Ok ()
+  with _ -> Error "Failed to render index item template: invalid template or bad variable name"
+

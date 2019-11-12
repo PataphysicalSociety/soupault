@@ -149,10 +149,19 @@ let valid_index_options = [
   "index"; "dump_json"; "newest_entries_first";
   "index_selector"; "index_title_selector"; "index_excerpt_selector";
   "index_date_selector"; "index_author_selector";
-  "index_date_format"; "index_item_template"; "index_processor"
+  "index_date_format"; "index_item_template"; "index_processor";
+  "ignore_template_errors"
 ]
 
 let _get_index_settings settings config =
+  let get_item_template s c =
+    let tmpl_string = get_string_default Defaults.default_index_item_template "index_item_template" c in
+    try
+      Mustache.of_string tmpl_string
+    with _ ->
+      let () = Logs.warn @@ fun m -> m "Failed to parse template \"%s\", using default" tmpl_string in
+      s.index_item_template
+  in
   let st = get_table Defaults.index_settings_table config in
   match st with
   | None -> settings
@@ -168,8 +177,9 @@ let _get_index_settings settings config =
        index_date_selector = get_strings_relaxed ~default:settings.index_date_selector "index_date_selector" st;
        index_author_selector = get_strings_relaxed ~default:settings.index_author_selector "index_author_selector" st;
        index_date_format = get_string_default settings.index_date_format "index_date_format" st;
-       index_item_template = get_string_default settings.index_item_template "index_item_template" st;
+       index_item_template = get_item_template settings st;
        index_processor = get_string "index_processor" st;
+       ignore_template_errors = get_bool_default settings.ignore_template_errors "ignore_template_errors" st;
        index_custom_fields = _get_index_queries st;
     }
 

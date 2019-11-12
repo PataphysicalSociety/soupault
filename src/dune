@@ -11,7 +11,8 @@
    stringext
    re
    calendar
-   yojson
    spelll
+   ezjsonm
+   mustache
    lua-ml)
  (preprocess (pps ocaml-monadic)))

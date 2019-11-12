@@ -62,7 +62,8 @@ type settings = {
   index_date_selector : string list;
   index_author_selector : string list;
   index_date_format : string;
-  index_item_template : string;
+  index_item_template : Mustache.t;
+  ignore_template_errors : bool;
   index_processor : string option;
   index_custom_fields : index_field list;
 
@@ -82,6 +83,8 @@ let index_settings_table = "index"
 let preprocessors_table = "preprocessors"
 let widgets_table = "widgets"
 let plugins_table = "plugins"
+
+let default_index_item_template = "<div> <a href=\"{{url}}\">{{{title}}}</a> </div>"
 
 let default_settings = {
   verbose = false;
@@ -108,7 +111,8 @@ let default_settings = {
   index_date_selector = ["time"];
   index_author_selector = ["#author"];
   index_date_format = "%F";
-  index_item_template = "<div> </div>";
+  index_item_template = Mustache.of_string default_index_item_template;
+  ignore_template_errors = false;
   index_processor = None;
   index_custom_fields = [];
 
