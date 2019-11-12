@@ -36,5 +36,6 @@ depends: [
   "stringext"
   "calendar"
   "spelll"
+  "mustache"
   "lua-ml"
 ]
