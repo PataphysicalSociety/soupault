@@ -105,5 +105,8 @@ let add_index settings soup entries =
     let entries = List.map (fun e -> json_of_entry e |> Mustache.render ~strict:strict tmpl |> Soup.parse) entries in
     let () = List.iter (Soup.append_child soup) entries in
     Ok ()
-  with _ -> Error "Failed to render index item template: invalid template or bad variable name"
-
+  with
+  | Mustache_types.Missing_variable s | Mustache_types.Missing_section s | Mustache_types.Missing_partial s ->
+    let err = Printf.sprintf "Failed to render index item template: undefined variable or section \"%s\"" s in
+    Error err
+  | _ -> Error ("Failed to render index: invalid template")
