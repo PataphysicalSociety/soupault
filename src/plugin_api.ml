@@ -18,6 +18,12 @@ module Re_wrapper = struct
   let re_match s pat =
     let ms = find_all s pat in
     List.length ms != 0
+
+  let split s pat =
+    try
+      Re.split (Re.Perl.compile_pat pat) s
+    with Re__Perl.Parse_error | Re__Perl.Not_supported->
+      raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
 end
 
 module Log = struct
@@ -173,7 +179,8 @@ struct
         "replace_all", V.efunc (V.string **-> V.string **-> V.string **->> V.string)
           (Re_wrapper.replace ~all:true);
         "find_all", V.efunc (V.string **-> V.string **->> (V.list V.string)) Re_wrapper.find_all;
-        "match", V.efunc (V.string **-> V.string **->> V.bool) Re_wrapper.re_match
+        "match", V.efunc (V.string **-> V.string **->> V.bool) Re_wrapper.re_match;
+        "split", V.efunc (V.string **-> V.string **->> (V.list V.string)) Re_wrapper.split;
       ] g;
 
       C.register_module "Log" [
