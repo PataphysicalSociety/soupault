@@ -27,14 +27,14 @@ let rec get_custom_fields fields soup =
     let field = (f.field_name, get_field f soup) in
     field :: (get_custom_fields fs soup)
 
-let get_entry settings url nav_path soup =
+let get_entry settings env soup =
   let (>>=) = CCOpt.(>>=) in
   let string_of_elem selector soup =
     Utils.select_any_of selector soup >>= (fun x -> Some (Utils.inner_html x))
   in
   {
-    url = url;
-    nav_path = nav_path;
+    url = env.page_url;
+    nav_path = env.nav_path;
     title = string_of_elem settings.index_title_selector soup;
     excerpt = string_of_elem settings.index_excerpt_selector soup;
     (* Try to extract only the texts from the date element,

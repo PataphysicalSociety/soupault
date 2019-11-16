@@ -230,6 +230,7 @@ let run_plugin lua_code env config soup =
       I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state;
       I.register_globals ["nav_path", lua_str_list.embed env.nav_path] state;
       I.register_globals ["page_file", lua_str.embed env.page_file] state;
+      I.register_globals ["page_url", lua_str.embed env.page_url] state;
       I.register_globals ["config", lua_of_config config] state
     in
     let _ = I.dostring state lua_code in

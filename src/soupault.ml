@@ -173,12 +173,16 @@ let insert_index settings soup index =
         end
     end
 
-let make_page_url settings nav_path page_file =
+let make_page_url settings nav_path orig_path page_file =
+  let page_file_name = FP.basename page_file in
   let page =
-    if settings.clean_urls then FP.basename page_file |> FP.chop_extension
-    else FP.basename page_file
+    if settings.clean_urls then page_file_name |> FP.chop_extension
+    else page_file_name
   in
-  let path = List.append nav_path [page] in
+  let path =
+    if ((FP.chop_extension page_file_name) = settings.index_page) then orig_path
+    else (List.append nav_path [page])
+  in
   (* URL path should be absolute *)
   String.concat "/" path |> Printf.sprintf "/%s"
 
@@ -202,17 +206,18 @@ let process_page env index widgets config settings target_dir =
     (* If clean URLs aren't used, keep the original extension *)
     else target_dir +/ (FP.basename env.page_file)
   in
-  let env = {env with nav_path = (fix_nav_path settings env.nav_path page_name)} in
+  let orig_path = env.nav_path in
+  let nav_path = fix_nav_path settings env.nav_path page_name in
+  let env = {env with nav_path = nav_path; page_url=(make_page_url settings nav_path orig_path env.page_file)} in
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let%bind content = load_html settings env.page_file in
   let%bind html = make_page env settings content in
   (* Section index injection *)
   let%bind () =
     if not settings.index then Ok () else
-    let url = make_page_url settings env.nav_path env.page_file in
     (* Section index is inserted only into the index page *)
     if page_name <> settings.index_page
-    then let () = index := (Autoindex.get_entry settings url env.nav_path html) :: !index  in Ok ()
+    then let () = index := (Autoindex.get_entry settings env html) :: !index  in Ok ()
     else insert_index settings html !index
   in
   let widgets, widget_hash = widgets in
@@ -317,7 +322,7 @@ let initialize () =
     if settings.generator_mode then Utils.get_file_content settings.default_template
     else Ok ""
   in
-  let default_env = {template=default_template_str; nav_path=[]; page_file=""} in
+  let default_env = {template=default_template_str; nav_path=[]; page_file=""; page_url=""} in
   Ok (config, widgets, settings, default_env)
 
 let dump_index_json settings index =
