@@ -70,11 +70,14 @@ let add_item settings counter heading container =
   Soup.append_child container li;
   Soup.set_attribute "id" heading_id heading;
   (* Add a link to the current heading if requested *)
-  if settings.link_here then
-  let link_here = Soup.create_element ~attributes:["href", "#" ^ heading_id] ~inner_text:settings.link_here_text "a" in
-  Utils.add_class settings.link_here_class link_here;
-  if settings.link_here_append then Soup.append_child heading link_here
-  else Soup.prepend_child heading link_here
+  if settings.link_here then begin
+    let link_text = Soup.parse settings.link_here_text in
+    let link_here = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
+    let () = Soup.append_child link_here link_text in
+    Utils.add_class settings.link_here_class link_here;
+    if settings.link_here_append then Soup.append_child heading link_here
+    else Soup.prepend_child heading link_here
+  end
 
 let make_toc_container settings level =
   let tag = if settings.numbered_list then "ol" else "ul" in
