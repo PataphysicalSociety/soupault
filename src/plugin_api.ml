@@ -1,4 +1,5 @@
 exception Plugin_error of string
+exception Plugin_exit of string option
 
 module Re_wrapper = struct
   let replace ?(all=false) s pat sub =
@@ -187,7 +188,12 @@ struct
         "info", V.efunc (V.string **->> V.unit) Log.info;
         "warning", V.efunc (V.string **->> V.unit) Log.warning;
         "error", V.efunc (V.string **->> V.unit) Log.error
-      ] g
+      ] g;
+
+     C.register_module "Plugin" [
+       "fail", V.efunc (V.string **->> V.unit) (fun s -> raise (Plugin_error s));
+       "exit", V.efunc (V.option V.string **->> V.unit) (fun e -> raise (Plugin_exit e));
+     ] g
   end (* M *)
 end (* MakeLib *)
 
@@ -235,4 +241,11 @@ let run_plugin lua_code env config soup =
     in
     let _ = I.dostring state lua_code in
     Ok ()
-  with Plugin_error msg -> Error msg
+  with
+  | Plugin_error msg -> Error msg
+  | Plugin_exit msgo ->
+    begin
+      match msgo with
+      | Some msg -> let () = Logs.info @@ fun m -> m "Plugin exited with message: %s" msg in Ok ()
+      | None -> Ok ()
+    end
