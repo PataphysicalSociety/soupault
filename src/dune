@@ -15,4 +15,6 @@
    ezjsonm
    mustache
    lua-ml)
+; Uncomment for a static build, note that is requires a +musl+static+flambda compiler variant to work
+; (flags (-ccopt -static))
  (preprocess (pps ocaml-monadic)))
