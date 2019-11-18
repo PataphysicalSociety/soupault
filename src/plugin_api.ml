@@ -33,6 +33,13 @@ module Log = struct
   let error s = Logs.err @@ fun m -> m "%s" s
 end
 
+module Sys_wrappers = struct
+  let read_file name =
+    try Some (Soup.read_file name)
+    with
+    | Sys_error msg -> let () = Logs.err @@ fun m -> m "Failed to read file: %s" msg in None
+end
+
 module Html = struct
   type soup_wrapper = 
     | GeneralNode of Soup.general Soup.node
@@ -193,6 +200,11 @@ struct
      C.register_module "Plugin" [
        "fail", V.efunc (V.string **->> V.unit) (fun s -> raise (Plugin_error s));
        "exit", V.efunc (V.option V.string **->> V.unit) (fun e -> raise (Plugin_exit e));
+     ] g;
+
+     C.register_module "Sys" [
+       "read_file", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.read_file);
+       "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat
      ] g
   end (* M *)
 end (* MakeLib *)
