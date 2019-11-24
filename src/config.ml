@@ -82,6 +82,18 @@ let get_strings k tbl = TomlLenses.(get tbl (key k |-- array |-- strings))
 let get_strings_default default_value k tbl = get_strings k tbl |> default default_value
 let get_strings_result err k tbl = get_strings k tbl |> CCOpt.to_result err
 
+(* For passing options to plugins *)
+let get_whatever_as_string k tbl =
+  (* A "maybe not" "monad" *)
+  let (>>=) v f =
+    match v with
+    | None -> f v
+    | Some _ as v -> v
+  in
+  get_string k tbl >>=
+  (fun _ -> get_int k tbl |> CCOpt.map string_of_int) >>=
+  (fun _ -> get_bool k tbl |> CCOpt.map string_of_bool)
+
 (** Converts a TOML table to an assoc list using a given value retrieval function,
     ignoring None's it may return.
   *)

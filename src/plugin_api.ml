@@ -239,7 +239,7 @@ let soup_of_lua l =
   v.project l
 
 let lua_of_config c =
-  let cs = Config.assoc_of_table Config.get_string c in
+  let cs = Config.assoc_of_table Config.get_whatever_as_string c in
   let cs = List.map (fun (k, v) -> (k, I.Value.string.embed v)) cs in
   let config_hash = I.Value.Table.of_list cs in
   I.Value.table.embed config_hash
