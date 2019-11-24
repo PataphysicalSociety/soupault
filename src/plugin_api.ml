@@ -64,7 +64,7 @@ module Html = struct
     | SoupNode n -> Soup.coerce n
 
   let select soup selector =
-    to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x) |> List.rev
+    to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x)
 
   let select_one soup selector =
     let n = to_general soup |> Soup.select_one selector in
