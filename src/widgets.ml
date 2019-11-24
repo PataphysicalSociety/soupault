@@ -63,7 +63,11 @@ let rec _load_widgets config plugins ws hash =
 
 let get_widget_order hash =
   let dep_graph = CCHashtbl.map_list (fun k v -> (k, Config.get_strings_relaxed "after" v.config)) hash in
-  Tsort.sort dep_graph
+  let res = Tsort.sort dep_graph in
+  match res with
+  | Tsort.Sorted ws -> Ok ws
+  | Tsort.ErrorCycle ws -> Error (Printf.sprintf "Found a circular dependency between widgets: %s" (String.concat " " ws))
+  | Tsort.ErrorNonexistent ws -> Error (Printf.sprintf "Found dependencies on non-existent widgets: %s" (String.concat " " ws))
 
 (* The monadic wrapping for it *)
 let load_widgets config plugins =
