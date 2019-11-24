@@ -133,8 +133,12 @@ module Html = struct
     let text = CCOpt.get_or ~default:"" text in
     ElementNode (Soup.create_element ~inner_text:text name)
 
+  let create_text text = GeneralNode (Soup.create_text text)
+
   let inner_html node =
     to_general node |> Utils.inner_html
+
+  let strip_tags node = to_general node |> Utils.get_element_text |> CCOpt.get_or ~default:""
   
   let tname = "html"
   let eq _ = fun x y -> Soup.equal_modulo_whitespace (to_general x) (to_general y)
@@ -178,7 +182,9 @@ struct
         "replace_content", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace_content;
         "delete", V.efunc (Map.html **->> V.unit) Html.delete;
         "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
-        "inner_html", V.efunc (Map.html **->> V.string) Html.inner_html
+        "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
+        "inner_html", V.efunc (Map.html **->> V.string) Html.inner_html;
+        "strip_tags", V.efunc (Map.html **->> V.string) Html.strip_tags
       ] g;
       
       C.register_module "Regex" [
