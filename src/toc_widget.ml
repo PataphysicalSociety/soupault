@@ -12,6 +12,7 @@ type toc_settings = {
   link_here_append: bool;
   use_text: bool;
   use_slugs: bool;
+  strip_tags: bool
 }
 
 let slugify s = 
@@ -65,6 +66,11 @@ let add_item settings counter heading container =
   let heading_id = get_heading_id settings counter heading in
   let h_link = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
   let h_content = Utils.child_nodes heading in
+  (* Strip tags if configured *)
+  let h_content =
+    if settings.strip_tags then Utils.get_element_text h_content |> CCOpt.get_or ~default:"" |> Soup.parse
+    else h_content
+  in
   Soup.append_child h_link h_content;
   Soup.append_child li h_link;
   Soup.append_child container li;
@@ -120,7 +126,7 @@ let toc _ config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
      "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append";
-     "use_heading_text"; "use_heading_slug"; "use_header_text"; "use_header_slug"; "action"]
+     "use_heading_text"; "use_heading_slug"; "use_header_text"; "use_header_slug"; "strip_tags"; "action"]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
   let settings = {
@@ -135,6 +141,7 @@ let toc _ config soup =
     link_here_append = Config.get_bool_default false "heading_links_append" config;
     use_text = Config.get_bool_default false "use_heading_text" config;
     use_slugs = Config.get_bool_default false "use_heading_slug" config;
+    strip_tags = Config.get_bool_default false "strip_tags" config;
   } in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
