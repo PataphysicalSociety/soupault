@@ -113,7 +113,9 @@ let widget_should_run name widget site_dir page_file =
   let section_matches actual_path conf_path =
      let conf_path = FilePath.concat site_dir conf_path in
      let page_dir = FilePath.dirname actual_path in
-     FilePath.is_subdir conf_path page_dir
+     (* is_subdir doesn't consider a dir its own subdir,
+        so we need to handle the same dir case explicitly *)
+     (FilePath.is_subdir conf_path page_dir) || (conf_path = page_dir)
   in
   let regex_matches actual_path path_re =
     let matches = Utils.get_matching_strings path_re actual_path in
