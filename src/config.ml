@@ -158,11 +158,12 @@ let _get_index_queries index_table =
   | Some qt -> get_queries (list_config_keys qt) qt []
 
 let valid_index_options = [
+  "custom_fields"; (* subtable rather than option *)
   "index"; "dump_json"; "newest_entries_first";
   "index_selector"; "index_title_selector"; "index_excerpt_selector";
   "index_date_selector"; "index_author_selector";
   "index_date_format"; "index_item_template"; "index_processor";
-  "ignore_template_errors"; "extract_after_widgets"
+  "ignore_template_errors"; "extract_after_widgets";
 ]
 
 let _get_index_settings settings config =
