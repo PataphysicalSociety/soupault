@@ -66,6 +66,7 @@ type settings = {
   ignore_template_errors : bool;
   index_processor : string option;
   index_custom_fields : index_field list;
+  index_extract_after_widgets : string list;
 
   preprocessors : (string * string) list
 }
@@ -115,6 +116,7 @@ let default_settings = {
   index_item_template = Mustache.of_string default_index_item_template;
   ignore_template_errors = false;
   index_processor = None;
+  index_extract_after_widgets = [];
   index_custom_fields = [];
 
   preprocessors = []

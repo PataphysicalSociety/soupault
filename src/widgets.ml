@@ -69,6 +69,26 @@ let get_widget_order hash =
   | Tsort.ErrorCycle ws -> Error (Printf.sprintf "Found a circular dependency between widgets: %s" (String.concat " " ws))
   | Tsort.ErrorNonexistent ws -> Error (Printf.sprintf "Found dependencies on non-existent widgets: %s" (String.concat " " ws))
 
+(** Splits the ordered list of widgets into parts that should run before and after index extraction.
+
+    
+ *)
+let partition_widgets all_widgets index_deps =
+  let rec aux index_deps before_index after_index =
+    match index_deps, after_index with
+    (* All dependencies are removed, nothing else to do *)
+    | [], ws -> Ok (List.rev before_index, ws)
+    (* There are still dependencies to remove *)
+    | _, w :: ws' ->
+      let index_deps = CCList.remove ~eq:(=) ~key:w index_deps in
+      aux index_deps (w :: before_index) ws'
+    (* The list or widgets is empty, but the list is dependencies is not,
+       that means index extraction depends on widgets that don't exist
+       in the config *)
+    | _ as ds, []  -> Error (Printf.sprintf "Index extraction depends on non-existent widgets: %s" (String.concat " " ds))
+  in aux index_deps [] all_widgets
+
+
 (* The monadic wrapping for it *)
 let load_widgets config plugins =
   let widgets_hash = Hashtbl.create 1024 in
@@ -81,12 +101,19 @@ let load_widgets config plugins =
       Ok widgets_hash
     with Failure msg -> Error msg
 
-let get_widgets config plugins =
+let get_widgets config plugins index_deps =
   let bind = CCResult.(>>=) in
   let%bind wh = load_widgets config plugins in
   let%bind wo = get_widget_order wh in
-  let () = Logs.debug @@ fun m -> m "Widget processing order: %s" (String.concat " " wo) in
-  Ok (wo, wh)
+  let%bind before_index, after_index = partition_widgets wo index_deps in
+  let () =
+    Logs.debug @@ fun m -> m "Widget processing order: %s" (String.concat " " wo);
+    if index_deps <> [] then begin
+      Logs.debug @@ fun m -> m "Widgets that will run before metadata extraction: %s" (String.concat " " before_index);
+      Logs.debug @@ fun m -> m "Widgets that will run after metadata extraction: %s" (String.concat " " after_index)
+    end
+  in
+  Ok (before_index, after_index, wh)
 
 (** Check if a widget should run or not.
 

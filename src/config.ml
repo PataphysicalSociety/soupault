@@ -162,7 +162,7 @@ let valid_index_options = [
   "index_selector"; "index_title_selector"; "index_excerpt_selector";
   "index_date_selector"; "index_author_selector";
   "index_date_format"; "index_item_template"; "index_processor";
-  "ignore_template_errors"
+  "ignore_template_errors"; "extract_after_widgets"
 ]
 
 let _get_index_settings settings config =
@@ -192,6 +192,7 @@ let _get_index_settings settings config =
        index_item_template = get_item_template settings st;
        index_processor = get_string "index_processor" st;
        ignore_template_errors = get_bool_default settings.ignore_template_errors "ignore_template_errors" st;
+       index_extract_after_widgets = get_strings_relaxed "extract_after_widgets" st;
        index_custom_fields = _get_index_queries st;
     }
 

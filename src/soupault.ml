@@ -212,16 +212,25 @@ let process_page env index widgets config settings target_dir =
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let%bind content = load_html settings env.page_file in
   let%bind html = make_page env settings content in
-  (* Section index injection *)
+  (* Section index injection always happens before any widgets have run *)
   let%bind () =
-    if not settings.index then Ok () else
-    (* Section index is inserted only into the index page *)
-    if page_name <> settings.index_page
-    then let () = index := (Autoindex.get_entry settings env html) :: !index  in Ok ()
-    else insert_index settings html !index
+    (* Section index is inserted only in index pages *)
+    if (not settings.index) || (page_name <> settings.index_page) then Ok () else
+    let () = Logs.info @@ fun m -> m "Inserting section index" in
+    insert_index settings html !index
   in
-  let widgets, widget_hash = widgets in
-  let%bind () = process_widgets settings env widgets widget_hash config html in
+  let before_index, after_index, widget_hash = widgets in
+  let%bind () = process_widgets settings env before_index widget_hash config html in
+  (* Index extraction *)
+  let%bind () =
+    (* Metadata is only extracted from non-index pages *)
+    if (not settings.index) || (page_name = settings.index_page) then Ok () else
+    let () =
+      Logs.info @@ fun m -> m "Extracting page metadata";
+      index := (Autoindex.get_entry settings env html) :: !index
+    in Ok ()
+  in
+  let%bind () = process_widgets settings env after_index widget_hash config html in
   let%bind () = save_html settings html target_file in
   Ok ()
 
@@ -317,7 +326,7 @@ let initialize () =
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
   let%bind plugins = Plugins.get_plugins config in
-  let%bind widgets = Widgets.get_widgets config plugins in
+  let%bind widgets = Widgets.get_widgets config plugins settings.index_extract_after_widgets in
   let%bind default_template_str =
     if settings.generator_mode then Utils.get_file_content settings.default_template
     else Ok ""
