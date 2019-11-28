@@ -189,7 +189,8 @@ let get_matching_strings r s =
 (** Just prints a hardcoded program version *)
 let print_version () =
   Printf.printf "soupault %s\n" Defaults.version;
-  print_endline "Copyright 2019 Daniil Baturin, licensed under MIT";
+  print_endline "Copyright 2019 Daniil Baturin";
+  print_endline "Soupault is free software distributed under the MIT license";
   print_endline "Visit https://soupault.neocities.org/reference-manual for documentation"
 
 (** Warns about a deprecated option *)
