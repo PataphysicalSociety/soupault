@@ -13,6 +13,7 @@ before_script:
   - opam init -y --compiler $SWITCH --disable-sandboxing
   - eval `opam env`
   - opam pin add -y git+https://github.com/lindig/lua-ml
+  - opam install lambdasoup.0.6.3
   - ocaml -version
 
 script:
