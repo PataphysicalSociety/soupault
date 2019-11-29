@@ -67,6 +67,7 @@ type settings = {
   index_processor : string option;
   index_custom_fields : index_field list;
   index_extract_after_widgets : string list;
+  index_strip_tags : bool;
 
   preprocessors : (string * string) list
 }
@@ -118,6 +119,7 @@ let default_settings = {
   index_processor = None;
   index_extract_after_widgets = [];
   index_custom_fields = [];
+  index_strip_tags = false;
 
   preprocessors = []
 }

@@ -9,28 +9,43 @@ type 'a index_entry = {
   excerpt: string option;
   date: string option;
   author: string option;
-  custom_fields : (string * Ezjsonm.value) list
+  custom_fields : (string * Ezjsonm.value) list;
 }
 
-let rec get_custom_fields fields soup =
+let string_of_elem strip_tags e =
+  if strip_tags then Utils.get_element_text e
+  else begin
+    let text = Utils.inner_html e in
+    match (String.trim text) with
+    | "" -> None
+    | _ as t -> Some t
+  end
+
+(* JSON conversion. *)
+let json_of_string_opt s =
+  match s with
+  | None -> `Null
+  | Some s -> `String s
+
+let rec get_custom_fields strip_tags fields soup =
   let get_field f soup =
   if f.select_all then
-    `A (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> `String (Utils.inner_html e)))
+    `A (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> string_of_elem strip_tags e |> json_of_string_opt))
   else let e = Soup.select_one f.field_selector soup in
   match e with
     | None -> `Null
-    | Some e -> `String (Utils.inner_html e)
+    | Some e -> `String (string_of_elem strip_tags e |> CCOpt.get_or ~default:"")
   in
   match fields with
   | [] -> []
   | f :: fs ->
     let field = (f.field_name, get_field f soup) in
-    field :: (get_custom_fields fs soup)
+    field :: (get_custom_fields strip_tags fs soup)
 
 let get_entry settings env soup =
   let (>>=) = CCOpt.(>>=) in
   let string_of_elem selector soup =
-    Utils.select_any_of selector soup >>= (fun x -> Some (Utils.inner_html x))
+    Utils.select_any_of selector soup >>= string_of_elem settings.index_strip_tags
   in
   {
     url = env.page_url;
@@ -43,7 +58,7 @@ let get_entry settings env soup =
      *)
     date = Utils.select_any_of settings.index_date_selector soup >>= Utils.get_element_text;
     author = string_of_elem settings.index_author_selector soup;
-    custom_fields = get_custom_fields settings.index_custom_fields soup
+    custom_fields = get_custom_fields settings.index_strip_tags settings.index_custom_fields soup
   }
 
 (** Compares entries by their dates according to these rules:
@@ -73,12 +88,6 @@ let compare_entries settings l r =
   let r_date = get_date r in
   let result = compare_dates l_date r_date in
   if settings.newest_entries_first then (~- result) else result
-
-(* JSON conversion. *)
-let json_of_string_opt s =
-  match s with
-  | None -> `Null
-  | Some s -> `String s
 
 let json_of_entry e =
   let fields = ["title", e.title; "date", e.date; "author", e.author; "excerpt", e.excerpt] in
