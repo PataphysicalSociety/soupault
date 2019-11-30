@@ -112,7 +112,12 @@ let make_page env settings content =
   (* If page file appears to be a complete page rather than a page body,
      just return it *)
   match page_wrapper_elem with
-  | Some _ -> Ok content
+  | Some _ ->
+    let () =
+      if settings.generator_mode then
+      Logs.debug @@ fun m -> m "File appears to be a complete page, not using the page template"
+      (* in HTML processor mode that's implied *)
+    in Ok content
   | None ->
     let html = Soup.parse env.template in
     let%bind () = include_content settings html content in
@@ -190,7 +195,8 @@ let make_page_url settings nav_path orig_path page_file =
 
     1. Adjusts the path to account for index vs non-index page difference
        in setups using clean URLs
-    2. Reads a page file and inserts the content into the template
+    2. Reads a page file and inserts the content into the template,
+       unless it's a complete page
     3. Updates the global index if necessary
     4. Runs the page through widgets
     5. Inserts the index section into the page if it's an index page
@@ -332,7 +338,10 @@ let initialize () =
     else Ok ""
   in
   let default_env = {template=default_template_str; nav_path=[]; page_file=""; page_url=""} in
-  Ok (config, widgets, settings, default_env)
+  let () =
+    if not settings.generator_mode then
+    Logs.info @@ fun m -> m "Running in HTML processor mode, not using the page template"
+  in Ok (config, widgets, settings, default_env)
 
 let dump_index_json settings index =
   match settings.dump_json with
