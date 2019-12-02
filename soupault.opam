@@ -1,16 +1,19 @@
 opam-version: "2.0"
 name: "soupault"
-version: "1.6-dev"
+version: "1.6"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
-A templateless website generator that allows you to store metadata
-inside HTML and retrieve it using arbitrary CSS selectors.
+A website generator that works with page element tree rather than text
+and allows you to manipulate pages and retrieve metadata from
+existing HTML using arbitrary CSS selectors.
 
-Includes built-in widgets for setting page title, generating
-breadcrumbs and page ToC, deleting elements, including a file or output of a program
-into the page and a few others.
+Built-in functionality includes setting page title, generating ToC and footnotes,
+inserting files/HTML snippets or output of external programs into pages etc.
 
-Can also be used in an HTML processor mode.
+Metadata extracted from pages can be rendered using Mustache templates or exported to JSON
+and processed with an external script.
+
+Extensible with Lua (2.5) plugins. Can also be used as an HTML processor for existing pages.
 """
 maintainer: "Daniil Baturin <daniil@baturin.org>"
 authors: "Daniil Baturin <daniil@baturin.org>"
@@ -23,7 +26,8 @@ build: [
   ["dune" "build" "-p" name]
 ]
 depends: [
-  "dune" {build & >= "1.4.0"}
+  "ocaml" {>= "4.07"}
+  "dune" {build & >= "1.9.0"}
   "lambdasoup"
   "toml"
   "fileutils"
