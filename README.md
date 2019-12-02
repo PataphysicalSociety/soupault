@@ -11,17 +11,8 @@ Visit https://soupault.neocities.org for details.
 
 ## Building from source
 
-Soupault uses Lua-ML for plugin support, and that package is not yet in the OPAM repository,
-so you'll have to install it by hand for now:
+Installing as an opam package:
 
 ```
-opam pin add git+https://github.com/lindig/lua-ml
+opam pin add git+https://github.com/dmbaturin/soupault
 ```
-
-The rest should be just:
-
-```
-opam pin add soupault .
-```
-
-
