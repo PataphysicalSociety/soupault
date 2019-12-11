@@ -19,8 +19,10 @@ let get_program_output ?(input=None) command env_array =
     | None -> ()
     | Some i ->
       let () = Logs.debug @@ fun m -> m "Data sent to program \"%s\": %s" command i in
-      Printf.fprintf std_in "%s\n%!" i
+      Printf.fprintf std_in "%s" i
   in
+  (* close stdin to flag end of input *)
+  let () = close_out std_in in
   let output = Soup.read_channel std_out in
   let err = Soup.read_channel std_err in
   let res = Unix.close_process_full (std_out, std_in, std_err) in

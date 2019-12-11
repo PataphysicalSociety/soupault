@@ -87,3 +87,23 @@ let include_program_output env config soup =
         in Ok (Utils.insert_element action container content)
     end
 
+(** Runs the [command] using the text of the element that matches the
+ * specified [selector] as stdin. Reads stdout and replaces the content
+ * of the element.*)
+let replace_text _ config soup =
+  let run_command command node =
+    let input = Soup.leaf_text node in
+    let () = Logs.info @@ fun m -> m "command: %s" command in
+    let result = Utils.get_program_output ~input:input command [| |] in
+    match result with
+    | Ok text ->
+        let () = Soup.clear node in
+        Soup.append_child node (Soup.parse text)
+    | Error e ->
+        raise (Failure e)
+  in
+  (* Retrieve configuration options *)
+  let selector = Config.get_string_default ".replace_text" "selector" config in
+  let command = Config.get_string_default "cat" "command" config in
+  let nodes = Soup.select selector soup in
+  try Ok (Soup.iter (run_command command) nodes) with Failure e -> Error e
