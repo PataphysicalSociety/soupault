@@ -87,23 +87,33 @@ let include_program_output env config soup =
         in Ok (Utils.insert_element action container content)
     end
 
+let make_node_env node =
+  let make_var l r = Printf.sprintf "%s=%s" l r in
+  let make_attr n v = make_var ("ATTR_" ^ String.uppercase_ascii n) v in
+  let name = make_var "TAG_NAME" (Soup.name node) in
+  let attrs = Soup.fold_attributes (fun acc n v -> make_attr n v :: acc) [ ] node in
+  name :: attrs |> Array.of_list
+
 (** Runs the [command] using the text of the element that matches the
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
-let replace_text _ config soup =
-  let run_command command node =
-    let input = Soup.leaf_text node in
+let preprocess_element _ config soup =
+  let run_command command action parse node =
+    let input = Some (Utils.inner_html ~escape_html:false node) in
     let () = Logs.info @@ fun m -> m "command: %s" command in
-    let result = Utils.get_program_output ~input:input command [| |] in
+    let node_env = make_node_env node in
+    let result = Utils.get_program_output ~input:input command node_env in
     match result with
     | Ok text ->
-        let () = Soup.clear node in
-        Soup.append_child node (Soup.parse text)
+        let content = if parse then Soup.parse text |> Soup.coerce else Soup.create_text text in
+        Utils.insert_element action node content
     | Error e ->
         raise (Failure e)
   in
   (* Retrieve configuration options *)
-  let selector = Config.get_string_default ".replace_text" "selector" config in
+  let selector = Config.get_string_default ".preprocess_element" "selector" config in
+  let action = Config.get_string_default "replace_content" "action" config in
+  let parse = Config.get_bool_default true "parse" config in
   let command = Config.get_string_default "cat" "command" config in
   let nodes = Soup.select selector soup in
-  try Ok (Soup.iter (run_command command) nodes) with Failure e -> Error e
+  try Ok (Soup.iter (run_command command action parse) nodes) with Failure e -> Error e

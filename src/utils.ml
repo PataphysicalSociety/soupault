@@ -132,9 +132,13 @@ let child_nodes e =
 
 (** Retrieves the innerHTML of an element --
     a string representation of its children *)
-let inner_html e =
+let inner_html ?(escape_html=true) e =
   let children = child_nodes e in
-  Soup.to_string children
+  if escape_html then Soup.to_string children
+  else
+      let escape_text = fun (x:string) -> x in
+      let escape_attribute = fun (x:string) -> x in
+      children |> Soup.signals |> (fun s -> Markup.write_html ~escape_text ~escape_attribute s) |> Markup.to_string
 
 (** Appends a child if child rather than None is given *)
 let append_child container child =
