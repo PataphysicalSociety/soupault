@@ -111,9 +111,12 @@ let preprocess_element _ config soup =
         raise (Failure e)
   in
   (* Retrieve configuration options *)
-  let selector = Config.get_string_default ".preprocess_element" "selector" config in
+  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"] in
+  let () = Config.check_options valid_options config "widget \"preprocess_element\"" in
+  let bind = CCResult.(>>=) in
   let action = Config.get_string_default "replace_content" "action" config in
   let parse = Config.get_bool_default true "parse" config in
-  let command = Config.get_string_default "cat" "command" config in
+  let%bind selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let%bind command = Config.get_string_result "Missing required option \"command\"" "command" config in
   let nodes = Soup.select selector soup in
   try Ok (Soup.iter (run_command command action parse) nodes) with Failure e -> Error e
