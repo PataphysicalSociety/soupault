@@ -158,26 +158,6 @@ let fix_nav_path settings path page_name =
   if page_name = settings.index_page then Utils.drop_tail path
   else path
 
-let insert_index settings soup index =
-  let index_container = Soup.select_one settings.index_selector soup in
-  match index_container with
-  | None -> Ok ()
-  | Some ic ->
-    begin
-      match settings.index_processor with
-      | None -> Autoindex.add_index settings ic index
-      | Some p ->
-        let json = Autoindex.json_of_entries settings index in
-        let () = Logs.info @@ fun m -> m "Calling index processor %s" p in
-        let output = Utils.get_program_output ~input:(Some json) p [| |] in
-        begin
-          match output with
-          | Error _ as e -> e
-          | Ok output ->
-            Ok (Soup.append_child ic (Soup.parse output))
-        end
-    end
-
 let make_page_url settings nav_path orig_path page_file =
   let page_file_name = FP.basename page_file in
   let page =
@@ -223,7 +203,7 @@ let process_page env index widgets config settings target_dir =
     (* Section index is inserted only in index pages *)
     if (not settings.index) || (page_name <> settings.index_page) then Ok () else
     let () = Logs.info @@ fun m -> m "Inserting section index" in
-    insert_index settings html !index
+    Autoindex.insert_index settings html !index
   in
   let before_index, after_index, widget_hash = widgets in
   let%bind () = process_widgets settings env before_index widget_hash config html in
@@ -347,7 +327,7 @@ let dump_index_json settings index =
   match settings.dump_json with
   | None -> Ok ()
   | Some f ->
-    try Ok (Soup.write_file f @@ Autoindex.json_of_entries settings index)
+    try Ok (Soup.write_file f @@ Autoindex.json_string_of_entries settings index)
     with Sys_error e -> Error e
   
 let main () =
