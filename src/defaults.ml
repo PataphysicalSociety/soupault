@@ -6,46 +6,46 @@ type index_field = {
 }
 
 type settings = {
-  (** show processing steps *)
+  (* show processing steps *)
   verbose : bool;
 
-  (** show debug information *)
+  (* show debug information *)
   debug : bool;
 
-  (** stop on page processing errors *)
+  (* stop on page processing errors *)
   strict : bool;
 
-  (** HTML doctype to insert in generated pages *)
+  (* HTML doctype to insert in generated pages *)
   doctype : string;
 
-  (** where generated pages are stored *)
+  (* where generated pages are stored *)
   build_dir : string;
 
-  (** where page source files are stored *)
+  (* where page source files are stored *)
   site_dir : string;
 
-  (** page source file to use for section index, without extension *)
+  (* page source file to use for section index, without extension *)
   index_page : string;
 
-  (** generated section index file name *)
+  (* generated section index file name *)
   index_file : string;
 
-  (** default HTML page template *)
+  (* default HTML page template *)
   default_template : string;
 
-  (** element where page content is inserted in the template *)
+  (* element where page content is inserted in the template *)
   content_selector : string;
 
-  (** use clean URLs or mirror the site dir structure exactly *)
+  (* use clean URLs or mirror the site dir structure exactly *)
   clean_urls : bool;
 
-  (** Extensions of files assumed to be pages *)
+  (* Extensions of files assumed to be pages *)
   page_extensions : string list;
 
-  (** File extensions to ignore completely *)
+  (* File extensions to ignore completely *)
   ignore_extensions : string list;
 
-  (** Pages that should be just run through the widgets
+  (* Pages that should be just run through the widgets
       rather than inserted in the template *)
   complete_page_selector : string;
 
