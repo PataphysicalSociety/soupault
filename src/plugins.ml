@@ -1,4 +1,4 @@
-let (>>=) = CCOpt.(>>=)
+let (>>=) = Option.bind
 
 (* Plugin config loading *)
 let get_plugin_config config plugin =
@@ -37,13 +37,13 @@ let rec _load_plugins ps config hash =
     end
 
 let get_plugins config =
-  let bind = CCResult.(>>=) in
+  let (let*) = Stdlib.Result.bind in
   let hash = Hashtbl.create 1024 in
   match config with
   | None -> Ok hash
   | Some config ->
     let plugins = list_plugins config in
-    let%bind () = _load_plugins plugins config hash in
+    let* () = _load_plugins plugins config hash in
     Ok hash
 
   

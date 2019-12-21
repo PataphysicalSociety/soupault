@@ -1,5 +1,7 @@
 (* Footnotes *)
 
+let (let*) = Stdlib.Result.bind
+
 (** Makes a unique id for a footnote element--
     the footnote text that is taken out of the document body and
     moved to a designated footnotes container.
@@ -101,16 +103,15 @@ let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container 
 
 (** Footnotes widget wrapper *)
 let footnotes _ config soup =
-  let bind = CCResult.(>>=) in
   let valid_options = List.append Config.common_widget_options
     ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class";
      "back_links"; "back_link_id_append"; "link_id_prepend"; "action"] in
   let () = Config.check_options valid_options config "widget \"footnotes\"" in
-  let%bind selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let* selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
   let note_selector = Config.get_strings_relaxed ~default:[".footnote"] "footnote_selector" config in
-  let%bind ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Utils.check_template "*" in
-  let%bind note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
+  let* ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Utils.check_template "*" in
+  let* note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
   let fn_link_class = Config.get_string "footnote_link_class" config in
   let back_links = Config.get_bool_default true "back_links" config in
   let back_link_append = Config.get_string_default "-ref" "back_link_id_append" config in

@@ -102,10 +102,10 @@ let load_widgets config plugins =
     with Failure msg -> Error msg
 
 let get_widgets config plugins index_deps =
-  let bind = CCResult.(>>=) in
-  let%bind wh = load_widgets config plugins in
-  let%bind wo = get_widget_order wh in
-  let%bind before_index, after_index = partition_widgets wo index_deps in
+  let (let*) = Stdlib.Result.bind in
+  let* wh = load_widgets config plugins in
+  let* wo = get_widget_order wh in
+  let* before_index, after_index = partition_widgets wo index_deps in
   let () =
     Logs.debug @@ fun m -> m "Widget processing order: %s" (String.concat " " wo);
     if index_deps <> [] then begin

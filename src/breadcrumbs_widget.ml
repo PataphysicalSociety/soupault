@@ -50,7 +50,7 @@ let breadcrumbs env config soup =
   | Error _ as e -> e
   | Ok selector ->
     let container = Soup.select_one selector soup in
-    let bind = CCResult.(>>=) in
+    let (let*) = Stdlib.Result.bind in
     begin
       match container with
       | None ->
@@ -60,7 +60,7 @@ let breadcrumbs env config soup =
         let path_length = List.length env.nav_path in
         if path_length < min_depth then Ok () else
         let bc_tmpl_str = Config.get_string_default "<a></a>" "breadcrumb_template" config in
-        let%bind _  = check_breadcrumb_template bc_tmpl_str in
+        let* _  = check_breadcrumb_template bc_tmpl_str in
         let prepend = Config.get_string_default "" "prepend" config in
         let append = Config.get_string_default "" "append" config in
         let between = Config.get_string_default "" "between" config in

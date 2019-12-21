@@ -26,7 +26,7 @@ build: [
   ["dune" "build" "-p" name]
 ]
 depends: [
-  "ocaml" {>= "4.07"}
+  "ocaml" {>= "4.08"}
   "dune" {build & >= "2.0.0"}
   "lambdasoup"
   "markup" {>= "0.8.2"}
@@ -36,7 +36,6 @@ depends: [
   "fmt"
   "re"
   "ezjsonm"
-  "ocaml-monadic" {build}
   "containers"
   "stringext"
   "calendar"

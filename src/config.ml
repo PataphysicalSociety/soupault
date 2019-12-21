@@ -132,10 +132,10 @@ let _get_preprocessors config =
   | Some pt -> assoc_of_table get_string pt
 
 let _get_index_queries index_table =
-  let bind = CCResult.(>>=) in
+  let (let*) = Stdlib.Result.bind in
   let get_query k queries =
-    let%bind qt = get_table_result "value is not an inline table" k queries in
-    let%bind selector = get_string_result "selector option is missing or value is not a string" "selector" qt in
+    let* qt = get_table_result "value is not an inline table" k queries in
+    let* selector = get_string_result "selector option is missing or value is not a string" "selector" qt in
     let select_all = get_bool_default false "select_all" qt in
     Ok {field_name = k; field_selector = selector; select_all = select_all}
   in
