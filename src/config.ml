@@ -136,8 +136,13 @@ let _get_index_queries index_table =
   let get_query k queries =
     let* qt = get_table_result "value is not an inline table" k queries in
     let* selector = get_string_result "selector option is missing or value is not a string" "selector" qt in
+    let default_value = get_string "default" qt in
     let select_all = get_bool_default false "select_all" qt in
-    Ok {field_name = k; field_selector = selector; select_all = select_all}
+    let () =
+      if (Option.is_some default_value) && select_all then
+      Logs.warn @@ fun m -> m "default is ignored when select_all is true"
+    in
+    Ok {field_name = k; field_selector = selector; select_all = select_all; default_field_value = default_value}
   in
   let rec get_queries ks queries acc =
     match ks with

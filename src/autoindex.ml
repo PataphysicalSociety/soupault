@@ -32,9 +32,10 @@ let rec get_custom_fields strip_tags fields soup =
   if f.select_all then
     `A (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> string_of_elem strip_tags e |> json_of_string_opt))
   else let e = Soup.select_one f.field_selector soup in
-  match e with
-    | None -> `Null
-    | Some e -> `String (string_of_elem strip_tags e |> CCOpt.get_or ~default:"")
+  match e, f.default_field_value with
+    | None, None -> `Null
+    | None, Some v -> `String v
+    | Some e, _ -> `String (string_of_elem strip_tags e |> CCOpt.get_or ~default:"")
   in
   match fields with
   | [] -> []
