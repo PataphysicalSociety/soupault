@@ -11,6 +11,7 @@ let insert_html _ config soup =
   let () = Config.check_options valid_options config "widget \"insert_html\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
+  let html_body_context = Config.get_bool_default true "html_context_body" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -23,17 +24,19 @@ let insert_html _ config soup =
         Ok ()
       | Some container ->
         let* html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
-        let content = Soup.parse html_str in
+        let content = Utils.parse_html ~body:html_body_context html_str in
         Ok (Utils.insert_element action container content)
     end
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
 let include_file _ config soup =
-  let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"include\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
+  let html_body_context = Config.get_bool_default true "html_context_body" config in
+  let parse_content = Config.get_bool_default true "parse" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -45,10 +48,9 @@ let include_file _ config soup =
         Ok ()
       | Some container ->
         let* file = Config.get_string_result "Missing required option \"file\"" "file" config in
-        let parse_content = Config.get_bool_default true "parse" config in
         let* content = Utils.get_file_content file in
         let content =
-          if parse_content then (Soup.parse content |> Soup.coerce)
+          if parse_content then (Utils.parse_html ~body:html_body_context content |> Soup.coerce)
           else Soup.create_text content
         in Ok (Utils.insert_element action container content)
     end
@@ -67,6 +69,8 @@ let include_program_output env config soup =
   let () = Config.check_options valid_options config "widget \"exec\"" in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
+  let html_body_context = Config.get_bool_default true "html_context_body" config in
+  let parse_content = Config.get_bool_default true "parse" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -78,11 +82,10 @@ let include_program_output env config soup =
         Ok ()
       | Some container ->
         let env_array = make_program_env env in
-        let parse_content = Config.get_bool_default true "parse" config in
         let* cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
         let* content = Utils.get_program_output cmd env_array in
         let content =
-          if parse_content then (Soup.parse content |> Soup.coerce)
+          if parse_content then (Utils.parse_html ~body:html_body_context content |> Soup.coerce)
           else Soup.create_text content
         in Ok (Utils.insert_element action container content)
     end
@@ -98,7 +101,7 @@ let make_node_env node =
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
 let preprocess_element env config soup =
-  let run_command command action parse node =
+  let run_command command action parse body_context node =
     let input = Some (Utils.inner_html ~escape_html:false node) in
     let () = Logs.info @@ fun m -> m "command: %s" command in
     let node_env = make_node_env node in
@@ -107,8 +110,10 @@ let preprocess_element env config soup =
     let result = Utils.get_program_output ~input:input command env_array in
     match result with
     | Ok text ->
-        let content = if parse then Soup.parse text |> Soup.coerce else Soup.create_text text in
-        Utils.insert_element action node content
+        let content =
+          if parse then Utils.parse_html ~body:body_context text |> Soup.coerce
+          else Soup.create_text text
+        in Utils.insert_element action node content
     | Error e ->
         raise (Failure e)
   in
@@ -117,7 +122,10 @@ let preprocess_element env config soup =
   let () = Config.check_options valid_options config "widget \"preprocess_element\"" in
   let action = Config.get_string_default "replace_content" "action" config in
   let parse = Config.get_bool_default true "parse" config in
+  let html_body_context = Config.get_bool_default true "html_context_body" config in
   let* selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let* command = Config.get_string_result "Missing required option \"command\"" "command" config in
   let nodes = Soup.select selector soup in
-  try Ok (Soup.iter (run_command command action parse) nodes) with Failure e -> Error e
+  try
+    Ok (Soup.iter (run_command command action parse html_body_context) nodes)
+  with Failure e -> Error e

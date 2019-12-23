@@ -3,6 +3,10 @@ let get_file_content file =
   try Ok (Soup.read_file file)
   with Sys_error msg -> Error msg
 
+let parse_html ?(body=true) str =
+  let context = if body then `Fragment "body" else `Fragment "head" in
+  Markup.string str |> Markup.parse_html ~context:context |> Markup.signals |> Soup.from_signals
+
 (* Result wrapper for FileUtil.cp *)
 let cp fs d =
   try Ok (FileUtil.cp fs d)
