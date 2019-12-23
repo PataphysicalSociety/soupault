@@ -202,7 +202,7 @@ let process_page env index widgets config settings target_dir =
     (* Section index is inserted only in index pages *)
     if (not settings.index) || (page_name <> settings.index_page) then Ok () else
     let () = Logs.info @@ fun m -> m "Inserting section index" in
-    Autoindex.insert_index settings html !index
+    Autoindex.insert_indices settings html !index
   in
   let before_index, after_index, widget_hash = widgets in
   let* () = process_widgets settings env before_index widget_hash config html in

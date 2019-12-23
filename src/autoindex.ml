@@ -105,10 +105,9 @@ let json_string_of_entries ?(minify=false) settings es =
   json_of_entries settings es |> Ezjsonm.to_string ~minify:minify
 
 (** Renders an index using built-in Mustache templates *)
-let render_index settings soup entries =
+let render_index template settings soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
   let strict = not settings.ignore_template_errors in
-  let tmpl = settings.index_item_template in
   try
     let () =
       (* Debug output *)
@@ -116,7 +115,7 @@ let render_index settings soup entries =
       Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false settings entries)
     in
     let entries = List.sort (compare_entries settings) entries in
-    let entries = List.map (fun e -> json_of_entry e |> Mustache.render ~strict:strict tmpl |> Soup.parse) entries in
+    let entries = List.map (fun e -> json_of_entry e |> Mustache.render ~strict:strict template |> Soup.parse) entries in
     let () = List.iter (Soup.append_child soup) entries in
     Ok ()
   with
@@ -136,15 +135,18 @@ let run_index_processor settings cmd ic index =
     | Ok output -> Ok (Soup.append_child ic (Soup.parse output))
   end
 
-let insert_index settings soup index =
-  let index_container = Soup.select_one settings.index_selector soup in
+let insert_index settings soup index view =
+  let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
-    let () = Logs.warn @@ fun m -> m "Page doesn't have an element matching selector \"%s\", not inserting the index" settings.index_selector in
+    let () = Logs.warn @@ fun m -> m "Page doesn't have an element matching selector \"%s\", ignoring index view \"%s\"" view.index_selector view.index_view_name in
     Ok ()
   | Some ic ->
     begin
-      match settings.index_processor with
-      | None -> render_index settings ic index
-      | Some cmd -> run_index_processor settings cmd ic index
+      match view.index_processor with
+      | Defaults.BuiltInTemplate tmpl -> render_index tmpl settings ic index
+      | Defaults.ExternalIndexer cmd -> run_index_processor settings cmd ic index
     end
+
+let insert_indices settings soup index =
+  Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings soup index) settings.index_views

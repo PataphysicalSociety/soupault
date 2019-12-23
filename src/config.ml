@@ -158,23 +158,77 @@ let _get_index_queries index_table =
   | Some qt -> get_queries (list_config_keys qt) qt []
 
 let valid_index_options = [
-  "custom_fields"; (* subtable rather than option *)
+  "custom_fields"; "views"; (* subtables rather than options *)
   "index"; "dump_json"; "newest_entries_first";
   "index_selector"; "index_title_selector"; "index_excerpt_selector";
   "index_date_selector"; "index_author_selector";
   "index_date_format"; "index_item_template"; "index_processor";
-  "ignore_template_errors"; "extract_after_widgets"; "strip_tags"
+  "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
+  "use_default_view"
 ]
 
-let _get_index_settings settings config =
-  let get_item_template s c =
-    let tmpl_string = get_string_default Defaults.default_index_item_template "index_item_template" c in
-    try
-      Mustache.of_string tmpl_string
-    with _ ->
-      let () = Logs.warn @@ fun m -> m "Failed to parse template \"%s\", using default" tmpl_string in
-      s.index_item_template
+let _get_index_view st view_name =
+  let _get_template tmpl =
+    begin
+      try BuiltInTemplate (Mustache.of_string tmpl)
+      with _ ->
+        let () = Logs.warn @@ fun m -> m "Failed to parse template \"%s\", using default (%s)" tmpl default_index_item_template in
+        default_index_processor
+    end
   in
+  let _get_index_processor st =
+    let template = get_string "index_item_template" st in
+    let script = get_string "index_processor" st in
+    match template, script with
+    | Some template, None -> _get_template template
+    | None, Some command -> ExternalIndexer command
+    | Some _, Some command ->
+      let () = Logs.warn @@ fun m -> m "Index view \"%s\": Found both index_item_template and index_processor options, using index_processor" view_name in
+      ExternalIndexer command
+    | None, None ->
+      let () = Logs.warn @@ fun m -> m "Index view \"%s\": neither index_item_template nor index_processor are defined, using default template" view_name in
+      default_index_processor
+  in
+  let selector = get_string_default "body" "index_selector" st in
+  {index_view_name = view_name; index_selector = selector; index_processor = (_get_index_processor st)}
+
+let _get_index_views index_table =
+  let (let*) = Stdlib.Result.bind in
+  let get_view k views =
+    let* vt = get_table_result "value is not an inline table" k views in
+    (* Stricter validation for non-default views *)
+    let* _ = get_string_result (Printf.sprintf "Index view \"%s\": Missing required option \"selector\"" k) "index_selector" vt in
+    (* Since getting an index view never actually fails due to backwards-compatibility with
+       original options that all have defaults. *)
+    Ok (_get_index_view vt k)
+  in
+  let rec get_views ks views acc =
+    match ks with
+    | [] -> acc
+    | k :: ks ->
+      begin
+        let v = get_view k views in
+        match v with
+        | Error e ->
+          let () = Logs.warn @@ fun m -> m "Malformed index field query \"%s\": %s" k e in
+          get_views ks views acc
+        | Ok q -> get_views ks views (q :: acc)
+      end
+  in
+  (* In case someone wants to have _only_ custom views and not old style options *)
+  let use_default_view = get_bool_default true "use_default_view" index_table in
+  let views =
+    if use_default_view then [_get_index_view index_table "default"]
+    else []
+  in
+  let vt = get_table "views" index_table in
+  match vt with
+  | None -> views
+  | Some vt -> 
+    let custom_views = get_views (list_config_keys vt) vt [] in
+    List.append views custom_views
+
+let _get_index_settings settings config =
   let st = get_table Defaults.index_settings_table config in
   match st with
   | None -> settings
@@ -184,18 +238,16 @@ let _get_index_settings settings config =
        index = get_bool_default settings.index "index" st;
        dump_json = get_string "dump_json" st;
        newest_entries_first = get_bool_default settings.newest_entries_first "newest_entries_first" st;
-       index_selector = get_string_default settings.index_selector "index_selector" st;
        index_title_selector = get_strings_relaxed ~default:settings.index_title_selector "index_title_selector" st;
        index_excerpt_selector = get_strings_relaxed ~default:settings.index_excerpt_selector "index_excerpt_selector" st;
        index_date_selector = get_strings_relaxed ~default:settings.index_date_selector "index_date_selector" st;
        index_author_selector = get_strings_relaxed ~default:settings.index_author_selector "index_author_selector" st;
        index_date_format = get_string_default settings.index_date_format "index_date_format" st;
-       index_item_template = get_item_template settings st;
-       index_processor = get_string "index_processor" st;
        ignore_template_errors = get_bool_default settings.ignore_template_errors "ignore_template_errors" st;
        index_extract_after_widgets = get_strings_relaxed "extract_after_widgets" st;
        index_custom_fields = _get_index_queries st;
        index_strip_tags = get_bool_default settings.index_strip_tags "strip_tags" st;
+       index_views = _get_index_views st
     }
 
 let valid_settings = [

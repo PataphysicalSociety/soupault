@@ -58,7 +58,7 @@ let unwrap_option o =
   | None -> raise (Failure "values of beta will give rise to dom!")
 
 (** Result-aware iteration *)
-let rec iter f xs =
+let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
   match xs with
   | [] -> Ok ()
   | x :: xs ->
@@ -66,7 +66,9 @@ let rec iter f xs =
     begin
       match res with
       | Ok _ -> iter f xs
-      | Error _ as e -> e
+      | Error msg as e  ->
+        if ignore_errors then let () = Logs.warn @@ fun m -> m "%s" (fmt msg) in Ok ()
+        else e
     end
 
 (** Checks if a "template" has a specific element in it.

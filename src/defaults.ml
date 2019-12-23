@@ -5,6 +5,14 @@ type index_field = {
   select_all : bool
 }
 
+type index_processor = BuiltInTemplate of Mustache.t | ExternalIndexer of string
+
+type index_view = {
+  index_view_name : string;
+  index_selector : string;
+  index_processor : index_processor;
+}
+
 type settings = {
   (* show processing steps *)
   verbose : bool;
@@ -56,18 +64,16 @@ type settings = {
   index : bool;
   dump_json : string option;
   newest_entries_first : bool;
-  index_selector : string;
   index_title_selector : string list;
   index_excerpt_selector : string list;
   index_date_selector : string list;
   index_author_selector : string list;
   index_date_format : string;
-  index_item_template : Mustache.t;
   ignore_template_errors : bool;
-  index_processor : string option;
   index_custom_fields : index_field list;
   index_extract_after_widgets : string list;
   index_strip_tags : bool;
+  index_views: index_view list;
 
   preprocessors : (string * string) list
 }
@@ -89,6 +95,8 @@ let plugins_table = "plugins"
 
 let default_index_item_template = "<div> <a href=\"{{url}}\">{{{title}}}</a> </div>"
 
+let default_index_processor = BuiltInTemplate (Mustache.of_string default_index_item_template)
+
 let default_settings = {
   verbose = false;
   debug = false;
@@ -105,21 +113,20 @@ let default_settings = {
   ignore_extensions = [];
   complete_page_selector = "html";
   generator_mode = true;
+
   index = false;
   dump_json = None;
   newest_entries_first = false;
-  index_selector = "body";
   index_title_selector = ["h1"];
   index_excerpt_selector = ["p"];
   index_date_selector = ["time"];
   index_author_selector = ["#author"];
   index_date_format = "%F";
-  index_item_template = Mustache.of_string default_index_item_template;
   ignore_template_errors = false;
-  index_processor = None;
   index_extract_after_widgets = [];
   index_custom_fields = [];
   index_strip_tags = false;
+  index_views = [];
 
   preprocessors = []
 }
