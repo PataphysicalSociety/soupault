@@ -97,12 +97,14 @@ let make_node_env node =
 (** Runs the [command] using the text of the element that matches the
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
-let preprocess_element _ config soup =
+let preprocess_element env config soup =
   let run_command command action parse node =
     let input = Some (Utils.inner_html ~escape_html:false node) in
     let () = Logs.info @@ fun m -> m "command: %s" command in
     let node_env = make_node_env node in
-    let result = Utils.get_program_output ~input:input command node_env in
+    let program_env = make_program_env env in
+    let env_array = Array.append program_env node_env in
+    let result = Utils.get_program_output ~input:input command env_array in
     match result with
     | Ok text ->
         let content = if parse then Soup.parse text |> Soup.coerce else Soup.create_text text in
