@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "soupault"
-version: "1.7"
+version: "1.7.0"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
 A website generator that works with page element tree rather than text
@@ -15,19 +15,19 @@ and processed with an external script.
 
 Extensible with Lua (2.5) plugins. Can also be used as an HTML processor for existing pages.
 """
-maintainer: "Daniil Baturin <daniil@baturin.org>"
-authors: "Daniil Baturin <daniil@baturin.org>"
+maintainer: "Daniil Baturin <daniil+opam@baturin.org>"
+authors: "Daniil Baturin <daniil+soupault@baturin.org>"
 license: "MIT"
 homepage: "https://soupault.neocities.org"
 bug-reports: "https://github.com/dmbaturin/soupault/issues"
-dev-repo: "git+https://github.com/dmbaturin/soupalt"
+dev-repo: "git+https://github.com/dmbaturin/soupault"
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name]
 ]
 depends: [
   "ocaml" {>= "4.08"}
-  "dune" {build & >= "2.0.0"}
+  "dune" {>= "2.0.0"}
   "lambdasoup"
   "markup" {>= "0.8.2"}
   "toml"
