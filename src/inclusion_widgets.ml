@@ -61,7 +61,8 @@ let make_program_env env =
   let make_var l r = Printf.sprintf "%s=%s" l r in
   let page_file = make_var "PAGE_FILE" env.page_file in
   let page_url = make_var "PAGE_URL" env.page_url in
-  [| page_file; page_url |]
+  let target_dir = make_var "TARGET_DIR" env.target_dir in
+  [| page_file; page_url; target_dir |]
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
 let include_program_output env config soup =

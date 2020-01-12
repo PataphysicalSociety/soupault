@@ -222,7 +222,8 @@ struct
      C.register_module "Sys" [
        "read_file", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.read_file);
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
-       "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat
+       "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
+       "random", V.efunc (V.int **->> V.int) Random.int
      ] g
   end (* M *)
 end (* MakeLib *)
@@ -267,6 +268,7 @@ let run_plugin lua_code env config soup =
       I.register_globals ["nav_path", lua_str_list.embed env.nav_path] state;
       I.register_globals ["page_file", lua_str.embed env.page_file] state;
       I.register_globals ["page_url", lua_str.embed env.page_url] state;
+      I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
       I.register_globals ["config", lua_of_config config] state
     in
     let _ = I.dostring state lua_code in

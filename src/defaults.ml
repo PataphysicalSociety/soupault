@@ -84,6 +84,7 @@ type env = {
   nav_path : string list;
   page_file : string;
   page_url : string;
+  target_dir : string;
 }
 
 let config_file = "soupault.conf"

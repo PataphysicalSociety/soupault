@@ -179,13 +179,13 @@ let make_page_url settings nav_path orig_path page_file =
     3. Updates the global index if necessary
     4. Runs the page through widgets
     5. Inserts the index section into the page if it's an index page
-    6. Saves the processes page to file
+    6. Saves the processed page to file
   *)
-let process_page env index widgets config settings target_dir =
+let process_page env index widgets config settings =
   let page_name = FP.basename env.page_file |> FP.chop_extension in
   (* If clean URLs are used, make_page_dir creates one,
      if not, just returns the current dir *)
-  let* target_dir = make_page_dir settings target_dir page_name in
+  let* target_dir = make_page_dir settings env.target_dir page_name in
   let target_file =
     if settings.clean_urls then (target_dir +/ settings.index_file)
     (* If clean URLs aren't used, keep the original extension *)
@@ -193,7 +193,11 @@ let process_page env index widgets config settings target_dir =
   in
   let orig_path = env.nav_path in
   let nav_path = fix_nav_path settings env.nav_path page_name in
-  let env = {env with nav_path = nav_path; page_url=(make_page_url settings nav_path orig_path env.page_file)} in
+  let env = {env with
+    nav_path = nav_path;
+    page_url = (make_page_url settings nav_path orig_path env.page_file);
+    target_dir = target_dir
+  } in
   let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
   let* content = load_html settings env.page_file in
   let* html = make_page env settings content in
@@ -222,8 +226,8 @@ let process_page env index widgets config settings target_dir =
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
 let _process_page env index widgets config settings target_dir page_file =
     (* Make the page file name accessible to widgets *)
-    let env = {env with page_file=page_file} in
-    let res = process_page env index widgets config settings target_dir in
+    let env = {env with page_file=page_file; target_dir=target_dir} in
+    let res = process_page env index widgets config settings in
     match res with
       Ok _ -> Ok ()
     | Error msg ->
@@ -298,6 +302,7 @@ let check_project_dir settings =
   end
 
 let initialize () =
+  let () = Random.self_init () in
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose settings.debug in
   let config_file =
@@ -316,7 +321,13 @@ let initialize () =
     if settings.generator_mode then Utils.get_file_content settings.default_template
     else Ok ""
   in
-  let default_env = {template=default_template_str; nav_path=[]; page_file=""; page_url=""} in
+  let default_env = {
+    template = default_template_str;
+    nav_path = [];
+    page_file = "";
+    page_url = "";
+    target_dir = settings.build_dir
+  } in
   let () =
     if not settings.generator_mode then
     Logs.info @@ fun m -> m "Running in HTML processor mode, not using the page template"
