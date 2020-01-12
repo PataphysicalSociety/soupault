@@ -28,6 +28,7 @@ module Re_wrapper = struct
 end
 
 module Log = struct
+  let debug s = Logs.debug @@ fun m -> m "%s" s
   let info s = Logs.info @@ fun m -> m "%s" s
   let warning s = Logs.warn @@ fun m -> m "%s" s
   let error s = Logs.err @@ fun m -> m "%s" s
@@ -200,6 +201,7 @@ struct
       ] g;
 
       C.register_module "Log" [
+        "debug", V.efunc (V.string **->> V.unit) Log.debug;
         "info", V.efunc (V.string **->> V.unit) Log.info;
         "warning", V.efunc (V.string **->> V.unit) Log.warning;
         "error", V.efunc (V.string **->> V.unit) Log.error
