@@ -179,8 +179,10 @@ struct
         "insert_before", V.efunc (Map.html **-> Map.html **->> V.unit) Html.insert_before;
         "insert_after", V.efunc (Map.html **-> Map.html **->> V.unit) Html.insert_after;
         "replace", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace;
+        "replace_element", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace;
         "replace_content", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace_content;
         "delete", V.efunc (Map.html **->> V.unit) Html.delete;
+        "delete_element", V.efunc (Map.html **->> V.unit) Html.delete;
         "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
         "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
         "inner_html", V.efunc (Map.html **->> V.string) Html.inner_html;
