@@ -42,5 +42,5 @@ depends: [
   "spelll"
   "mustache"
   "tsort"
-  "lua-ml"
+  "lua-ml" {>= "0.9.1"}
 ]

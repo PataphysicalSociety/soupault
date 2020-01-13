@@ -288,7 +288,7 @@ let lua_of_config c =
   let config_hash = I.Value.Table.of_list cs in
   I.Value.table.embed config_hash
 
-let run_plugin lua_code env config soup =
+let run_plugin filename lua_code env config soup =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
@@ -302,9 +302,10 @@ let run_plugin lua_code env config soup =
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
       I.register_globals ["config", lua_of_config config] state
     in
-    let _ = I.dostring state lua_code in
+    let _ = I.dostring ~file:filename state lua_code in
     Ok ()
   with
+  | Failure msg -> Error (Printf.sprintf "Lua code execution failed:\n%s" msg)
   | Plugin_error msg -> Error msg
   | Plugin_exit msgo ->
     begin

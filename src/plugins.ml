@@ -30,7 +30,7 @@ let rec _load_plugins ps config hash =
       | Some file ->
         try
           let lua_source = Soup.read_file file in
-          Hashtbl.add hash p (Plugin_api.run_plugin lua_source);
+          Hashtbl.add hash p (Plugin_api.run_plugin file lua_source);
           _load_plugins ps' config hash
         with Sys_error msg ->
           Error (Printf.sprintf "Could not read plugin file %s: %s" file msg)
