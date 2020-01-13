@@ -15,10 +15,6 @@ type toc_settings = {
   strip_tags: bool
 }
 
-let slugify s = 
-  Re.Str.global_replace (Re.Str.regexp "[^a-zA-Z0-9\\-]") "-" s |>
-  String.lowercase_ascii
-
 let is_heading e =
   match (Soup.name e) with
   | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" -> true
@@ -46,7 +42,7 @@ let get_heading_id settings counter heading =
       match text with
       | None -> counter () |> string_of_int
       | Some t ->
-        if settings.use_slugs then slugify t
+        if settings.use_slugs then Utils.slugify t
         else t
     end
 

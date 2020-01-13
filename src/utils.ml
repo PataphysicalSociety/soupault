@@ -211,3 +211,9 @@ let deprecation_warning f opt msg config =
   match value with
   | None -> ()
   | Some _ -> Logs.warn @@ fun m -> m "Deprecated option %s: %s" opt msg
+
+(* Replaces all URL-unsafe characters with hyphens *)
+let slugify s =
+  Re.Str.global_replace (Re.Str.regexp "[^a-zA-Z0-9\\-]") "-" s |>
+  String.lowercase_ascii
+

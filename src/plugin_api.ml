@@ -224,6 +224,11 @@ struct
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
        "random", V.efunc (V.int **->> V.int) Random.int
+     ] g;
+
+     C.register_module "String" [
+       "trim", V.efunc (V.string **->> V.string) String.trim;
+       "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify
      ] g
   end (* M *)
 end (* MakeLib *)
