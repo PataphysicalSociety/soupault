@@ -133,4 +133,9 @@ let default_settings = {
   preprocessors = []
 }
 
-let version = "1.7.0"
+let version = (1, 7, 0)
+
+let version_to_string v =
+  let v1, v2, v3 = v in Printf.sprintf "%d.%d.%d" v1 v2 v3
+
+let version_string = version_to_string version
