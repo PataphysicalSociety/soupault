@@ -62,6 +62,8 @@ type settings = {
      but treats everything as a complete page *)
   generator_mode : bool;
 
+  build_profile : string option;
+
   index : bool;
   dump_json : string option;
   newest_entries_first : bool;
@@ -115,6 +117,7 @@ let default_settings = {
   ignore_extensions = [];
   complete_page_selector = "html";
   generator_mode = true;
+  build_profile = None;
 
   index = false;
   dump_json = None;

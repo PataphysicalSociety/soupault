@@ -131,7 +131,7 @@ let rec process_widgets settings env ws wh config soup =
       let open Widgets in
       let widget = Hashtbl.find wh w in
       let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
-      if not (widget_should_run w widget settings.site_dir env.page_file)
+      if not (widget_should_run w widget settings.build_profile settings.site_dir env.page_file)
       then (process_widgets settings env ws' wh config soup) else
       let res = widget.func env widget.config soup in
       (* In non-strict mode, widget processing errors are tolerated *)
@@ -285,6 +285,7 @@ let get_args settings =
     ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false> Stop on page processing errors or not");
     ("--site-dir", Arg.String (fun s -> sr := {!sr with site_dir=s}), "Directory with input files");
     ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "Output directory");
+    ("--profile", Arg.String (fun s -> sr := {!sr with build_profile=(Some s)}), "Build profile");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in

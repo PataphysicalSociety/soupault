@@ -131,7 +131,7 @@ let get_widgets config plugins index_deps =
 
     If none of those options are present, widget always runs.
  *)
-let widget_should_run name widget site_dir page_file =
+let widget_should_run name widget build_profile site_dir page_file =
   let config = widget.config in
   let page_matches actual_path conf_path =
     let conf_path = FilePath.concat site_dir conf_path in
@@ -157,16 +157,28 @@ let widget_should_run name widget site_dir page_file =
       let () = Logs.warn @@ fun m -> m "Failed to check regex \"%s\" for widget %s (malformed regex?), assuming false: %s" path_re name msg in
       false
   in
+  let profile_matches profile build_profile =
+    (* Widgets should run unless they have a "profile" option
+       and it doesn't match actual build profile. *)
+    match profile, build_profile with
+    | None, _ -> true
+    | Some _, None -> false
+    | Some p, Some bp -> p = bp
+  in
   let pages = Config.get_strings_relaxed "page" config in
   let sections = Config.get_strings_relaxed "section" config in
   let regex = Config.get_strings_relaxed "path_regex" config in
   let pages_exclude = Config.get_strings_relaxed "exclude_page" config in
   let sections_exclude = Config.get_strings_relaxed "exclude_section" config in
   let regex_exclude = Config.get_strings_relaxed "exclude_path_regex" config in
+  let profile = Config.get_string "profile" config in
+  if not (profile_matches profile build_profile) then
+    let () = Logs.debug @@ fun m -> m "Widget %s is disabled by build profile options" name in false
+  else
   if (List.exists (regex_matches page_file) regex_exclude) ||
      (List.exists (page_matches page_file) pages_exclude)  ||
      (List.exists (section_matches page_file) sections_exclude)
-  then let () = Logs.debug @@ fun m -> m "Page excluded from widget %s by a page/section/regex option" name in false
+  then let () = Logs.debug @@ fun m -> m "Widget %s is excluded by a page/section/regex configuration option" name in false
   else match pages, sections, regex with
   | [], [], [] -> true
   | _, _, _ ->
@@ -177,5 +189,5 @@ let widget_should_run name widget site_dir page_file =
     in
     let () =
       if not should_run then
-      Logs.debug @@ fun m -> m "Page does not match any of the page/section/regex options, not running widget %s" name
+      Logs.debug @@ fun m -> m "Page does not match page/section/regex options, not running widget %s" name
     in should_run
