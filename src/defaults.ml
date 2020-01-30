@@ -64,6 +64,9 @@ type settings = {
 
   build_profile : string option;
 
+  (* Only extract the site index, don't generate any pages *)
+  index_only : bool;
+
   index : bool;
   dump_json : string option;
   newest_entries_first : bool;
@@ -120,6 +123,7 @@ let default_settings = {
   build_profile = None;
 
   index = false;
+  index_only = false;
   dump_json = None;
   newest_entries_first = false;
   index_title_selector = ["h1"];

@@ -7,6 +7,12 @@ module FP = FilePath
 let (>>=) = Stdlib.Result.bind
 let (let*) = (>>=)
 
+let mkdir dir =
+  (* Note: FileUtil.mkdir returns success if the directory
+     already exists, this is why it's not checked before creation. *)
+  try Ok (FU.mkdir ~parent:true dir)
+  with FileUtil.MkdirError e -> Error e
+
 (*** Logging setup ***)
 
 (* Omit the executable name from the logs, the user knows already *)
@@ -47,30 +53,21 @@ let list_section_files settings path =
 let make_build_dir build_dir =
   if (FU.test FU.Exists build_dir) then Ok () else
   let () = Logs.info @@ fun m -> m "Build directory \"%s\" does not exist, creating" build_dir in
-  try
-    let () = FU.mkdir build_dir in Ok ()
-  with FileUtil.MkdirError e -> Error e
+  mkdir build_dir
 
-(** Creates a directory for the page if necessary.
+(** Produces a target directory name for the page.
 
     If clean URLs are used, then a subdirectory matching the page name
-    is created inside the section directory, unless the page is
+    should be created inside the section directory, unless the page is
     a section index page.
     E.g. "site/foo.html" becomes "build/foo/index.html" to provide
     a clean URL.
 
     If clean URLs are not used, only section dirs are created.
  *)
-let make_page_dir settings target_dir page_name =
-  try
-    (* Note: FileUtil.mkdir returns success if the directory
-       already exists, this is why it's not checked *)
-    let dir_name =
-      if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
-      else target_dir +/ page_name
-    in
-    FU.mkdir ~parent:true dir_name; Ok dir_name
-  with FileUtil.MkdirError e -> Error e
+let make_page_dir_name settings target_dir page_name =
+  if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
+  else target_dir +/ page_name
 
 let load_html settings file =
   let ext = FP.get_extension file in
@@ -183,9 +180,7 @@ let make_page_url settings nav_path orig_path page_file =
   *)
 let process_page env index widgets config settings =
   let page_name = FP.basename env.page_file |> FP.chop_extension in
-  (* If clean URLs are used, make_page_dir creates one,
-     if not, just returns the current dir *)
-  let* target_dir = make_page_dir settings env.target_dir page_name in
+  let target_dir = make_page_dir_name settings env.target_dir page_name in
   let target_file =
     if settings.clean_urls then (target_dir +/ settings.index_file)
     (* If clean URLs aren't used, keep the original extension *)
@@ -204,7 +199,7 @@ let process_page env index widgets config settings =
   (* Section index injection always happens before any widgets have run *)
   let* () =
     (* Section index is inserted only in index pages *)
-    if (not settings.index) || (page_name <> settings.index_page) then Ok () else
+    if (not settings.index) || (page_name <> settings.index_page) || settings.index_only then Ok () else
     let () = Logs.info @@ fun m -> m "Inserting section index" in
     Autoindex.insert_indices settings html !index
   in
@@ -219,7 +214,9 @@ let process_page env index widgets config settings =
       index := (Autoindex.get_entry settings env html) :: !index
     in Ok ()
   in
+  if settings.index_only then Ok () else
   let* () = process_widgets settings env after_index widget_hash config html in
+  let* () = mkdir target_dir in
   let* () = save_html settings html target_file in
   Ok ()
 
@@ -266,10 +263,17 @@ let rec process_dir env index widgets config settings base_src_dir base_dst_dir 
   let env = {env with nav_path = nav_path} in
   let pages, assets = list_section_files settings src_path in
   let pages = reorder_pages settings pages in
-  let () = FU.mkdir ~parent:true dst_path in
+  let* () =
+    if not settings.index_only then
+      begin
+        let* () = mkdir dst_path in
+        let* () = Utils.cp assets dst_path in
+        Ok ()
+      end
+    else Ok ()
+  in
   let dirs = List.map (FP.basename) (list_dirs src_path) in
   let* () = Utils.iter (_process_page env section_index widgets config settings dst_path) pages in
-  let* () = Utils.cp assets dst_path in
   let () = save_index settings section_index index in
   Utils.iter (process_dir env index widgets config settings src_path dst_path) dirs
 
@@ -286,6 +290,7 @@ let get_args settings =
     ("--site-dir", Arg.String (fun s -> sr := {!sr with site_dir=s}), "Directory with input files");
     ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "Output directory");
     ("--profile", Arg.String (fun s -> sr := {!sr with build_profile=(Some s)}), "Build profile");
+    ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), "Extract site index without generating pages");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
@@ -330,8 +335,14 @@ let initialize () =
     target_dir = settings.build_dir
   } in
   let () =
-    if not settings.generator_mode then
-    Logs.info @@ fun m -> m "Running in HTML processor mode, not using the page template"
+    begin
+      let () = if not settings.generator_mode then
+        Logs.info @@ fun m -> m "Running in HTML processor mode, not using the page template"
+      in
+      let () = if settings.index_only && not (settings.index && (settings.dump_json <> None)) then
+        Logs.warn @@ fun m -> m "--index-only is useless without index=true and dump_json options in the config!"
+      in ()
+    end
   in Ok (config, widgets, settings, default_env)
 
 let dump_index_json settings index =
