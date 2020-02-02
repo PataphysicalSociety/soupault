@@ -198,6 +198,9 @@ module Html = struct
     to_general node |> Utils.inner_html
 
   let strip_tags node = to_general node |> Utils.get_element_text |> CCOpt.get_or ~default:""
+
+  let clone_content node =
+    SoupNode (to_general node |> Utils.child_nodes)
   
   let tname = "html"
   let eq _ = fun x y -> Soup.equal_modulo_whitespace (to_general x) (to_general y)
@@ -252,6 +255,7 @@ struct
         "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
         "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
         "inner_html", V.efunc (Map.html **->> V.string) Html.inner_html;
+        "clone_content", V.efunc (Map.html **->> Map.html) Html.clone_content;
         "strip_tags", V.efunc (Map.html **->> V.string) Html.strip_tags
       ] g;
       
