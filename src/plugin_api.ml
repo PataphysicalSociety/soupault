@@ -105,6 +105,18 @@ module Html = struct
     | Some n -> Some (ElementNode n)
     | None -> None
 
+  let children node =
+    to_general node |> Soup.children |> Soup.to_list |> List.map (fun x -> GeneralNode x)
+
+  let descendants node =
+    to_general node |> Soup.descendants |> Soup.to_list |> List.map (fun x -> GeneralNode x)
+
+  let ancestors node =
+    to_general node |> Soup.ancestors |> Soup.to_list |> List.map (fun x -> ElementNode x)
+
+  let siblings node =
+    to_general node |> Soup.siblings |> Soup.to_list |> List.map (fun x -> GeneralNode x)
+
   let get_attribute node attr_name =
     to_element node |> Soup.attribute attr_name
 
@@ -210,6 +222,10 @@ struct
         "select", V.efunc (Map.html **-> V.string **->> (V.list Map.html)) Html.select;
         "select_one", V.efunc (Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
         "parent", V.efunc (Map.html **->> (V.option Map.html)) Html.parent;
+        "children", V.efunc (Map.html **->> (V.list Map.html)) Html.children;
+        "descendants", V.efunc (Map.html **->> (V.list Map.html)) Html.descendants;
+        "ancestors", V.efunc (Map.html **->> (V.list Map.html)) Html.ancestors;
+        "siblingsx", V.efunc (Map.html **->> (V.list Map.html)) Html.siblings;
         "get_attribute", V.efunc (Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
         "set_attribute", V.efunc (Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
         "add_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.add_class;
