@@ -117,6 +117,12 @@ module Html = struct
   let remove_class node class_name =
     to_element node |> Soup.remove_class class_name
 
+  let parent node =
+    let n = to_element node |> Soup.parent in
+    match n with
+    | Some n -> Some (ElementNode n)
+    | None -> None
+
   let append_child node child =
     let child = to_general child in
     match node with
@@ -203,6 +209,7 @@ struct
         "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
         "select", V.efunc (Map.html **-> V.string **->> (V.list Map.html)) Html.select;
         "select_one", V.efunc (Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
+        "parent", V.efunc (Map.html **->> (V.option Map.html)) Html.parent;
         "get_attribute", V.efunc (Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
         "set_attribute", V.efunc (Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
         "add_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.add_class;
