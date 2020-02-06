@@ -179,7 +179,8 @@ let insert_element action container content =
   let actions =
     [("append_child", Soup.append_child); ("prepend_child", Soup.prepend_child);
      ("insert_before", Soup.insert_before); ("insert_after", Soup.insert_after);
-     ("replace_element", Soup.replace); ("replace_content", replace_content)]
+     ("replace_element", Soup.replace); ("replace_content", replace_content);
+     ("ignore_output", fun _ _ -> ())]
   in
   let action_fun = CCList.assoc_opt ~eq:(=) action actions in
   match action_fun with
