@@ -46,6 +46,14 @@ module Sys_wrappers = struct
     | Ok o -> Some o
     | Error msg ->
       let () = Logs.err @@ fun m -> m "%s" msg in None
+
+  let run_program cmd =
+    let res = Utils.get_program_output cmd [| |] in
+    match res with
+    | Ok o ->
+      let () = Logs.debug @@ fun m -> m "%s" o in Some 1
+    | Error msg ->
+      let () = Logs.err @@ fun m -> m "%s" msg in None
 end
 
 module Plugin_version = struct
@@ -285,6 +293,7 @@ struct
      C.register_module "Sys" [
        "read_file", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.read_file);
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
+       "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
        "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
        "random", V.efunc (V.int **->> V.int) Random.int
      ] g;
