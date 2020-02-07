@@ -300,7 +300,7 @@ struct
 
      C.register_module "String" [
        "trim", V.efunc (V.string **->> V.string) String.trim;
-       "truncate", V.efunc (V.string **-> V.int **->> V.string) (fun s l -> String.sub s 0 l);
+       "truncate", V.efunc (V.string **-> V.int **->> V.string) (fun s l -> try String.sub s 0 l with Invalid_argument _ -> s);
        "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify
      ] g
   end (* M *)
