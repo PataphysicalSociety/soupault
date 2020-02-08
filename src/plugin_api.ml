@@ -105,10 +105,16 @@ module Html = struct
     | SoupNode n -> Soup.coerce n
 
   let select soup selector =
-    to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x)
+    try to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x)
+    with Soup.Parse_error msg ->
+      raise (Plugin_error (Printf.sprintf "HTML.select called with invalid CSS selector '%s': %s" selector msg))
 
   let select_one soup selector =
-    let n = to_general soup |> Soup.select_one selector in
+    let n =
+      try to_general soup |> Soup.select_one selector
+      with Soup.Parse_error msg ->
+        raise (Plugin_error (Printf.sprintf "HTML.select_one called with invalid CSS selector '%s': %s" selector msg))
+    in
     match n with
     | Some n -> Some (ElementNode n)
     | None -> None

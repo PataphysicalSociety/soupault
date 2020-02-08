@@ -130,7 +130,10 @@ let rec process_widgets settings env ws wh config soup =
       let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
       if not (widget_should_run w widget settings.build_profile settings.site_dir env.page_file)
       then (process_widgets settings env ws' wh config soup) else
-      let res = widget.func env widget.config soup in
+      let res =
+        try widget.func env widget.config soup
+        with Utils.Soupault_error s -> Error s
+      in
       (* In non-strict mode, widget processing errors are tolerated *)
       match res, settings.strict with
       | Ok _, _ -> process_widgets settings env ws' wh config soup

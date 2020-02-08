@@ -1,3 +1,8 @@
+
+exception Soupault_error of string
+
+let soupault_error s = raise (Soupault_error s)
+
 (** Reads a file and return its content *)
 let get_file_content file =
   try Ok (Soup.read_file file)
@@ -11,6 +16,13 @@ let parse_html ?(body=true) str =
 let cp fs d =
   try Ok (FileUtil.cp fs d)
   with FileUtil.CpError msg -> Error msg
+
+let wrap_select f selector soup =
+  try Ok (f selector soup)
+  with Soup.Parse_error msg -> Error (Printf.sprintf "Invalid CSS selector '%s', parse error: %s" selector msg)
+
+let select selector soup = wrap_select Soup.select selector soup
+let select_one selector soup = wrap_select Soup.select_one selector soup
 
 (** Executes an external program and returns its stdout *)
 let get_program_output ?(input=None) command env_array =
@@ -83,7 +95,8 @@ let check_template selector template =
 (** Gets an element and returns Error if it doesn't exist,
     another bit of monadic convenience *)
 let get_required_element selector err soup =
-  let e = Soup.select_one selector soup in
+  let (let*) = Stdlib.Result.bind in
+  let* e = select_one selector soup in
   match e with
   | Some e -> Ok e
   | None -> Error err
@@ -110,7 +123,10 @@ let rec select_any_of selectors soup =
   match selectors with
   | [] -> None
   | s :: ss ->
-    let e = Soup.select_one s soup in
+    let e =
+      try Soup.select_one s soup
+      with Soup.Parse_error msg -> Printf.ksprintf soupault_error "Invalid CSS selector '%s', parse error: %s" s msg
+    in
     begin
       match e with
       | Some _ as e -> e
@@ -122,7 +138,11 @@ let select_all selectors soup =
     match selectors with
     | [] -> acc
     | s :: ss ->
-        let acc = List.append (Soup.select s soup |> Soup.to_list) acc in
+        let nodes =
+          try Soup.select s soup
+          with Soup.Parse_error msg -> Printf.ksprintf soupault_error "Invalid CSS selector '%s', parse error: %s" s msg
+        in
+        let acc = List.append (Soup.to_list nodes) acc in
         aux ss soup acc
   in aux selectors soup []
 
