@@ -257,7 +257,7 @@ struct
         "replace", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace;
         "replace_element", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace;
         "replace_content", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace_content;
-        "replace_content", V.efunc (Map.html **->> V.unit) Html.delete_content;
+        "delete_content", V.efunc (Map.html **->> V.unit) Html.delete_content;
         "delete", V.efunc (Map.html **->> V.unit) Html.delete;
         "delete_element", V.efunc (Map.html **->> V.unit) Html.delete;
         "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
