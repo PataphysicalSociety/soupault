@@ -5,9 +5,9 @@ Soupault is a static website generator based on HTML rewriting rather than templ
 processing. It is based on the [lambdasoup](http://aantron.github.io/lambdasoup/) library and named after
 the French dadaist and surrealist poet Philippe Soupault.
 
-In a startup pitch style, it's a website generator for Markdown haters.
-
 Visit https://soupault.neocities.org for details.
+
+For support and discussion, write a message to the [mailing list](https://lists.sr.ht/~dmbaturin/soupault).
 
 ## Building from source
 
