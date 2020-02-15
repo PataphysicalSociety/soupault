@@ -27,11 +27,11 @@ let set_title _ config soup =
     Ok ()
   | Some title_node ->
     let title_string =
-      Utils.select_any_of selectors soup >>= Soup.leaf_text |> make_title_string default_title prepend append in
+      Utils.select_any_of selectors soup >>= Utils.get_element_text
+        |> make_title_string default_title prepend append in
     (* XXX: Both Soup.create_text and Soup.create_element ~inner_text:... escape special characters
        instead of expanding entities, so "&mdash;" becomes "&amp;mdash", which is not what we want.
        Soup.parse expands them, which is why it's used here *)
     let new_title_node = Printf.sprintf "<title>%s</title>" title_string |> Soup.parse in
     let () = Soup.replace title_node new_title_node in
     Ok ()
-
