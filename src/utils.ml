@@ -115,8 +115,7 @@ let get_element_text e =
   | [] -> None
   | _ ->
     (* "Normalize" the whitespace *)
-    let texts = List.map String.trim texts in
-    let text = String.concat " " texts |> String.trim in
+    let text = String.concat "" texts |> String.trim in
     if text = "" then None else Some text
 
 let rec select_any_of selectors soup =
