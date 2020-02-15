@@ -108,7 +108,8 @@ let add_class c e =
   | None -> ()
 
 (** Extracts all text nodes from an element and its children if there're any,
-    and returns them all as a single string with normalized whitespace. *)
+    and returns them all as a single string.
+    Essentially, strips HTML tags from element's inner HTML. *)
 let get_element_text e =
   let texts = Soup.texts e in
   match texts with
