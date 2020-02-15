@@ -107,8 +107,8 @@ let add_class c e =
   | Some c -> Soup.add_class c e
   | None -> ()
 
-(** Gets the first text node from an element if there's any
-    non-empty text in it *)
+(** Extracts all text nodes from an element and its children if there're any,
+    and returns them all as a single string with normalized whitespace. *)
 let get_element_text e =
   let texts = Soup.texts e in
   match texts with
