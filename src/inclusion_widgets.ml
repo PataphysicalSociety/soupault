@@ -123,9 +123,12 @@ let preprocess_element env config soup =
   let action = Config.get_string_default "replace_content" "action" config in
   let parse = Config.get_bool_default true "parse" config in
   let html_body_context = Config.get_bool_default true "html_context_body" config in
-  let* selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let* selectors =
+    Config.get_strings_relaxed "selector" config |>
+    (function [] -> Error "Missing required option \"selector\"" | _ as ss -> Ok ss)
+  in
   let* command = Config.get_string_result "Missing required option \"command\"" "command" config in
-  let* nodes = Utils.select selector soup in
+  let nodes = Utils.select_all selectors soup in
   try
-    Ok (Soup.iter (run_command command action parse html_body_context) nodes)
+    Ok (List.iter (run_command command action parse html_body_context) nodes)
   with Failure e -> Error e
