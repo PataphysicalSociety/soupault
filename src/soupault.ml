@@ -170,6 +170,28 @@ let make_page_url settings nav_path orig_path page_file =
   (* URL path should be absolute *)
   String.concat "/" path |> Printf.sprintf "/%s"
 
+(** Decide on the page file name.
+
+    If clean URLs are used, it's always <target_dir>/<settings.index_file>
+
+    If clean URLs are not used, then the base file name is preserved.
+    The extension, however, is set to settings.default_extension,
+    unless it's in the settings.keep_extensions list.
+
+    The reason for this extension juggling is that people may use page preprocessors
+    but not use clean URLs, without extension mangling they will end up
+    with pages like build/about.md that have HTML inside despit their name.
+    In short, that's what Jekyll et al. always did to non-blog pages.
+ *)
+let make_page_file_name settings env target_dir =
+  if settings.clean_urls then (target_dir +/ settings.index_file) else
+  let page_file = FP.basename env.page_file in
+  let extension = FP.get_extension page_file in
+  let page_file =
+    if Utils.in_list settings.keep_extensions extension then page_file
+    else FP.add_extension (FP.chop_extension page_file) settings.default_extension
+  in target_dir +/ page_file
+
 (** Processes a page:
 
     1. Adjusts the path to account for index vs non-index page difference
@@ -184,11 +206,7 @@ let make_page_url settings nav_path orig_path page_file =
 let process_page env index widgets config settings =
   let page_name = FP.basename env.page_file |> FP.chop_extension in
   let target_dir = make_page_dir_name settings env.target_dir page_name in
-  let target_file =
-    if settings.clean_urls then (target_dir +/ settings.index_file)
-    (* If clean URLs aren't used, keep the original extension *)
-    else target_dir +/ (FP.basename env.page_file)
-  in
+  let target_file = make_page_file_name settings env target_dir in
   let orig_path = env.nav_path in
   let nav_path = fix_nav_path settings env.nav_path page_name in
   let env = {env with

@@ -54,6 +54,15 @@ type settings = {
   (* File extensions to ignore completely *)
   ignore_extensions : string list;
 
+  (* Extension to use for page files with non-standard extensions. *)
+  default_extension : string;
+
+  (* What extensions to consider "standard" for the purpose of setting extensions.
+     That's for people who want to use Markdown etc. _without_ also using clean URLs,
+     so that about.htm remains about.htm, but contact.md becomes contact.html
+   *)
+  keep_extensions : string list;
+
   (* Pages that should be just run through the widgets
       rather than inserted in the template *)
   complete_page_selector : string;
@@ -118,6 +127,8 @@ let default_settings = {
   clean_urls = true;
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
   ignore_extensions = [];
+  default_extension = "html";
+  keep_extensions = ["html"; "htm"];
   complete_page_selector = "html";
   generator_mode = true;
   build_profile = None;
