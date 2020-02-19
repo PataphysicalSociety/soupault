@@ -238,3 +238,11 @@ let slugify s =
   Re.Str.global_replace (Re.Str.regexp "[^a-zA-Z0-9\\-]") "-" s |>
   String.lowercase_ascii
 
+let profile_matches profile build_profile =
+  (* Processing steps should run unless they have a "profile" option
+     and it doesn't match the current build profile. *)
+  match profile, build_profile with
+  | None, _ -> true
+  | Some _, None -> false
+  | Some p, Some bp -> p = bp
+

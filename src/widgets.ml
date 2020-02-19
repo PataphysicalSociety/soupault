@@ -132,62 +132,13 @@ let get_widgets config plugins index_deps =
     If none of those options are present, widget always runs.
  *)
 let widget_should_run name widget build_profile site_dir page_file =
-  let config = widget.config in
-  let page_matches actual_path conf_path =
-    let conf_path = FilePath.concat site_dir conf_path in
-    (=) conf_path actual_path
-  in
-  let section_matches actual_path conf_path =
-     (* Remove trailing slashes *)
-     let conf_path = FilePath.concat site_dir conf_path |> Re.replace (Re.Perl.compile_pat "/+$") ~f:(fun _ -> "") in
-     let page_dir = FilePath.dirname actual_path  in
-     (* is_subdir doesn't consider a dir its own subdir,
-        so we need to handle the same dir case explicitly.
-
-        Moreover, it returns a false positive if the child matches the beginning but doesn't have a trailing slash,
-        so here's this fixup.
-       *)
-     (FilePath.is_subdir conf_path (page_dir |> Printf.sprintf "%s/")) || (conf_path = page_dir)
-  in
-  let regex_matches actual_path path_re =
-    let matches = Utils.get_matching_strings path_re actual_path in
-    match matches with
-    | Ok ms -> List.length ms <> 0
-    | Error msg ->
-      let () = Logs.warn @@ fun m -> m "Failed to check regex \"%s\" for widget %s (malformed regex?), assuming false: %s" path_re name msg in
-      false
-  in
-  let profile_matches profile build_profile =
-    (* Widgets should run unless they have a "profile" option
-       and it doesn't match actual build profile. *)
-    match profile, build_profile with
-    | None, _ -> true
-    | Some _, None -> false
-    | Some p, Some bp -> p = bp
-  in
-  let pages = Config.get_strings_relaxed "page" config in
-  let sections = Config.get_strings_relaxed "section" config in
-  let regex = Config.get_strings_relaxed "path_regex" config in
-  let pages_exclude = Config.get_strings_relaxed "exclude_page" config in
-  let sections_exclude = Config.get_strings_relaxed "exclude_section" config in
-  let regex_exclude = Config.get_strings_relaxed "exclude_path_regex" config in
-  let profile = Config.get_string "profile" config in
-  if not (profile_matches profile build_profile) then
+  let options = Config.get_path_options widget.config in
+  let profile = Config.get_string "profile" widget.config in
+  if not (Utils.profile_matches profile build_profile) then
     let () = Logs.debug @@ fun m -> m "Widget %s is disabled by build profile options" name in false
-  else
-  if (List.exists (regex_matches page_file) regex_exclude) ||
-     (List.exists (page_matches page_file) pages_exclude)  ||
-     (List.exists (section_matches page_file) sections_exclude)
-  then let () = Logs.debug @@ fun m -> m "Widget %s is excluded by a page/section/regex configuration option" name in false
-  else match pages, sections, regex with
-  | [], [], [] -> true
-  | _, _, _ ->
-    let should_run =
-      (List.exists (regex_matches page_file) regex) ||
-      (List.exists (page_matches page_file) pages) ||
-      (List.exists (section_matches page_file) sections)
-    in
-    let () =
-      if not should_run then
-      Logs.debug @@ fun m -> m "Page does not match page/section/regex options, not running widget %s" name
-    in should_run
+  else begin
+    if Path_options.page_included options site_dir page_file then true
+    else
+      let () = Logs.debug @@ fun m -> m "Page %s is excluded by page/section/rege options, not running the widget" page_file in
+      false
+  end
