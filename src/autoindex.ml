@@ -153,7 +153,7 @@ let insert_indices settings soup index =
   Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings soup index) settings.index_views
 
 let index_extraction_should_run settings page_file =
-  if not (Utils.profile_matches settings.build_profile settings.index_profile) then
+  if not (Utils.profile_matches settings.index_profile settings.build_profile) then
     let () = Logs.debug @@ fun m -> m "Index extraction is disabled by build profile options" in false
   else begin
     if Path_options.page_included settings.index_path_options settings.site_dir page_file then true
