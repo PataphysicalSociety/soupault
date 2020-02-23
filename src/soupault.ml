@@ -220,8 +220,10 @@ let process_page env index widgets config settings =
   (* Section index injection always happens before any widgets have run *)
   let* () =
     (* Section index is inserted only in index pages *)
-    if (not settings.index) || (page_name <> settings.index_page) || settings.index_only then Ok () else
-    let () = Logs.info @@ fun m -> m "Inserting section index" in
+    if (not settings.index) || (page_name <> settings.index_page) ||
+       settings.index_only  || (!index = [])
+    then Ok ()
+    else let () = Logs.info @@ fun m -> m "Inserting section index" in
     Autoindex.insert_indices settings html !index
   in
   let before_index, after_index, widget_hash = widgets in
