@@ -229,7 +229,7 @@ let process_page env index widgets config settings =
   (* Index extraction *)
   let* () =
     (* Metadata is only extracted from non-index pages *)
-    if (not settings.index) || (page_name = settings.index_page) then Ok () else
+    if (not settings.index) || (page_name = settings.index_page) || not (Autoindex.index_extraction_should_run settings env.page_file) then Ok () else
     let () =
       let () = Logs.info @@ fun m -> m "Extracting page metadata" in
       index := (Autoindex.get_entry settings env html) :: !index

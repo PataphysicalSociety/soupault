@@ -14,6 +14,15 @@ type index_view = {
   index_processor : index_processor;
 }
 
+type path_options = {
+  pages: string list;
+  sections: string list;
+  regexes: string list;
+  pages_exclude: string list;
+  sections_exclude: string list;
+  regexes_exclude: string list;
+}
+
 type settings = {
   (* show processing steps *)
   verbose : bool;
@@ -89,6 +98,8 @@ type settings = {
   index_extract_after_widgets : string list;
   index_strip_tags : bool;
   index_views: index_view list;
+  index_path_options: path_options;
+  index_profile: string option;
 
   preprocessors : (string * string) list
 }
@@ -112,6 +123,15 @@ let plugins_table = "plugins"
 let default_index_item_template = "<div> <a href=\"{{url}}\">{{{title}}}</a> </div>"
 
 let default_index_processor = BuiltInTemplate (Mustache.of_string default_index_item_template)
+
+let default_path_options = {
+  pages = [];
+  sections = [];
+  regexes = [];
+  pages_exclude = [];
+  sections_exclude = [];
+  regexes_exclude = [];
+}
 
 let default_settings = {
   verbose = false;
@@ -147,6 +167,8 @@ let default_settings = {
   index_custom_fields = [];
   index_strip_tags = false;
   index_views = [];
+  index_path_options = default_path_options;
+  index_profile = None;
 
   preprocessors = []
 }

@@ -124,6 +124,20 @@ let string_of_assoc xs =
   let xs = List.map (fun (k, v) -> Printf.sprintf "%s = %s" k v) xs in
   String.concat ", " xs
 
+let get_path_options config =
+  {
+     pages = get_strings_relaxed "page" config;
+     sections = get_strings_relaxed "section" config;
+     regexes = get_strings_relaxed "path_regex" config;
+     pages_exclude = get_strings_relaxed "exclude_page" config;
+     sections_exclude = get_strings_relaxed "exclude_section" config;
+     regexes_exclude = get_strings_relaxed "exclude_path_regex" config
+  }
+
+let valid_path_options = [
+    "page"; "section"; "path_regex"; "exclude_page"; "exclude_section"; "exclude_path_regex"
+  ]
+
 (* Update global settings with values from the config, if there are any *)
 let _get_preprocessors config =
   let pt = get_table Defaults.preprocessors_table config in
@@ -169,8 +183,10 @@ let valid_index_options = [
   "index_date_selector"; "index_author_selector";
   "index_date_format"; "index_item_template"; "index_processor";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
-  "use_default_view"
+  "use_default_view"; "profile"
 ]
+
+let valid_index_options = List.append valid_index_options valid_path_options
 
 let _get_index_view st view_name =
   let _get_template tmpl =
@@ -252,7 +268,9 @@ let _get_index_settings settings config =
        index_extract_after_widgets = get_strings_relaxed "extract_after_widgets" st;
        index_custom_fields = _get_index_queries st;
        index_strip_tags = get_bool_default settings.index_strip_tags "strip_tags" st;
-       index_views = _get_index_views st
+       index_views = _get_index_views st;
+       index_profile = get_string "profile" st;
+       index_path_options = get_path_options st;
     }
 
 let valid_settings = [
