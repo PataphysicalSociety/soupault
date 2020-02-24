@@ -111,7 +111,7 @@ let default_config = "
 # Just for demonstration, feel free to remove
 [widgets.generator-meta]
   widget = \"insert_html\"
-  html = '<meta name=\"generator\" content=\"soupault 1.5\">'
+  html = '<meta name=\"generator\" content=\"soupault\">'
   selector = \"head\"
 
 # <blink> elements are evil, delete them all
