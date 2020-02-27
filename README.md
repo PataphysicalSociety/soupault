@@ -44,6 +44,8 @@ For support and discussion, write a message to the [mailing list](https://lists.
 Pre-built binaries for Linux, Windows, and mac OS are available from the [website](https://soupault.neocities.org/#downloads)
 and from Github releases.
 
+You can verify the binaries using this signify/minisign key: `RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy`.
+
 You can also install the latest stable releases from [OPAM](https://opam.ocaml.org):
 
 ```
