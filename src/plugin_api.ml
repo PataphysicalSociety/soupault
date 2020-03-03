@@ -119,6 +119,20 @@ module Html = struct
     | Some n -> Some (ElementNode n)
     | None -> None
 
+  let select_any_of soup selectors =
+    let n =
+      try to_general soup |> Utils.select_any_of selectors
+      with Utils.Soupault_error msg -> raise (Plugin_error msg)
+    in
+    match n with
+    | Some n -> Some (ElementNode n)
+    | None -> None
+
+  let select_all_of soup selectors =
+    try to_general soup |> Utils.select_all selectors |> List.map (fun x -> ElementNode x)
+    with Utils.Soupault_error msg ->
+      raise (Plugin_error msg)
+
   let children node =
     to_general node |> Soup.children |> Soup.to_list |> List.map (fun x -> GeneralNode x)
 
@@ -246,6 +260,8 @@ struct
         "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
         "select", V.efunc (Map.html **-> V.string **->> (V.list Map.html)) Html.select;
         "select_one", V.efunc (Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
+        "select_any_of", V.efunc (Map.html **-> V.list V.string **->> V.option Map.html) Html.select_any_of;
+        "select_all_of", V.efunc (Map.html **-> V.list V.string **->> V.list Map.html) Html.select_all_of;
         "parent", V.efunc (Map.html **->> (V.option Map.html)) Html.parent;
         "children", V.efunc (Map.html **->> (V.list Map.html)) Html.children;
         "descendants", V.efunc (Map.html **->> (V.list Map.html)) Html.descendants;
