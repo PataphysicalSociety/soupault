@@ -207,6 +207,11 @@ module Html = struct
 
   let delete_content node = to_general node |> Soup.clear
 
+  let get_tag_name node =
+    match node with
+    | ElementNode n -> Soup.name n
+    | _ -> raise (Plugin_error "Cannot get tag name from a node that isn't an element")
+
   let set_tag_name node name =
     match node with
     | ElementNode n -> Soup.set_name name n
@@ -268,6 +273,7 @@ struct
         "ancestors", V.efunc (Map.html **->> (V.list Map.html)) Html.ancestors;
         "siblings", V.efunc (Map.html **->> (V.list Map.html)) Html.siblings;
         "set_tag_name", V.efunc (Map.html **-> V.string **->> V.unit) Html.set_tag_name;
+        "get_tag_name", V.efunc (Map.html **->> V.string) Html.get_tag_name;
         "get_attribute", V.efunc (Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
         "set_attribute", V.efunc (Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
         "add_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.add_class;
