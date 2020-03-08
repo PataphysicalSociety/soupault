@@ -82,6 +82,9 @@ module Plugin_version = struct
 end
 
 module Html = struct
+  let (let*) = Stdlib.Option.bind
+  let return = Stdlib.Option.some
+
   type soup_wrapper = 
     | GeneralNode of Soup.general Soup.node
     | ElementNode of Soup.element Soup.node
@@ -105,63 +108,78 @@ module Html = struct
     | SoupNode n -> Soup.coerce n
 
   let select soup selector =
-    try to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x)
-    with Soup.Parse_error msg ->
-      raise (Plugin_error (Printf.sprintf "HTML.select called with invalid CSS selector '%s': %s" selector msg))
+    let* soup = soup in
+    let* elems =
+      try to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x) |> return
+      with Soup.Parse_error msg ->
+        raise (Plugin_error (Printf.sprintf "HTML.select called with invalid CSS selector '%s': %s" selector msg))
+    in Some elems
 
   let select_one soup selector =
-    let n =
+    let* soup = soup in
+    let* n =
       try to_general soup |> Soup.select_one selector
       with Soup.Parse_error msg ->
         raise (Plugin_error (Printf.sprintf "HTML.select_one called with invalid CSS selector '%s': %s" selector msg))
-    in
-    match n with
-    | Some n -> Some (ElementNode n)
-    | None -> None
+    in Some (ElementNode n)
 
   let select_any_of soup selectors =
-    let n =
+    let* soup = soup in
+    let* n =
       try to_general soup |> Utils.select_any_of selectors
       with Utils.Soupault_error msg -> raise (Plugin_error msg)
-    in
-    match n with
-    | Some n -> Some (ElementNode n)
-    | None -> None
+    in Some (ElementNode n)
 
   let select_all_of soup selectors =
-    try to_general soup |> Utils.select_all selectors |> List.map (fun x -> ElementNode x)
+    let* soup = soup in
+    try to_general soup |> Utils.select_all selectors |> List.map (fun x -> ElementNode x) |> return
     with Utils.Soupault_error msg ->
       raise (Plugin_error msg)
 
   let children node =
-    to_general node |> Soup.children |> Soup.to_list |> List.map (fun x -> GeneralNode x)
+    let* node = node in
+    to_general node |> Soup.children |> Soup.to_list |> List.map (fun x -> GeneralNode x) |> return
 
   let descendants node =
-    to_general node |> Soup.descendants |> Soup.to_list |> List.map (fun x -> GeneralNode x)
+    let* node = node in
+    to_general node |> Soup.descendants |> Soup.to_list |> List.map (fun x -> GeneralNode x) |> return
 
   let ancestors node =
-    to_general node |> Soup.ancestors |> Soup.to_list |> List.map (fun x -> ElementNode x)
+    let* node = node in
+    to_general node |> Soup.ancestors |> Soup.to_list |> List.map (fun x -> ElementNode x) |> return
 
   let siblings node =
-    to_general node |> Soup.siblings |> Soup.to_list |> List.map (fun x -> GeneralNode x)
+    let* node = node in
+    to_general node |> Soup.siblings |> Soup.to_list |> List.map (fun x -> GeneralNode x) |> return
 
   let get_attribute node attr_name =
+    let* node = node in
     to_element node |> Soup.attribute attr_name
 
   let set_attribute node attr_name attr_value =
-    to_element node |> Soup.set_attribute attr_name attr_value
+    match node with
+    | None -> ()
+    | Some node -> to_element node |> Soup.set_attribute attr_name attr_value
 
   let add_class node class_name =
-    to_element node |> Soup.add_class class_name
+    match node with
+    | None -> ()
+    | Some node -> to_element node |> Soup.add_class class_name
 
   let remove_class node class_name =
-    to_element node |> Soup.remove_class class_name
+    match node with
+    | None -> ()
+    | Some node -> to_element node |> Soup.remove_class class_name
+
+  let do_with_node func node child =
+    match node with
+    | None -> ()
+    | Some node -> func node child
 
   let parent node =
-    let n = to_element node |> Soup.parent in
-    match n with
-    | Some n -> Some (ElementNode n)
-    | None -> None
+    let* node = node in
+    let* n = to_element node |> Soup.parent in
+    ElementNode n |> return
 
   let append_child node child =
     let child = to_general child in
@@ -205,21 +223,32 @@ module Html = struct
     | SoupNode _ -> raise (Plugin_error "Cannot use replace_content with a document node")
     | GeneralNode _ -> raise (Plugin_error "Cannot use replace_content with a general node")
 
-  let delete_content node = to_general node |> Soup.clear
+  let delete_content node =
+    match node with
+    | None -> ()
+    | Some node -> to_general node |> Soup.clear
 
   let get_tag_name node =
+    let* node = node in
     match node with
-    | ElementNode n -> Soup.name n
+    | ElementNode n -> Soup.name n |> return
     | _ -> raise (Plugin_error "Cannot get tag name from a node that isn't an element")
 
   let set_tag_name node name =
     match node with
-    | ElementNode n -> Soup.set_name name n
-    | SoupNode _ -> raise (Plugin_error "Document node does not have a tag name")
-    | GeneralNode _ -> raise (Plugin_error "Cannot set tag name of a general node")
+    |None -> ()
+    | Some n ->
+      begin
+        match n with
+        | ElementNode n -> Soup.set_name name n
+        | SoupNode _ -> raise (Plugin_error "Document node does not have a tag name")
+        | GeneralNode _ -> raise (Plugin_error "Cannot set tag name of a general node")
+      end
 
   let delete node =
-    to_general node |> Soup.delete
+    match node with
+    | None -> ()
+    | Some node -> to_general node |> Soup.delete
 
   let create_element name text =
     let text = CCOpt.get_or ~default:"" text in
@@ -228,12 +257,18 @@ module Html = struct
   let create_text text = GeneralNode (Soup.create_text text)
 
   let inner_html node =
-    to_general node |> Utils.inner_html
+    match node with
+    | None -> ""
+    | Some node -> to_general node |> Utils.inner_html
 
-  let strip_tags node = to_general node |> Utils.get_element_text |> CCOpt.get_or ~default:""
+  let strip_tags node =
+    match node with
+    | None -> ""
+    | Some node -> to_general node |> Utils.get_element_text |> CCOpt.get_or ~default:""
 
   let clone_content node =
-    SoupNode (to_general node |> Utils.child_nodes)
+    let* node = node in
+    SoupNode (to_general node |> Utils.child_nodes) |> return
   
   let tname = "html"
   let eq _ = fun x y -> Soup.equal_modulo_whitespace (to_general x) (to_general y)
@@ -263,36 +298,36 @@ struct
       C.register_module "HTML" [
         "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
         "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
-        "select", V.efunc (Map.html **-> V.string **->> (V.list Map.html)) Html.select;
-        "select_one", V.efunc (Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
-        "select_any_of", V.efunc (Map.html **-> V.list V.string **->> V.option Map.html) Html.select_any_of;
-        "select_all_of", V.efunc (Map.html **-> V.list V.string **->> V.list Map.html) Html.select_all_of;
-        "parent", V.efunc (Map.html **->> (V.option Map.html)) Html.parent;
-        "children", V.efunc (Map.html **->> (V.list Map.html)) Html.children;
-        "descendants", V.efunc (Map.html **->> (V.list Map.html)) Html.descendants;
-        "ancestors", V.efunc (Map.html **->> (V.list Map.html)) Html.ancestors;
-        "siblings", V.efunc (Map.html **->> (V.list Map.html)) Html.siblings;
-        "set_tag_name", V.efunc (Map.html **-> V.string **->> V.unit) Html.set_tag_name;
-        "get_tag_name", V.efunc (Map.html **->> V.string) Html.get_tag_name;
-        "get_attribute", V.efunc (Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
-        "set_attribute", V.efunc (Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
-        "add_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.add_class;
-        "remove_class", V.efunc (Map.html **-> V.string **->> V.unit) Html.remove_class;
-        "append_child", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_child;
-        "prepend_child", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_child;
-        "insert_before", V.efunc (Map.html **-> Map.html **->> V.unit) Html.insert_before;
-        "insert_after", V.efunc (Map.html **-> Map.html **->> V.unit) Html.insert_after;
-        "replace", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace;
-        "replace_element", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace;
-        "replace_content", V.efunc (Map.html **-> Map.html **->> V.unit) Html.replace_content;
-        "delete_content", V.efunc (Map.html **->> V.unit) Html.delete_content;
-        "delete", V.efunc (Map.html **->> V.unit) Html.delete;
-        "delete_element", V.efunc (Map.html **->> V.unit) Html.delete;
+        "select", V.efunc (V.option Map.html **-> V.string **->> V.option (V.list Map.html)) Html.select;
+        "select_one", V.efunc (V.option Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
+        "select_any_of", V.efunc (V.option Map.html **-> V.list V.string **->> V.option Map.html) Html.select_any_of;
+        "select_all_of", V.efunc (V.option Map.html **-> V.list V.string **->> V.option (V.list Map.html)) Html.select_all_of;
+        "parent", V.efunc (V.option Map.html **->> (V.option Map.html)) Html.parent;
+        "children", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.children;
+        "descendants", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.descendants;
+        "ancestors", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.ancestors;
+        "siblings", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.siblings;
+        "set_tag_name", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.set_tag_name;
+        "get_tag_name", V.efunc (V.option Map.html **->> V.option V.string) Html.get_tag_name;
+        "get_attribute", V.efunc (V.option Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
+        "set_attribute", V.efunc (V.option Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
+        "add_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.add_class;
+        "remove_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.remove_class;
+        "append_child", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.append_child);
+        "prepend_child", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.prepend_child);
+        "insert_before", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.insert_before);
+        "insert_after", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.insert_after);
+        "replace", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.replace);
+        "replace_element", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.replace);
+        "replace_content", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.replace_content);
+        "delete_content", V.efunc (V.option Map.html **->> V.unit) Html.delete_content;
+        "delete", V.efunc (V.option Map.html **->> V.unit) Html.delete;
+        "delete_element", V.efunc (V.option Map.html **->> V.unit) Html.delete;
         "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
         "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
-        "inner_html", V.efunc (Map.html **->> V.string) Html.inner_html;
-        "clone_content", V.efunc (Map.html **->> Map.html) Html.clone_content;
-        "strip_tags", V.efunc (Map.html **->> V.string) Html.strip_tags
+        "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
+        "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
+        "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags
       ] g;
       
       C.register_module "Regex" [
