@@ -4,6 +4,7 @@ let bind = CCResult.(>>=)
 
 type 'a index_entry = {
   url: string;
+  page_file: string;
   nav_path: string list;
   title: string option;
   excerpt: string option;
@@ -50,6 +51,7 @@ let get_entry settings env soup =
   in
   {
     url = env.page_url;
+    page_file = env.page_file;
     nav_path = env.nav_path;
     title = string_of_elem settings.index_title_selector soup;
     excerpt = string_of_elem settings.index_excerpt_selector soup;
@@ -94,6 +96,7 @@ let json_of_entry e =
   let fields = ["title", e.title; "date", e.date; "author", e.author; "excerpt", e.excerpt] in
   let fields = List.map (fun (k, v) -> (k, json_of_string_opt v)) fields in
   let fields = ("url", `String e.url) :: fields in
+  let fields = ("page_file", `String e.page_file) :: fields in
   let fields = ("nav_path", `A (List.map (fun x -> `String x) e.nav_path)) :: fields in
   let fields = List.append fields e.custom_fields in
   `O fields
