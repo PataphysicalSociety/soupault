@@ -173,9 +173,12 @@ let default_settings = {
   preprocessors = []
 }
 
-let version = (1, 9, 0)
+let version = (1, 10, 0, Some "dev")
 
 let version_to_string v =
-  let v1, v2, v3 = v in Printf.sprintf "%d.%d.%d" v1 v2 v3
+  let major, minor, patch, suffix = v in
+  match suffix with
+  | Some suffix -> Printf.sprintf "%d.%d.%d-%s" major minor patch suffix
+  | None -> Printf.sprintf "%d.%d.%d" major minor patch
 
 let version_string = version_to_string version
