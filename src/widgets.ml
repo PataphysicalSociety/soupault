@@ -1,3 +1,5 @@
+open Defaults
+
 type 'a widget = {
   config: TomlTypes.table;
   func: Defaults.env -> TomlTypes.table -> 'a Soup.node -> (unit, string) result
@@ -38,9 +40,12 @@ let list_widgets config =
   | None -> []
   | Some ws' -> ws'
 
+let add_widget hash name widget_func widget_config =
+  let widget_rec = {config=widget_config; func=widget_func} in
+  Hashtbl.add hash name widget_rec
 
 (* The real widget loading function *)
-let rec _load_widgets config plugins ws hash =
+let rec _load_widgets settings config plugins ws hash =
   match ws with
   | [] -> ()
   | w :: ws' ->
@@ -53,11 +58,25 @@ let rec _load_widgets config plugins ws hash =
         let widget_func = find_widget plugins name in
         begin
           match widget_func with
-          | None -> failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w name)
+          | None ->
+            begin
+              try
+                if not settings.plugin_discovery then
+                  let () = Logs.warn @@ fun m -> m "Plugin discovery is disables, not attempting to find a plugin that implements widget \"%s\"" name in
+                  failwith ""
+                else
+                let file = Printf.sprintf "%s.lua" name in
+                let lua_source = Soup.read_file @@ FilePath.concat settings.plugin_dir file in
+                let () = Hashtbl.add plugins name (Plugin_api.run_plugin file lua_source) in
+                let () = Logs.debug @@ fun m -> m "Widget %s is loaded from %s" name file in
+                add_widget hash w (find_widget plugins name |> Utils.unwrap_option) widget_config;
+                 _load_widgets settings config plugins ws' hash
+              with _ ->
+                failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w name)
+            end
           | Some wf ->
-            let widget_rec = {config=widget_config; func=wf} in
-            let () = Hashtbl.add hash w widget_rec in
-            _load_widgets config plugins ws' hash
+            let () = add_widget hash w wf widget_config in
+            _load_widgets settings config plugins ws' hash
         end
     end
 
@@ -90,20 +109,20 @@ let partition_widgets all_widgets index_deps =
 
 
 (* The monadic wrapping for it *)
-let load_widgets config plugins =
+let load_widgets settings config plugins =
   let widgets_hash = Hashtbl.create 1024 in
   match config with
   | None -> Ok widgets_hash
   | Some config ->
     let ws = list_widgets config in
     try
-      let () = _load_widgets config plugins ws widgets_hash in
+      let () = _load_widgets settings config plugins ws widgets_hash in
       Ok widgets_hash
     with Failure msg -> Error msg
 
-let get_widgets config plugins index_deps =
+let get_widgets settings config plugins index_deps =
   let (let*) = Stdlib.Result.bind in
-  let* wh = load_widgets config plugins in
+  let* wh = load_widgets settings config plugins in
   let* wo = get_widget_order wh in
   let* before_index, after_index = partition_widgets wo index_deps in
   let () =

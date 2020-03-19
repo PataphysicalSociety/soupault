@@ -345,7 +345,7 @@ let initialize () =
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
   let* plugins = Plugins.get_plugins config in
-  let* widgets = Widgets.get_widgets config plugins settings.index_extract_after_widgets in
+  let* widgets = Widgets.get_widgets settings config plugins settings.index_extract_after_widgets in
   let* default_template_str =
     if settings.generator_mode then Utils.get_file_content settings.default_template
     else Ok ""

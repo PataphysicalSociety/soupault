@@ -101,7 +101,10 @@ type settings = {
   index_path_options: path_options;
   index_profile: string option;
 
-  preprocessors : (string * string) list
+  preprocessors : (string * string) list;
+
+  plugin_dir : string;
+  plugin_discovery: bool;
 }
 
 type env = {
@@ -170,7 +173,10 @@ let default_settings = {
   index_path_options = default_path_options;
   index_profile = None;
 
-  preprocessors = []
+  preprocessors = [];
+
+  plugin_dir = "plugins";
+  plugin_discovery = true;
 }
 
 let version = (1, 10, 0, Some "dev")
