@@ -46,4 +46,10 @@ let get_plugins config =
     let* () = _load_plugins plugins config hash in
     Ok hash
 
-  
+let rec lookup_plugin_file plugin_dirs file_name =
+  match plugin_dirs with
+  | [] -> None
+  | d :: ds ->
+    let file_path = FilePath.concat d file_name in
+    if FileUtil.test FileUtil.Exists file_path then Some file_path
+    else lookup_plugin_file ds file_name

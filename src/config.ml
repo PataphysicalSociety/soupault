@@ -279,7 +279,7 @@ let valid_settings = [
   "default_template"; "clean_urls"; "page_file_extensions";
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode";
-  "plugin_dir"; "plugin_discovery"
+  "plugin_dirs"; "plugin_discovery"
 ]
 
 let _update_settings settings config =
@@ -308,7 +308,8 @@ let _update_settings settings config =
        default_extension = get_string_default settings.default_extension "default_extension" st;
        complete_page_selector = get_string_default settings.complete_page_selector "complete_page_selector" st;
        generator_mode = get_bool_default settings.generator_mode "generator_mode" st;
-       plugin_dir = get_string_default settings.plugin_dir "plugin_dir" st;
+
+       plugin_dirs = get_strings_relaxed ~default:settings.plugin_dirs "plugin_dirs" st;
        plugin_discovery = get_bool_default settings.plugin_discovery "plugin_discovery" st;
 
        preprocessors = _get_preprocessors config

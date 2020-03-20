@@ -103,7 +103,7 @@ type settings = {
 
   preprocessors : (string * string) list;
 
-  plugin_dir : string;
+  plugin_dirs : string list;
   plugin_discovery: bool;
 }
 
@@ -175,7 +175,7 @@ let default_settings = {
 
   preprocessors = [];
 
-  plugin_dir = "plugins";
+  plugin_dirs = ["plugins"];
   plugin_discovery = true;
 }
 

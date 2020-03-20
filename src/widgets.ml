@@ -49,30 +49,41 @@ let rec _load_widgets settings config plugins ws hash =
   match ws with
   | [] -> ()
   | w :: ws' ->
+    let () = Logs.debug @@ fun m -> m "Processing widget %s" w in
     let widget_config = get_widget_config config w in
     let name = Config.get_string "widget" widget_config in
+    let fail msg = Printf.ksprintf failwith "Error in [widgets.%s]: %s" w msg in
     begin
       match name with
-      | None -> failwith (Printf.sprintf "In [widgets.%s]: missing required option widget=\"<some widget>\"" w)
+      | None -> fail "missing required option widget=\"<some widget>\""
       | Some name ->
         let widget_func = find_widget plugins name in
         begin
           match widget_func with
           | None ->
+            (* It's not a built-in or an explicitly configured plugin. Try to find it in plugin directories. *)
             begin
-              try
-                if not settings.plugin_discovery then
-                  let () = Logs.warn @@ fun m -> m "Plugin discovery is disables, not attempting to find a plugin that implements widget \"%s\"" name in
-                  failwith ""
-                else
-                let file = Printf.sprintf "%s.lua" name in
-                let lua_source = Soup.read_file @@ FilePath.concat settings.plugin_dir file in
-                let () = Hashtbl.add plugins name (Plugin_api.run_plugin file lua_source) in
-                let () = Logs.debug @@ fun m -> m "Widget %s is loaded from %s" name file in
-                add_widget hash w (find_widget plugins name |> Utils.unwrap_option) widget_config;
-                 _load_widgets settings config plugins ws' hash
-              with _ ->
-                failwith (Printf.sprintf "In [widgets.%s]: unknown widget \"%s\"" w name)
+              if not settings.plugin_discovery then
+                let () = Logs.warn @@ fun m -> m "Plugin discovery is disabled, not attempting to find a plugin that implements widget \"%s\"" name in
+                fail @@ Printf.sprintf "unknown widget \"%s\"" name
+              else
+                let file_name = Printf.sprintf "%s.lua" name in
+                let file_path = Plugins.lookup_plugin_file settings.plugin_dirs file_name in
+                match file_path with
+                | None ->
+                  let dirs_str = String.concat ", " settings.plugin_dirs in
+                  let () = Logs.err @@ fun m -> m "Failed to find plugin file %s in directories [%s]" file_name dirs_str in
+                  fail @@ Printf.sprintf "widget \"%s\" is not a soupault built-in and is not provided by any available plugin" name
+                | Some plugin_file ->
+                  let lua_source =
+                    try Soup.read_file plugin_file
+                    with Sys_error msg ->
+                      fail @@ Printf.sprintf "Could not read plugin file that provides widget \"%s\": %s" name msg
+                  in
+                  let () = Hashtbl.add plugins name (Plugin_api.run_plugin name lua_source) in
+                  let () = Logs.debug @@ fun m -> m "Widget %s is loaded from plugin file %s" name plugin_file in
+                  let () = add_widget hash w (find_widget plugins name |> Utils.unwrap_option) widget_config in
+                   _load_widgets settings config plugins ws' hash
             end
           | Some wf ->
             let () = add_widget hash w wf widget_config in
