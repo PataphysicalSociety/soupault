@@ -40,11 +40,11 @@ let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
 let remove_ignored_files settings files =
-  let ignored settings file = Utils.in_list settings.ignore_extensions (FP.get_extension file) in
-   List.filter (fun f -> not (ignored settings f)) files
+  let ignored settings file = Utils.in_list settings.ignore_extensions (Utils.get_extension file) in
+  List.filter (fun f -> not (ignored settings f)) files
 
 let list_section_files settings path =
-  let is_page_file f = Utils.in_list settings.page_extensions (FP.get_extension f) in
+  let is_page_file f = Utils.in_list settings.page_extensions (Utils.get_extension f) in
   let files = FU.ls path |> FU.filter (FU.Is_file) |> remove_ignored_files settings in
   let page_files = List.find_all is_page_file files in
   let other_files = List.find_all (fun f -> not (is_page_file f)) files in
@@ -70,7 +70,7 @@ let make_page_dir_name settings target_dir page_name =
   else target_dir +/ page_name
 
 let load_html settings file =
-  let ext = FP.get_extension file in
+  let ext = Utils.get_extension file in
   let preprocessor = CCList.assoc_opt ~eq:(=) ext settings.preprocessors in
   try
     match preprocessor with
@@ -186,7 +186,7 @@ let make_page_url settings nav_path orig_path page_file =
 let make_page_file_name settings env target_dir =
   if settings.clean_urls then (target_dir +/ settings.index_file) else
   let page_file = FP.basename env.page_file in
-  let extension = FP.get_extension page_file in
+  let extension = Utils.get_extension page_file in
   let page_file =
     if Utils.in_list settings.keep_extensions extension then page_file
     else FP.add_extension (FP.chop_extension page_file) settings.default_extension

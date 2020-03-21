@@ -246,3 +246,7 @@ let profile_matches profile build_profile =
   | Some _, None -> false
   | Some p, Some bp -> p = bp
 
+(** Fixup for FilePath.get_extension raising Not_found for files without extensions *)
+let get_extension file =
+  try FilePath.get_extension file
+  with Not_found -> ""
