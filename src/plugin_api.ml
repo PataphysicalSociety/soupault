@@ -358,7 +358,9 @@ struct
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
        "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
-       "random", V.efunc (V.int **->> V.int) Random.int
+       "random", V.efunc (V.int **->> V.int) Random.int;
+       "is_windows", V.efunc (V.unit **->> V.bool) (fun () -> Sys.win32);
+       "is_unix", V.efunc (V.unit **->> V.bool) (fun () -> Sys.unix);
      ] g;
 
      C.register_module "String" [
