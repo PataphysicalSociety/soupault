@@ -29,14 +29,21 @@ let json_of_string_opt s =
   | Some s -> `String s
 
 let rec get_custom_fields strip_tags fields soup =
+  let get_content f elem =
+    match f.extract_attribute with
+    | None -> string_of_elem strip_tags elem
+    | Some attr -> Soup.attribute attr elem
+  in
   let get_field f soup =
-  if f.select_all then
-    `A (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> string_of_elem strip_tags e |> json_of_string_opt))
-  else let e = Soup.select_one f.field_selector soup in
-  match e, f.default_field_value with
-    | None, None -> `Null
-    | None, Some v -> `String v
-    | Some e, _ -> `String (string_of_elem strip_tags e |> CCOpt.get_or ~default:"")
+    if f.select_all then
+      `A (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> get_content f e |> json_of_string_opt))
+    else
+      let (>>=) = Stdlib.Option.bind in
+      let e = Soup.select_one f.field_selector soup >>= get_content f in
+      match e, f.default_field_value with
+      | None, None -> `Null
+      | None, Some v -> `String v
+      | Some e, _ -> `String e
   in
   match fields with
   | [] -> []

@@ -3,7 +3,8 @@ type index_field = {
   field_name : string;
   field_selector : string;
   select_all : bool;
-  default_field_value : string option
+  default_field_value : string option;
+  extract_attribute : string option;
 }
 
 type index_processor = BuiltInTemplate of Mustache.t | ExternalIndexer of string
