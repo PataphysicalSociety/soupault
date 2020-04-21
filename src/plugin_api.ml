@@ -395,11 +395,20 @@ let soup_of_lua l =
   let v = HtmlT.makemap I.Value.userdata I.Value.projection in
   v.project l
 
+let rec lua_of_value v =
+  match v with
+  | `Bool b -> I.Value.bool.embed b
+  | `Int i -> I.Value.int.embed i
+  | `String s -> I.Value.string.embed s
+  | `A vs -> (List.map lua_of_value vs) |> (I.Value.list I.Value.value).embed
+  | `Null -> I.Value.unit.embed ()
+
 let lua_of_config c =
-  let cs = Config.assoc_of_table Config.get_whatever_as_string c in
-  let cs = List.map (fun (k, v) -> (k, I.Value.string.embed v)) cs in
+  let cs = Config.assoc_of_table2 Config.get_whatever c in
+  let cs = List.map (fun (k, v) -> (k, lua_of_value v)) cs in
   let config_hash = I.Value.Table.of_list cs in
   I.Value.table.embed config_hash
+  
 
 let run_plugin filename lua_code env config soup =
   let open Defaults in

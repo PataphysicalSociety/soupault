@@ -94,6 +94,20 @@ let get_whatever_as_string k tbl =
   (fun _ -> get_int k tbl |> CCOpt.map string_of_int) >>=
   (fun _ -> get_bool k tbl |> CCOpt.map string_of_bool)
 
+let get_whatever k tbl =
+  match (get_string k tbl) with
+  | Some s -> `String s
+  | None ->
+    (match (get_int k tbl) with
+    | Some i -> `Int i
+    | None ->
+      (match (get_bool k tbl) with
+       | Some b -> `Bool b
+       | None ->
+         (match (get_strings k tbl) with
+          | Some ss -> `A (List.map (fun x -> `String x) ss)
+          | None -> `Null)))
+
 (** Converts a TOML table to an assoc list using a given value retrieval function,
     ignoring None's it may return.
   *)
@@ -103,6 +117,10 @@ let assoc_of_table f tbl =
   List.fold_left (fun xs k -> (k, f k tbl ) :: xs) [] keys |>
   List.filter has_value |>
   List.map (fun (k, v) -> k, Utils.unwrap_option v)
+
+let assoc_of_table2 f tbl =
+  let keys = list_config_keys tbl in
+  List.fold_left (fun xs k -> (k, f k tbl ) :: xs) [] keys
 
 (** Tries to get a string list from a config
     If there's actually a string list, just returns it.
