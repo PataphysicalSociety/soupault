@@ -161,6 +161,26 @@ module Html = struct
     | None -> ()
     | Some node -> to_element node |> Soup.set_attribute attr_name attr_value
 
+  let delete_attribute node attr_name =
+    match node with
+    | None -> ()
+    | Some node -> to_element node |> Soup.delete_attribute attr_name
+
+  let list_attributes node =
+    let aux e = Soup.fold_attributes (fun acc name _ -> name :: acc) [] e in
+    match node with
+    | None -> []
+    | Some node -> to_element node |> aux
+
+  let clear_attributes node =
+    let aux e =
+      Soup.fold_attributes (fun acc name _ -> name :: acc) [] e |>
+      List.iter (fun n -> Soup.delete_attribute n e)
+    in
+    match node with
+    | None -> ()
+    | Some node -> to_element node |> aux
+
   let add_class node class_name =
     match node with
     | None -> ()
@@ -311,6 +331,9 @@ struct
         "get_tag_name", V.efunc (V.option Map.html **->> V.option V.string) Html.get_tag_name;
         "get_attribute", V.efunc (V.option Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
         "set_attribute", V.efunc (V.option Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
+        "delete_attribute", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.delete_attribute;
+        "list_attributes", V.efunc (V.option Map.html **->> V.list V.string) Html.list_attributes;
+        "clear_attributes", V.efunc (V.option Map.html **->> V.unit) Html.clear_attributes;
         "add_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.add_class;
         "remove_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.remove_class;
         "append_child", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.append_child);
