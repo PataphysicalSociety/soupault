@@ -296,6 +296,36 @@ let _get_index_settings settings config =
        index_path_options = get_path_options st;
     }
 
+let update_page_template_settings settings config =
+  let get_template name settings config =
+    (* Retrieve a subtable for given template *)
+    let config = get_table name config in
+    match config with
+    | None -> settings
+    | Some config -> begin
+      let path_options = get_path_options config in
+      let file = get_string "file" config in
+      match file with
+      | None ->
+        let () = Logs.warn @@ fun m -> m "Missing required option \"file\" in [templates.%s], ignoring" name in
+        settings
+      | Some file ->
+        try
+          let tmpl_data = Soup.read_file file in
+          let templates = (tmpl_data, name, path_options) :: settings.page_templates in
+          {settings with page_templates=templates}
+        with Sys_error msg ->
+          let () = Logs.warn @@ fun m -> m "Could not load the file for [templates.%s]: %s, ignoring" name msg in
+          settings
+    end
+  in
+  let tt = get_table Defaults.templates_table config in
+  match tt with
+  | None -> settings
+  | Some tt ->
+    let ks = list_config_keys tt in
+    List.fold_left (fun s k -> get_template k s tt) settings ks
+
 let valid_settings = [
   "verbose"; "debug"; "strict"; "site_dir"; "build_dir";
   "content_selector"; "doctype"; "index_page"; "index_file";
@@ -313,7 +343,8 @@ let _update_settings settings config =
      settings
   | Some st ->
     let () = check_options valid_settings st "table \"settings\"" in
-    {default_settings with
+    let settings = update_page_template_settings settings config in
+    {settings with
        verbose = get_bool_default settings.verbose "verbose" st;
        debug = get_bool_default settings.debug "debug" st;
        strict = get_bool_default settings.strict "strict" st;
@@ -338,7 +369,7 @@ let _update_settings settings config =
        preprocessors = _get_preprocessors config
      }
 
-let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"]
+let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"]
 
 let update_settings settings config =
   let bad_section_msg tbl _ suggestion =

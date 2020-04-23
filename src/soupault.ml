@@ -115,7 +115,18 @@ let make_page env settings content =
       (* in HTML processor mode that's implied *)
     in Ok content
   | None ->
-    let html = Soup.parse env.template in
+    let tmpl = List.find_opt
+      (fun (_, _, opts) -> (Path_options.page_included opts settings.site_dir env.page_file) = true)
+      settings.page_templates
+    in
+    let html = (match tmpl with
+      | None ->
+        let () = Logs.info @@ fun m -> m "Using default template for page %s" env.page_file in
+        Soup.parse env.template
+      | Some (tmpl_data, tmpl_name, _) ->
+        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" tmpl_name env.page_file in
+        Soup.parse tmpl_data)
+    in
     let* () = include_content settings html content in
     Ok html
 

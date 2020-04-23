@@ -52,6 +52,9 @@ type settings = {
   (* default HTML page template *)
   default_template : string;
 
+  (* alternative templates for specific pages *)
+  page_templates : (string * string * path_options) list;
+
   (* element where page content is inserted in the template *)
   content_selector : string;
 
@@ -123,6 +126,7 @@ let index_settings_table = "index"
 let preprocessors_table = "preprocessors"
 let widgets_table = "widgets"
 let plugins_table = "plugins"
+let templates_table = "templates"
 
 let default_index_item_template = "<div> <a href=\"{{url}}\">{{{title}}}</a> </div>"
 
@@ -147,6 +151,7 @@ let default_settings = {
   index_page = "index";
   index_file = "index.html";
   default_template = "templates/main.html";
+  page_templates = [];
   content_selector = "body";
   clean_urls = true;
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
