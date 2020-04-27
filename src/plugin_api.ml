@@ -99,7 +99,19 @@ module Html = struct
   let to_element n =
     match n with
     | ElementNode n -> n
-    | _ -> raise (Plugin_error "Expected an element, but found a document")
+    | GeneralNode n ->
+      let n' = Soup.element n in begin
+        match n' with
+        | Some e -> e
+        | None -> raise (Plugin_error "Expected an HTML element, but found a document or a text node")
+      end
+    | _ -> raise (Plugin_error "Expected an HTML element node, but found a document")
+
+  let is_element n =
+    match n with
+    | Some (ElementNode _) -> true
+    | Some (GeneralNode n) -> Soup.is_element n
+    | _ -> false
 
   let to_general n =
     match n with
@@ -350,7 +362,8 @@ struct
         "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
         "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
-        "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags
+        "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
+        "is_element", V.efunc (V.option Map.html **->> V.bool) Html.is_element;
       ] g;
       
       C.register_module "Regex" [
