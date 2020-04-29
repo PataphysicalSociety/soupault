@@ -218,42 +218,42 @@ module Html = struct
     match node with
     | ElementNode n -> Soup.append_child n child
     | SoupNode n -> Soup.append_root n child
-    | GeneralNode _ -> raise (Plugin_error "Cannot append a child to a GeneralNode")
+    | GeneralNode _ as n -> Soup.append_child (to_element n) child
 
   let prepend_child node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.prepend_child n child
     | SoupNode _ -> raise (Plugin_error "Cannot prepend a child to a document node")
-    | GeneralNode _ -> raise (Plugin_error "Cannot prepend a child to a general node")
+    | GeneralNode _ as n -> Soup.prepend_child (to_element n) child
 
   let insert_before node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.insert_before n child
     | SoupNode _ -> raise (Plugin_error "Cannot use insert_before with a document node")
-    | GeneralNode _ -> raise (Plugin_error "Cannot user insert_before with a general node")
+    | GeneralNode _ as n -> Soup.insert_before (to_element n) child
 
   let insert_after node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.insert_after n child
     | SoupNode _ -> raise (Plugin_error "Cannot use insert_after with a document node")
-    | GeneralNode _ -> raise (Plugin_error "Cannot user insert_after with a general node")
+    | GeneralNode _ as n -> Soup.insert_after (to_element n) child
 
   let replace node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.replace n child
     | SoupNode _ -> raise (Plugin_error "Cannot use replace with a document node")
-    | GeneralNode _ -> raise (Plugin_error "Cannot use replace with a general node")
+    | GeneralNode _ as n -> Soup.replace (to_element n) child
 
   let replace_content node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Utils.replace_content n child
     | SoupNode _ -> raise (Plugin_error "Cannot use replace_content with a document node")
-    | GeneralNode _ -> raise (Plugin_error "Cannot use replace_content with a general node")
+    | GeneralNode _ as n -> Utils.replace_content (to_element n) child
 
   let delete_content node =
     match node with
@@ -264,7 +264,8 @@ module Html = struct
     let* node = node in
     match node with
     | ElementNode n -> Soup.name n |> return
-    | _ -> raise (Plugin_error "Cannot get tag name from a node that isn't an element")
+    | GeneralNode _ as n -> Soup.name (to_element n) |> return
+    | _ -> raise (Plugin_error "Cannot get tag name: node is an HTML document")
 
   let set_tag_name node name =
     match node with
