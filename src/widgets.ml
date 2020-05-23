@@ -91,13 +91,20 @@ let rec _load_widgets settings config plugins ws hash =
         end
     end
 
+
 let get_widget_order hash =
+  let format_bad_deps ds =
+    let format_bad_dep (n, ns) = Printf.sprintf "Widget \"%s\" depends on non-existent widgets: %s" n (String.concat ", " ns) in
+    let bad_deps = List.map format_bad_dep ds |> String.concat "\n" in
+    Printf.sprintf "Found dependencies on non-existent widgets\n%s" bad_deps
+  in
   let dep_graph = CCHashtbl.map_list (fun k v -> (k, Config.get_strings_relaxed "after" v.config)) hash in
+  let bad_deps = Tsort.find_nonexistent_nodes dep_graph in
+  if bad_deps <> [] then Error (format_bad_deps bad_deps) else
   let res = Tsort.sort dep_graph in
   match res with
   | Tsort.Sorted ws -> Ok ws
   | Tsort.ErrorCycle ws -> Error (Printf.sprintf "Found a circular dependency between widgets: %s" (String.concat " " ws))
-  | Tsort.ErrorNonexistent ws -> Error (Printf.sprintf "Found dependencies on non-existent widgets: %s" (String.concat " " ws))
 
 (** Splits the ordered list of widgets into parts that should run before and after index extraction.
 
