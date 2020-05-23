@@ -49,7 +49,7 @@ let rec _load_widgets settings config plugins ws hash =
   match ws with
   | [] -> ()
   | w :: ws' ->
-    let () = Logs.debug @@ fun m -> m "Processing widget %s" w in
+    let () = Logs.debug @@ fun m -> m "Loading configuration from [widgets.%s]" w in
     let widget_config = get_widget_config config w in
     let name = Config.get_string "widget" widget_config in
     let fail msg = Printf.ksprintf failwith "Error in [widgets.%s]: %s" w msg in
