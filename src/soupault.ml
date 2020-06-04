@@ -84,6 +84,10 @@ let load_html settings file =
 let save_html settings soup file =
   try
     let html_str = Soup.pretty_print soup in
+    (* lambdasoup 0.7.1 adds an HTML5 doctype whether you want it or not.
+       Until it stops doing that or adds an option to choose a doctype,
+       we have to remove it so that we can add a doctype from the config. *)
+    let html_str = Re.replace  ~f:(fun _ -> "") (Re.Perl.compile_pat ~opts:[`Caseless] "^(<!DOCTYPE[^>]*>\\s*)") html_str in
     let chan = open_out file in
     (* lambdasoup doesn't include the doctype even if it was present
        in the source, so we have to do it ourselves *)
