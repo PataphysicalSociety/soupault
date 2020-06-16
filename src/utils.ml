@@ -250,3 +250,17 @@ let profile_matches profile build_profile =
 let get_extension file =
   try FilePath.get_extension file
   with Not_found -> ""
+
+(* Remove trailing slashes from a path.
+   This is mainly to work around fileutils#14 issue.
+ *)
+let normalize_path path =
+  (* If a path is empty, leave it empty.
+     Right now soupault treates build_dir="" as
+     "use current working dir for build dir",
+     until we all decide whether it's a good idea or not,
+     let's keep it an easily removable line.
+   *)
+  if path = "" then path else
+  let path = Re.replace  ~f:(fun _ -> "") (Re.Perl.compile_pat "/$") path in
+  if path = "" then "/" else path
