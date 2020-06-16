@@ -51,6 +51,13 @@ let list_section_files settings path =
   page_files, other_files
 
 let make_build_dir build_dir =
+  let () =
+    if build_dir = "" then
+    (* Treating build_dir="" as "build in the current dir" wasn't a part of the design.
+       I suppose it should be disabled in 2.0.
+     *)
+    Logs.warn @@ fun m -> m "Build directory is set to empty string, using current working directory for output"
+  in
   if (FU.test FU.Exists build_dir) then Ok () else
   let () = Logs.info @@ fun m -> m "Build directory \"%s\" does not exist, creating" build_dir in
   mkdir build_dir
