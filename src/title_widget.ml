@@ -19,6 +19,21 @@ let set_title _ config soup =
   let prepend = Config.get_string_default "" "prepend" config in
   let append = Config.get_string_default "" "append" config in
   let default_title = Config.get_string_default "" "default" config in
+  let force = Config.get_bool_default false "force" config in
+  (* Artificially insert a title element if force=true.
+     Can be useful in HTML processor mode to add consistency to a bunch of
+     handwritten pages. *)
+  let () =
+    if force then
+    begin
+      (* lambdasoup always inserts a <head> in the whole document parsing mode,
+          so a page is guaranteed to have one,
+          unsafe unwrapping is fine *)
+      let head = Soup.select_one "head" soup |> Option.get in
+      let title_elem = Soup.create_element "title" in
+      Soup.append_child head title_elem
+    end
+  in
   (* Now to setting the title *)
   let title_node = Soup.select_one "title" soup in
   match title_node with
