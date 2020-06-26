@@ -36,10 +36,10 @@ let rec get_custom_fields strip_tags fields soup =
   in
   let get_field f soup =
     if f.select_all then
-      `A (Soup.select f.field_selector soup |> Soup.to_list |> List.map (fun e -> get_content f e |> json_of_string_opt))
+      `A (Utils.select_all f.field_selectors soup |> List.map (fun e -> get_content f e |> json_of_string_opt))
     else
       let (>>=) = Stdlib.Option.bind in
-      let e = Soup.select_one f.field_selector soup >>= get_content f in
+      let e = Utils.select_any_of f.field_selectors soup >>= get_content f in
       match e, f.default_field_value with
       | None, None -> `Null
       | None, Some v -> `String v

@@ -1,7 +1,7 @@
 (** global settings that can be updated from config file or command line options *)
 type index_field = {
   field_name : string;
-  field_selector : string;
+  field_selectors : string list;
   select_all : bool;
   default_field_value : string option;
   extract_attribute : string option;
