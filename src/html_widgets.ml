@@ -20,7 +20,7 @@ let delete_element _ config soup =
          Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nothing to delete" selector
       | ns ->
         let _delete when_empty n =
-          if not (Utils.is_empty n) && when_empty then
+          if not (Html_utils.is_empty n) && when_empty then
             Logs.debug @@ fun m -> m "Element matching selector \"%s\" is not empty, configured to delete only when empty" selector
           else Soup.delete n
         in List.iter (_delete when_empty) ns

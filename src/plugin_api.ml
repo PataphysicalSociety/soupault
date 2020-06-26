@@ -138,13 +138,13 @@ module Html = struct
   let select_any_of soup selectors =
     let* soup = soup in
     let* n =
-      try to_general soup |> Utils.select_any_of selectors
+      try to_general soup |> Html_utils.select_any_of selectors
       with Utils.Soupault_error msg -> raise (Plugin_error msg)
     in Some (ElementNode n)
 
   let select_all_of soup selectors =
     let* soup = soup in
-    try to_general soup |> Utils.select_all selectors |> List.map (fun x -> ElementNode x) |> return
+    try to_general soup |> Html_utils.select_all selectors |> List.map (fun x -> ElementNode x) |> return
     with Utils.Soupault_error msg ->
       raise (Plugin_error msg)
 
@@ -251,9 +251,9 @@ module Html = struct
   let replace_content node child =
     let child = to_general child in
     match node with
-    | ElementNode n -> Utils.replace_content n child
+    | ElementNode n -> Html_utils.replace_content n child
     | SoupNode _ -> raise (Plugin_error "Cannot use replace_content with a document node")
-    | GeneralNode _ as n -> Utils.replace_content (to_element n) child
+    | GeneralNode _ as n -> Html_utils.replace_content (to_element n) child
 
   let delete_content node =
     match node with
@@ -292,16 +292,16 @@ module Html = struct
   let inner_html node =
     match node with
     | None -> ""
-    | Some node -> to_general node |> Utils.inner_html
+    | Some node -> to_general node |> Html_utils.inner_html
 
   let strip_tags node =
     match node with
     | None -> ""
-    | Some node -> to_general node |> Utils.get_element_text |> CCOpt.get_or ~default:""
+    | Some node -> to_general node |> Html_utils.get_element_text |> CCOpt.get_or ~default:""
 
   let clone_content node =
     let* node = node in
-    SoupNode (to_general node |> Utils.child_nodes) |> return
+    SoupNode (to_general node |> Html_utils.child_nodes) |> return
   
   let tname = "html"
   let eq _ = fun x y -> Soup.equal_modulo_whitespace (to_general x) (to_general y)

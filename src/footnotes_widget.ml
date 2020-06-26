@@ -49,7 +49,7 @@ let make_footnote_ref back_links backlink_id link_class ref_tmpl num =
       let ref_content =
         Soup.create_element ~attributes:["href", "#" ^ backlink_id] ~inner_text:ref_text "a"
       in
-      Utils.add_class link_class ref_content;
+      Html_utils.add_class link_class ref_content;
       Soup.append_child fn_ref ref_content
     else string_of_int num |> Soup.create_text |> Soup.append_child fn_ref
   in fn_ref
@@ -64,7 +64,7 @@ let make_footnote_link back_links backlink_id link_class ref_tmpl fn_id num =
     if back_links then Soup.set_attribute "id" backlink_id fn_ref
   in
   let fn_link = Soup.create_element ~attributes:["href", "#" ^ fn_id] "a" in
-  let () = Soup.append_child fn_link fn_ref; Utils.add_class link_class fn_link in
+  let () = Soup.append_child fn_link fn_ref; Html_utils.add_class link_class fn_link in
   fn_link
 
 (* Creates a container for the footnote content
@@ -110,8 +110,8 @@ let footnotes _ config soup =
   let* selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
   let note_selector = Config.get_strings_relaxed ~default:[".footnote"] "footnote_selector" config in
-  let* ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Utils.check_template "*" in
-  let* note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Utils.check_template "*" in
+  let* ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Html_utils.check_template "*" in
+  let* note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Html_utils.check_template "*" in
   let fn_link_class = Config.get_string "footnote_link_class" config in
   let back_links = Config.get_bool_default true "back_links" config in
   let back_link_append = Config.get_string_default "-ref" "back_link_id_append" config in
@@ -122,8 +122,8 @@ let footnotes _ config soup =
     let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the footnotes" selector in
     Ok ()
   | Some container ->
-    let notes = Utils.select_all note_selector soup in
+    let notes = Html_utils.select_all note_selector soup in
     let container_content = Soup.create_soup () in
     let () = move_footnotes fn_link_class back_links ref_tmpl note_tmpl notes container_content back_link_append link_prepend 0 in
-    Ok (Utils.insert_element action container (Soup.coerce container_content))
+    Ok (Html_utils.insert_element action container (Soup.coerce container_content))
 

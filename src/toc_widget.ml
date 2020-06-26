@@ -37,7 +37,7 @@ let get_heading_id settings counter heading =
   | None ->
     if not (settings.use_slugs || settings.use_text)
     then counter () |> string_of_int else
-    let text =  Utils.get_element_text heading in
+    let text =  Html_utils.get_element_text heading in
     begin
       match text with
       | None -> counter () |> string_of_int
@@ -61,10 +61,10 @@ let add_item settings counter heading container =
   let li = Soup.create_element "li" in
   let heading_id = get_heading_id settings counter heading in
   let h_link = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
-  let h_content = Utils.child_nodes heading in
+  let h_content = Html_utils.child_nodes heading in
   (* Strip tags if configured *)
   let h_content =
-    if settings.strip_tags then Utils.get_element_text h_content |> CCOpt.get_or ~default:"" |> Soup.parse
+    if settings.strip_tags then Html_utils.get_element_text h_content |> CCOpt.get_or ~default:"" |> Soup.parse
     else h_content
   in
   Soup.append_child h_link h_content;
@@ -76,7 +76,7 @@ let add_item settings counter heading container =
     let link_text = Soup.parse settings.link_here_text in
     let link_here = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
     let () = Soup.append_child link_here link_text in
-    Utils.add_class settings.link_here_class link_here;
+    Html_utils.add_class settings.link_here_class link_here;
     if settings.link_here_append then Soup.append_child heading link_here
     else Soup.prepend_child heading link_here
   end
@@ -85,7 +85,7 @@ let make_toc_container settings level =
   let tag = if settings.numbered_list then "ol" else "ul" in
   let toc_list = Soup.create_element tag in
   let toc_class = make_toc_class settings level in
-  Utils.add_class toc_class toc_list;
+  Html_utils.add_class toc_class toc_list;
   toc_list
 
 let rec _make_toc settings counter soup container cur_level headings =
@@ -160,6 +160,6 @@ let toc _ config soup =
         let toc_container = make_toc_container settings settings.min_level in
         let headings = find_headings soup in
         let _ = _make_toc settings counter soup toc_container settings.min_level headings in
-        Ok (Utils.insert_element action container toc_container)
+        Ok (Html_utils.insert_element action container toc_container)
       end
     end

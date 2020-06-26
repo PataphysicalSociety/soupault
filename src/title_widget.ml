@@ -42,7 +42,7 @@ let set_title _ config soup =
     Ok ()
   | Some title_node ->
     let title_string =
-      Utils.select_any_of selectors soup >>= Utils.get_element_text
+      Html_utils.select_any_of selectors soup >>= Html_utils.get_element_text
         |> make_title_string default_title prepend append in
     (* XXX: Both Soup.create_text and Soup.create_element ~inner_text:... escape special characters
        instead of expanding entities, so "&mdash;" becomes "&amp;mdash", which is not what we want.

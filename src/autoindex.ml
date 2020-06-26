@@ -14,9 +14,9 @@ type 'a index_entry = {
 }
 
 let string_of_elem strip_tags e =
-  if strip_tags then Utils.get_element_text e
+  if strip_tags then Html_utils.get_element_text e
   else begin
-    let text = Utils.inner_html e in
+    let text = Html_utils.inner_html e in
     match (String.trim text) with
     | "" -> None
     | _ as t -> Some t
@@ -36,10 +36,10 @@ let rec get_custom_fields strip_tags fields soup =
   in
   let get_field f soup =
     if f.select_all then
-      `A (Utils.select_all f.field_selectors soup |> List.map (fun e -> get_content f e |> json_of_string_opt))
+      `A (Html_utils.select_all f.field_selectors soup |> List.map (fun e -> get_content f e |> json_of_string_opt))
     else
       let (>>=) = Stdlib.Option.bind in
-      let e = Utils.select_any_of f.field_selectors soup >>= get_content f in
+      let e = Html_utils.select_any_of f.field_selectors soup >>= get_content f in
       match e, f.default_field_value with
       | None, None -> `Null
       | None, Some v -> `String v
@@ -54,7 +54,7 @@ let rec get_custom_fields strip_tags fields soup =
 let get_entry settings env soup =
   let (>>=) = CCOpt.(>>=) in
   let string_of_elem selector soup =
-    Utils.select_any_of selector soup >>= string_of_elem settings.index_strip_tags
+    Html_utils.select_any_of selector soup >>= string_of_elem settings.index_strip_tags
   in
   {
     url = env.page_url;
@@ -66,7 +66,7 @@ let get_entry settings env soup =
        to account for things like <em>1970</em>-01-01.
        Probably futile and redundant, but at least no one can say it's not trying.
      *)
-    date = Utils.select_any_of settings.index_date_selector soup >>= Utils.get_element_text;
+    date = Html_utils.select_any_of settings.index_date_selector soup >>= Html_utils.get_element_text;
     author = string_of_elem settings.index_author_selector soup;
     custom_fields = get_custom_fields settings.index_strip_tags settings.index_custom_fields soup
   }

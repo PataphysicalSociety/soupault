@@ -65,5 +65,5 @@ let breadcrumbs env config soup =
         let append = Config.get_string_default "" "append" config in
         let between = Config.get_string_default "" "between" config in
         let breadcrumbs = make_breadcrumbs env.nav_path bc_tmpl_str prepend append between in
-        Ok (Utils.insert_element action container breadcrumbs)
+        Ok (Html_utils.insert_element action container breadcrumbs)
     end
