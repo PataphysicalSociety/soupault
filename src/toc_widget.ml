@@ -26,6 +26,30 @@ let find_headings soup =
 
 let get_heading_level e = String.sub (Soup.name e) 1 1 |> int_of_string
 
+(* Extracts a top level section from a flat list of headings.
+
+   Since there can be any number of <h1> elements,
+   we have two possible options: consider all headings children of a virtual root,
+   or treat it at multiple independent trees.
+   The latter approach allows for simpler types, since adding a virtual root
+   would require node data to be 'a option _just_ to accomodate the root,
+   while all real headings are guaranteed to have non-empty data.
+ *)
+let take_section hs =
+  let rec aux hs section level =
+  match hs with
+  | [] -> section, []
+  | h :: hs ->
+    if (get_heading_level h) > level then aux hs (h :: section) level
+    else section, (h :: hs)
+  in match hs with
+  | [] -> failwith "Cannot take any section from an empty list of headings"
+  | [h] -> (h, []), []
+  | h :: hs ->
+    let first_level = get_heading_level h in
+    let section, remainder = aux hs [] first_level in
+    (h, List.rev section), remainder
+
 let make_counter seed =
   let counter = ref seed in
   fun () -> incr counter; !counter
