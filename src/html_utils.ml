@@ -151,3 +151,12 @@ let insert_element action container content =
     let suggestion = (match suggestion with Some s -> (Printf.sprintf " Did you mean \"%s?\"" s) | None -> "") in
     let () = Logs.warn @@ fun m -> m "Invalid action \"%s\", using default (append child).%s" action suggestion in
     Soup.append_child container content
+
+(* Checks if an element is a heading *)
+let is_heading e =
+  match (Soup.name e) with
+  | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" -> true
+  | _ -> false
+
+(* Returns the number from <h1> etc. *)
+let get_heading_level e = String.sub (Soup.name e) 1 1 |> int_of_string

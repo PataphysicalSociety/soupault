@@ -15,40 +15,9 @@ type toc_settings = {
   strip_tags: bool
 }
 
-let is_heading e =
-  match (Soup.name e) with
-  | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" -> true
-  | _ -> false
-
 let find_headings soup =
   let open Soup in
-  soup |> descendants |> elements |> filter is_heading |> to_list
-
-let get_heading_level e = String.sub (Soup.name e) 1 1 |> int_of_string
-
-(* Extracts a top level section from a flat list of headings.
-
-   Since there can be any number of <h1> elements,
-   we have two possible options: consider all headings children of a virtual root,
-   or treat it at multiple independent trees.
-   The latter approach allows for simpler types, since adding a virtual root
-   would require node data to be 'a option _just_ to accomodate the root,
-   while all real headings are guaranteed to have non-empty data.
- *)
-let take_section hs =
-  let rec aux hs section level =
-  match hs with
-  | [] -> section, []
-  | h :: hs ->
-    if (get_heading_level h) > level then aux hs (h :: section) level
-    else section, (h :: hs)
-  in match hs with
-  | [] -> failwith "Cannot take any section from an empty list of headings"
-  | [h] -> (h, []), []
-  | h :: hs ->
-    let first_level = get_heading_level h in
-    let section, remainder = aux hs [] first_level in
-    (h, List.rev section), remainder
+  soup |> descendants |> elements |> filter Html_utils.is_heading |> to_list
 
 let make_counter seed =
   let counter = ref seed in
@@ -112,35 +81,19 @@ let make_toc_container settings level =
   Html_utils.add_class toc_class toc_list;
   toc_list
 
-let rec _make_toc settings counter soup container cur_level headings =
-  match headings with
-  | [] -> []
-  | h :: hs ->
-    begin
-      let level = get_heading_level h in
-      if (level < settings.min_level) || (level > settings.max_level)
-      then _make_toc settings counter soup container cur_level hs 
-      else match level, cur_level with
-      | _ when level = cur_level ->
-        (* Same level, just add a new item and go ahead *)
-        add_item settings counter h container;
-        _make_toc settings counter soup container cur_level hs
-      | _ when level > cur_level ->
-        (* Hello Mr. Tyler, going down?
-           This is a deeper level. We call _make_toc on the list tail --
-           it will return remaining items list when the level increases, then call it again
-           on the list it returns.
-         *)
-        let container' = make_toc_container settings level in
-        let () = add_item settings counter h container' in 
-        let hs' = _make_toc settings counter soup container' level hs in
-        let () = Soup.append_child container container' in
-        _make_toc settings counter soup container cur_level hs'
-      | _ ->
-        (* The level goes up. We need to return this heading
-           and all remaining headings to the caller at the upper level *)
-        h :: hs
-    end
+let rec _make_toc settings counter parent tree =
+  let heading = Rose_tree.(tree.value) in
+  let children = Rose_tree.(tree.children) in
+  let level = Html_utils.get_heading_level heading in
+  if level > settings.max_level then () else
+  if level < settings.min_level then List.iter (_make_toc settings counter parent) children else
+  let () = add_item settings counter heading parent in
+  match children with
+  | [] -> ()
+  | _ ->
+    let container = make_toc_container settings level in
+    Soup.append_child parent container;
+    List.iter (_make_toc settings counter container) children
 
 let toc _ config soup =
   let valid_options = List.append Config.common_widget_options
@@ -182,8 +135,8 @@ let toc _ config soup =
       begin
         let counter = make_counter 0 in
         let toc_container = make_toc_container settings settings.min_level in
-        let headings = find_headings soup in
-        let _ = _make_toc settings counter soup toc_container settings.min_level headings in
+        let headings = find_headings soup |> Rose_tree.from_list Html_utils.get_heading_level in
+        let _ = List.iter (_make_toc settings counter toc_container) headings in
         Ok (Html_utils.insert_element action container toc_container)
       end
     end
