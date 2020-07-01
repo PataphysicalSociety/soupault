@@ -12,7 +12,8 @@ type toc_settings = {
   link_here_append: bool;
   use_text: bool;
   use_slugs: bool;
-  strip_tags: bool
+  strip_tags: bool;
+  valid_html: bool;
 }
 
 let find_headings soup =
@@ -72,7 +73,9 @@ let add_item settings counter heading container =
     Html_utils.add_class settings.link_here_class link_here;
     if settings.link_here_append then Soup.append_child heading link_here
     else Soup.prepend_child heading link_here
-  end
+  end;
+  (* Return the generated <li> element *)
+  li
 
 let make_toc_container settings level =
   let tag = if settings.numbered_list then "ol" else "ul" in
@@ -87,18 +90,24 @@ let rec _make_toc settings counter parent tree =
   let level = Html_utils.get_heading_level heading in
   if level > settings.max_level then () else
   if level < settings.min_level then List.iter (_make_toc settings counter parent) children else
-  let () = add_item settings counter heading parent in
+  let item = add_item settings counter heading parent in
   match children with
   | [] -> ()
   | _ ->
     let container = make_toc_container settings level in
-    Soup.append_child parent container;
+    (* According to the HTML specs, and contrary to the popular opinion,
+       a <ul> or <ul> cannot contain another <ul> or <ul>.
+       Nested lists must be inside its <li> elements.
+       With valid_html the user can force that behaviour.
+     *)
+    if settings.valid_html then Soup.append_child item container
+    else Soup.append_child parent container;
     List.iter (_make_toc settings counter container) children
 
 let toc _ config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
-     "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append";
+     "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append"; "valid-html";
      "use_heading_text"; "use_heading_slug"; "use_header_text"; "use_header_slug"; "strip_tags"; "action"]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
@@ -115,6 +124,7 @@ let toc _ config soup =
     use_text = Config.get_bool_default false "use_heading_text" config;
     use_slugs = Config.get_bool_default false "use_heading_slug" config;
     strip_tags = Config.get_bool_default false "strip_tags" config;
+    valid_html = Config.get_bool_default false "valid_html" config;
   } in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
