@@ -84,17 +84,17 @@ let make_toc_container settings level =
   Html_utils.add_class toc_class toc_list;
   toc_list
 
-let rec _make_toc settings counter parent tree =
+let rec _make_toc settings depth counter parent tree =
   let heading = Rose_tree.(tree.value) in
   let children = Rose_tree.(tree.children) in
   let level = Html_utils.get_heading_level heading in
   if level > settings.max_level then () else
-  if level < settings.min_level then List.iter (_make_toc settings counter parent) children else
+  if level < settings.min_level then List.iter (_make_toc settings depth counter parent) children else
   let item = add_item settings counter heading parent in
   match children with
   | [] -> ()
   | _ ->
-    let container = make_toc_container settings level in
+    let container = make_toc_container settings depth in
     (* According to the HTML specs, and contrary to the popular opinion,
        a <ul> or <ul> cannot contain another <ul> or <ul>.
        Nested lists must be inside its <li> elements.
@@ -102,7 +102,7 @@ let rec _make_toc settings counter parent tree =
      *)
     if settings.valid_html then Soup.append_child item container
     else Soup.append_child parent container;
-    List.iter (_make_toc settings counter container) children
+    List.iter (_make_toc settings (depth + 1) counter container) children
 
 let toc _ config soup =
   let valid_options = List.append Config.common_widget_options
@@ -144,9 +144,9 @@ let toc _ config soup =
       | Some container ->
       begin
         let counter = make_counter 0 in
-        let toc_container = make_toc_container settings settings.min_level in
+        let toc_container = make_toc_container settings 1 in
         let headings = find_headings soup |> Rose_tree.from_list Html_utils.get_heading_level in
-        let _ = List.iter (_make_toc settings counter toc_container) headings in
+        let _ = List.iter (_make_toc settings 2 counter toc_container) headings in
         Ok (Html_utils.insert_element action container toc_container)
       end
     end
