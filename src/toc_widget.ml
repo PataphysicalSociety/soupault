@@ -140,9 +140,14 @@ let toc _ config soup =
       | Some container ->
       begin
         let counter = make_counter 0 in
-        let toc_container = make_toc_container settings 1 in
         let headings = Html_utils.find_headings soup |> Rose_tree.from_list Html_utils.get_heading_level in
-        let _ = List.iter (_make_toc settings 2 counter toc_container) headings in
-        Ok (Html_utils.insert_element action container toc_container)
+        match headings with
+        | [] ->
+          let () = Logs.debug @@ fun m -> m "Page has no headings, nothing to build a ToC from" in
+          Ok ()
+        | _ ->
+          let toc_container = make_toc_container settings 1 in
+          let _ = List.iter (_make_toc settings 2 counter toc_container) headings in
+          Ok (Html_utils.insert_element action container toc_container)
       end
     end
