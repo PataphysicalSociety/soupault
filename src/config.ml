@@ -118,10 +118,6 @@ let assoc_of_table f tbl =
   List.filter has_value |>
   List.map (fun (k, v) -> k, Option.get v)
 
-let assoc_of_table2 f tbl =
-  let keys = list_config_keys tbl in
-  List.fold_left (fun xs k -> (k, f k tbl ) :: xs) [] keys
-
 (** Tries to get a string list from a config
     If there's actually a string list, just returns it.
     If there's a single string, considers it a single item list.

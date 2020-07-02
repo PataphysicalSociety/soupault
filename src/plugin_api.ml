@@ -464,16 +464,16 @@ let rec lua_of_value v =
   match v with
   | `Bool b -> I.Value.bool.embed b
   | `Int i -> I.Value.int.embed i
+  | `Float f -> I.Value.float.embed f
   | `String s -> I.Value.string.embed s
   | `A vs -> (List.map lua_of_value vs) |> (I.Value.list I.Value.value).embed
+  | `O vs ->
+    List.map (fun (k, v) -> (k, lua_of_value v)) vs |>
+    I.Value.Table.of_list |> I.Value.table.embed
   | `Null -> I.Value.unit.embed ()
 
 let lua_of_config c =
-  let cs = Config.assoc_of_table2 Config.get_whatever c in
-  let cs = List.map (fun (k, v) -> (k, lua_of_value v)) cs in
-  let config_hash = I.Value.Table.of_list cs in
-  I.Value.table.embed config_hash
-  
+  Toml_utils.assoc_of_table c |> lua_of_value
 
 let run_plugin filename lua_code env config soup =
   let open Defaults in
