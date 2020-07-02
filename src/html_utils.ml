@@ -160,3 +160,7 @@ let is_heading e =
 
 (* Returns the number from <h1> etc. *)
 let get_heading_level e = String.sub (Soup.name e) 1 1 |> int_of_string
+
+let find_headings soup =
+  let open Soup in
+  soup |> descendants |> elements |> filter is_heading |> to_list

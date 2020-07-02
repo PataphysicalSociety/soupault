@@ -16,10 +16,6 @@ type toc_settings = {
   valid_html: bool;
 }
 
-let find_headings soup =
-  let open Soup in
-  soup |> descendants |> elements |> filter Html_utils.is_heading |> to_list
-
 let make_counter seed =
   let counter = ref seed in
   fun () -> incr counter; !counter
@@ -145,7 +141,7 @@ let toc _ config soup =
       begin
         let counter = make_counter 0 in
         let toc_container = make_toc_container settings 1 in
-        let headings = find_headings soup |> Rose_tree.from_list Html_utils.get_heading_level in
+        let headings = Html_utils.find_headings soup |> Rose_tree.from_list Html_utils.get_heading_level in
         let _ = List.iter (_make_toc settings 2 counter toc_container) headings in
         Ok (Html_utils.insert_element action container toc_container)
       end

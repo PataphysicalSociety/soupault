@@ -302,6 +302,14 @@ module Html = struct
   let clone_content node =
     let* node = node in
     SoupNode (to_general node |> Html_utils.child_nodes) |> return
+
+  let get_heading_level node =
+    let* node = node in
+    match node with
+    | ElementNode n ->
+      if not (Html_utils.is_heading n) then None
+      else Some (Html_utils.get_heading_level n)
+    | _ -> None
   
   let tname = "html"
   let eq _ = fun x y -> Soup.equal_modulo_whitespace (to_general x) (to_general y)
@@ -326,6 +334,23 @@ struct
     module Map = struct
       let html = HtmlV.makemap V.userdata V.projection
     end (* Map *)
+
+    let get_headings_tree soup =
+      match soup with
+      | None -> []
+      | Some soup -> begin
+        let open Rose_tree in
+        let trees =
+          Html_utils.find_headings (Html.to_general soup) |>
+          Rose_tree.from_list Html_utils.get_heading_level
+        in
+        let rec lua_of_tree t =
+          let value = Map.html.embed (Html.from_element t.value) in
+          match t.children with
+          | [] -> [value; V.unit.embed ()]
+          | cs -> [value; (V.list (V.list V.value)).embed @@ List.map lua_of_tree cs]
+        in List.map lua_of_tree trees
+      end
    
     let init g = 
       C.register_module "HTML" [
@@ -365,6 +390,8 @@ struct
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "is_element", V.efunc (V.option Map.html **->> V.bool) Html.is_element;
+        "get_headings_tree", V.efunc (V.option Map.html **->> V.list (V.list V.value)) get_headings_tree;
+        "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
       ] g;
       
       C.register_module "Regex" [
