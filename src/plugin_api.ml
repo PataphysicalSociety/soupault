@@ -347,9 +347,12 @@ struct
         let rec lua_of_tree t =
           let value = Map.html.embed (Html.from_element t.value) in
           match t.children with
-          | [] -> [value; V.unit.embed ()]
-          | cs -> [value; (V.list (V.list V.value)).embed @@ List.map lua_of_tree cs]
-        in List.map lua_of_tree trees
+          | [] -> ["heading", value; "children", V.unit.embed ()]
+          | cs ->
+            let children = List.map (fun c -> V.Table.of_list @@ lua_of_tree c) cs in
+            let children_table = (V.list V.table).embed children in
+            ["heading", value; "children", children_table]
+        in List.map (fun t -> lua_of_tree t |> V.Table.of_list |> V.table.embed) trees
       end
    
     let init g = 
@@ -390,7 +393,7 @@ struct
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "is_element", V.efunc (V.option Map.html **->> V.bool) Html.is_element;
-        "get_headings_tree", V.efunc (V.option Map.html **->> V.list (V.list V.value)) get_headings_tree;
+        "get_headings_tree", V.efunc (V.option Map.html **->> V.list V.value) get_headings_tree;
         "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
       ] g;
       
