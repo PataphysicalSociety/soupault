@@ -185,7 +185,7 @@ let default_settings = {
   plugin_discovery = true;
 }
 
-let version = (1, 12, 0, None)
+let version = (1, 13, 0, None)
 
 let version_to_string v =
   let major, minor, patch, suffix = v in
