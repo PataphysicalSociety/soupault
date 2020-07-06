@@ -35,7 +35,7 @@ let get_widget_config config widget =
    failwith @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget
 
 let list_widgets config =
-  let ws = Config.get_table Defaults.widgets_table config >>= (fun x -> Some (Config.list_config_keys x)) in
+  let ws = Config.get_table Defaults.widgets_table config >>= (fun x -> Some (Toml_utils.list_table_keys x)) in
   match ws with
   | None -> []
   | Some ws' -> ws'

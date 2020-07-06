@@ -71,7 +71,7 @@ let make_page_dir_name settings target_dir page_name =
 
 let load_html settings file =
   let ext = Utils.get_extension file in
-  let preprocessor = CCList.assoc_opt ~eq:(=) ext settings.preprocessors in
+  let preprocessor = List.assoc_opt ext settings.preprocessors in
   try
     match preprocessor with
     | None -> Ok (Soup.read_file file |> Soup.parse)
