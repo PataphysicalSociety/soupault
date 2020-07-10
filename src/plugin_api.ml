@@ -422,6 +422,7 @@ struct
 
      C.register_module "Sys" [
        "read_file", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.read_file);
+       "get_file_size", V.efunc (V.string **->> V.option V.int) (fun s -> try Some (Unix.stat s).st_size with _ -> None);
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
        "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
