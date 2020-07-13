@@ -8,14 +8,16 @@
 --   widget = "site-url"
 --   site_url = "https://www.example.com"
 
+-- Fail is soupault version is older than we need
+Plugin.require_version("1.2")
+
 -- Configuration
 site_url = config["site_url"]
 
 -- Plugin code
 
 if not site_url then
-  print("Warning: site_url is not configured, using default")
-  site_url = ""
+  Plugin.exit("Site URL is not configured, nothing to insert")
 end
 
 if not Regex.match(site_url, "(.*)/$") then
