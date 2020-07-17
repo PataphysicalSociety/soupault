@@ -1,3 +1,5 @@
+(* Multi-way tree used by the ToC module *)
+
 (* List helper functions *)
 module List_utils = struct
   let rec remove p xs =
@@ -35,7 +37,8 @@ end
 
    Since there can be any number of <h1> elements,
    we have two possible options: consider all headings children of a virtual root,
-   or treat it at multiple independent trees.
+   or treat it as multiple independent trees.
+
    The latter approach allows for simpler types, since adding a virtual root
    would require node data to be 'a option _just_ to accomodate the root,
    while all real headings are guaranteed to have non-empty data.
@@ -55,57 +58,79 @@ let take_section get_level hs =
     let section, remainder = aux hs [] first_level in
     (h, List.rev section), remainder
 
+(* Multi-way tree with artificial node identifiers.
+
+   Heading text is not guaranteed to be unique, headings are not guaranteed
+   to have unique id attributes either.
+   How do we make sure we can insert a node in the headings tree at a well-defined position?
+   The number of each heading in the document is unique, so we use it as a node identifier.
+
+   Having unique identifiers means we can insert at a "path" in the tree,
+   where a path is a sequence of node identifiers.
+   E.g. "first h2 after the first h1" would be [1; 2].
+
+   When the tree is ready, those identifiers are useless, so we'll remove them later.
+ *)
 module Path_tree = struct
 
   type ('a, 'b) path_tree = {
-    name: 'a;
-    data: 'b;
+    id: 'a; (* Unique identifier for the purpose of having a unique identifier *)
+    data: 'b; (* Actual data attached to a node *)
     children: ('a, 'b) path_tree list
   }
 
   exception Empty_path
   exception Duplicate_child
-  exception Nonexistent_path
   exception Insert_error of string
 
-  let make name data = { name = name; data = data; children = [] }
+  let make id data = { id = id; data = data; children = [] }
 
-  let make_full name data children = { name = name; data = data; children = children }
+  let make_full id data children = { id = id; data = data; children = children }
 
   let data_of_node n = n.data
   let children_of_node n = n.children
 
-  let insert_immediate node name data children =
-      let new_node = make_full name data children in
+  (* Inserts an "immediate child node", that is,
+     a node exactly one level below where no recursion is needed.
+
+     The reason it takes parameters of a node (id, data, child list)
+     rather than a node record is that for inserting deep into the tree,
+     we have ids from the path and may need to create nodes as we go.
+   *)
+  let insert_immediate node id data children =
+      let new_node = make_full id data children in
       let children' = node.children @ [new_node] in
       { node with children = children' }
 
+  (* Replaces an immediate child *)
   let replace node child =
     let children = node.children in
-    let name = child.name in
-    let children' = List_utils.replace (fun x -> x.name = name) child children in
+    let id = child.id in
+    let children' = List_utils.replace (fun x -> x.id = id) child children in
     { node with children = children' }
 
-  let find node name =
-    List.find_opt (fun x -> x.name = name) node.children
+  let find node id =
+    List.find_opt (fun x -> x.id = id) node.children
 
+  (* Multi-level insertion capable of creating sub-nodes if needed *)
   let rec insert ?(children=[]) node path data =
     match path with
     | [] -> raise Empty_path
-    | [name] ->
-      (let last_child = find node name in
+    | [id] ->
+      (let last_child = find node id in
       match last_child with
-      | None -> insert_immediate node name data children
+      | None -> insert_immediate node id data children
       | (Some _) -> raise Duplicate_child)
-    | name :: names ->
-      let next_child = find node name in
+    | id :: ids ->
+      let next_child = find node id in
       match next_child with
       | Some next_child' ->
-        let new_node = insert ~children:children next_child' names data in
+        let new_node = insert ~children:children next_child' ids data in
         replace node new_node
       | None ->
         raise (Insert_error "Path does not exist")
 
+  (* The automaton for building a tree from a flat list *)
   let from_list get_level tree hs =
     let rec aux tree hs path =
       match hs with
