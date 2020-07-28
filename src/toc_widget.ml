@@ -14,6 +14,7 @@ type toc_settings = {
   use_slugs: bool;
   strip_tags: bool;
   valid_html: bool;
+  min_headings: int;
 }
 
 let make_counter seed =
@@ -121,6 +122,7 @@ let toc _ config soup =
     use_slugs = Config.get_bool_default false "use_heading_slug" config;
     strip_tags = Config.get_bool_default false "strip_tags" config;
     valid_html = Config.get_bool_default false "valid_html" config;
+    min_headings = Config.get_int_default 0 "min_headings" config;
   } in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
@@ -140,14 +142,16 @@ let toc _ config soup =
       | Some container ->
       begin
         let counter = make_counter 0 in
-        let headings = Html_utils.find_headings soup |> Rose_tree.from_list Html_utils.get_heading_level in
-        match headings with
+        let headings = Html_utils.find_headings soup in
+        if ((List.length headings) < settings.min_headings) then Ok () else
+        let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
+        match headings_tree with
         | [] ->
           let () = Logs.debug @@ fun m -> m "Page has no headings, nothing to build a ToC from" in
           Ok ()
         | _ ->
           let toc_container = make_toc_container settings 1 in
-          let _ = List.iter (_make_toc settings 2 counter toc_container) headings in
+          let _ = List.iter (_make_toc settings 2 counter toc_container) headings_tree in
           Ok (Html_utils.insert_element action container toc_container)
       end
     end
