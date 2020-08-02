@@ -155,7 +155,7 @@ let view_includes_page settings page_file view entry =
        and its subsections -- more or less like it worked before 2.0.0 *)
     ((page_dir = entry_page_dir) || (FilePath.is_subdir entry_page_dir page_dir))
   else
-    Path_options.page_included view.index_view_path_options settings.site_dir page_file
+    Path_options.page_included view.index_view_path_options settings.site_dir entry.page_file
 
 let insert_index settings page_file soup index view =
   let index_container = Soup.select_one view.index_selector soup in
