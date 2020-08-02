@@ -60,8 +60,8 @@ let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
     let res = f x in
     begin
       match res with
-      | Ok _ -> iter f xs
-      | Error msg as e  ->
+      | Ok _ -> iter ~ignore_errors:ignore_errors ~fmt:fmt f xs
+      | Error msg as e ->
         if ignore_errors then let () = Logs.warn @@ fun m -> m "%s" (fmt msg) in Ok ()
         else e
     end
