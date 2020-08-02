@@ -96,7 +96,10 @@ let profile_matches profile build_profile =
   | Some _, None -> false
   | Some p, Some bp -> p = bp
 
-(** Fixup for FilePath.get_extension raising Not_found for files without extensions *)
+(* Fixup for FilePath.get_extension raising Not_found for files without extensions.
+
+   See https://github.com/gildor478/ocaml-fileutils/issues/12 for details.
+ *)
 let get_extension file =
   try FilePath.get_extension file
   with Not_found -> ""
@@ -106,9 +109,9 @@ let get_extension file =
  *)
 let normalize_path path =
   (* If a path is empty, leave it empty.
-     Right now soupault treates build_dir="" as
-     "use current working dir for build dir",
-     until we all decide whether it's a good idea or not,
+     Right now soupault treats build_dir="" as
+     "use the current working dir for build dir".
+     Until we all decide whether it's a good idea or not,
      let's keep it an easily removable line.
    *)
   if path = "" then path else
