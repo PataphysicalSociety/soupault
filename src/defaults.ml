@@ -9,12 +9,6 @@ type index_field = {
 
 type index_processor = BuiltInTemplate of Mustache.t | ExternalIndexer of string
 
-type index_view = {
-  index_view_name : string;
-  index_selector : string;
-  index_processor : index_processor;
-}
-
 type path_options = {
   pages: string list;
   sections: string list;
@@ -22,6 +16,13 @@ type path_options = {
   pages_exclude: string list;
   sections_exclude: string list;
   regexes_exclude: string list;
+}
+
+type index_view = {
+  index_view_name : string;
+  index_selector : string;
+  index_processor : index_processor;
+  index_view_path_options : path_options;
 }
 
 type settings = {
@@ -51,6 +52,9 @@ type settings = {
 
   (* default HTML page template *)
   default_template : string;
+
+  (* Temporary place for the template source, now that the global env is gone *)
+  default_template_source : string;
 
   (* alternative templates for specific pages *)
   page_templates : (string * string * path_options) list;
@@ -112,7 +116,6 @@ type settings = {
 }
 
 type env = {
-  template : string;
   nav_path : string list;
   page_file : string;
   page_url : string;
@@ -151,6 +154,7 @@ let default_settings = {
   index_page = "index";
   index_file = "index.html";
   default_template = "templates/main.html";
+  default_template_source = "";
   page_templates = [];
   content_selector = "body";
   clean_urls = true;

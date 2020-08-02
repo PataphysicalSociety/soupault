@@ -197,7 +197,12 @@ let _get_index_view st view_name =
       default_index_processor
   in
   let selector = get_string_default "body" "index_selector" st in
-  {index_view_name = view_name; index_selector = selector; index_processor = (_get_index_processor st)}
+  {
+    index_view_name = view_name;
+    index_selector = selector;
+    index_processor = (_get_index_processor st);
+    index_view_path_options = (get_path_options st)
+  }
 
 let _get_index_views index_table =
   let (let*) = Stdlib.Result.bind in

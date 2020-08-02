@@ -7,8 +7,12 @@ let get_file_content file =
 
 (* Result wrapper for FileUtil.cp *)
 let cp fs d =
-  try Ok (FileUtil.cp fs d)
-  with FileUtil.CpError msg -> Error msg
+  try
+    let () = FileUtil.mkdir ~parent:true d in
+    Ok (FileUtil.cp fs d)
+  with
+  | FileUtil.CpError msg -> Error msg
+  | FileUtil.MkdirError msg -> Error msg
 
 (** Executes an external program and returns its stdout *)
 let get_program_output ?(input=None) command env_array =
@@ -117,3 +121,5 @@ let normalize_path path =
   if path = "" then path else
   let path = Re.replace  ~f:(fun _ -> "") (Re.Perl.compile_pat "/$") path in
   if path = "" then "/" else path
+
+let concat_path fs = List.fold_left FilePath.concat "" fs

@@ -146,7 +146,18 @@ let run_index_processor settings cmd ic index =
     | Ok output -> Ok (Soup.append_child ic (Soup.parse output))
   end
 
-let insert_index settings soup index view =
+let view_includes_page settings page_file view entry =
+  let page_dir = FilePath.dirname page_file in
+  let entry_page_dir = FilePath.dirname entry.page_file in
+  if view.index_view_path_options = Defaults.default_path_options then
+    (* If the user hasn't configured the view to specifically include
+       or exclude any pages, assume they want an index of the current section
+       and its subsections -- more or less like it worked before 2.0.0 *)
+    ((page_dir = entry_page_dir) || (FilePath.is_subdir entry_page_dir page_dir))
+  else
+    Path_options.page_included view.index_view_path_options settings.site_dir page_file
+
+let insert_index settings page_file soup index view =
   let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
@@ -154,13 +165,14 @@ let insert_index settings soup index view =
     Ok ()
   | Some ic ->
     begin
+      let index = List.filter (view_includes_page settings page_file view) index in
       match view.index_processor with
       | Defaults.BuiltInTemplate tmpl -> render_index tmpl settings ic index
       | Defaults.ExternalIndexer cmd -> run_index_processor settings cmd ic index
     end
 
-let insert_indices settings soup index =
-  Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings soup index) settings.index_views
+let insert_indices settings page_file soup index =
+  Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings page_file soup index) settings.index_views
 
 let index_extraction_should_run settings page_file =
   if not (Utils.profile_matches settings.index_profile settings.build_profile) then

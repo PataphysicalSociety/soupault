@@ -105,7 +105,7 @@ let include_content settings html content =
     Error (Printf.sprintf "No element in the template matches selector \"%s\", nowhere to insert the content"
            settings.content_selector)
 
-let make_page env settings content =
+let make_page settings page_file content =
   (* If generator mode is off, treat everything like a complete page *)
   if not settings.generator_mode then Ok content else
   let page_wrapper_elem = Soup.select_one settings.complete_page_selector content in
@@ -120,22 +120,22 @@ let make_page env settings content =
     in Ok content
   | None ->
     let tmpl = List.find_opt
-      (fun (_, _, opts) -> (Path_options.page_included opts settings.site_dir env.page_file) = true)
+      (fun (_, _, opts) -> (Path_options.page_included opts settings.site_dir page_file) = true)
       settings.page_templates
     in
     let html = (match tmpl with
       | None ->
-        let () = Logs.info @@ fun m -> m "Using default template for page %s" env.page_file in
-        Soup.parse env.template
+        let () = Logs.info @@ fun m -> m "Using default template for page %s" page_file in
+        Soup.parse settings.default_template_source
       | Some (tmpl_data, tmpl_name, _) ->
-        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" tmpl_name env.page_file in
+        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" tmpl_name page_file in
         Soup.parse tmpl_data)
     in
     let* () = include_content settings html content in
     Ok html
 
 (* Widget processing *)
-let rec process_widgets settings env ws wh config soup =
+let rec process_widgets env settings ws wh config soup =
   match ws with
   | [] -> Ok ()
   | w :: ws' ->
@@ -144,18 +144,18 @@ let rec process_widgets settings env ws wh config soup =
       let widget = Hashtbl.find wh w in
       let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
       if not (widget_should_run w widget settings.build_profile settings.site_dir env.page_file)
-      then (process_widgets settings env ws' wh config soup) else
+      then (process_widgets env settings ws' wh config soup) else
       let res =
         try widget.func env widget.config soup
         with Utils.Soupault_error s -> Error s
       in
       (* In non-strict mode, widget processing errors are tolerated *)
       match res, settings.strict with
-      | Ok _, _ -> process_widgets settings env ws' wh config soup
+      | Ok _, _ -> process_widgets env settings ws' wh config soup
       | Error _ as err, true -> err
       | Error msg, false ->
         let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" w msg in
-        process_widgets settings env ws' wh config soup
+        process_widgets env settings ws' wh config soup
     end
 
 (** Removes index page's parent dir from its navigation path
@@ -198,9 +198,9 @@ let make_page_url settings nav_path orig_path page_file =
     with pages like build/about.md that have HTML inside despit their name.
     In short, that's what Jekyll et al. always did to non-blog pages.
  *)
-let make_page_file_name settings env target_dir =
+let make_page_file_name settings page_file target_dir =
   if settings.clean_urls then (target_dir +/ settings.index_file) else
-  let page_file = FP.basename env.page_file in
+  let page_file = FP.basename page_file in
   let extension = Utils.get_extension page_file in
   let page_file =
     if Utils.in_list settings.keep_extensions extension then page_file
@@ -218,20 +218,17 @@ let make_page_file_name settings env target_dir =
     5. Inserts the index section into the page if it's an index page
     6. Saves the processed page to file
   *)
-let process_page env index widgets config settings =
-  let page_name = FP.basename env.page_file |> FP.chop_extension in
-  let target_dir = make_page_dir_name settings env.target_dir page_name in
-  let target_file = make_page_file_name settings env target_dir in
-  let orig_path = env.nav_path in
-  let nav_path = fix_nav_path settings env.nav_path page_name in
-  let env = {env with
-    nav_path = nav_path;
-    page_url = (make_page_url settings nav_path orig_path env.page_file);
-    target_dir = target_dir
-  } in
-  let () = Logs.info @@ fun m -> m "Processing page %s" env.page_file in
-  let* content = load_html settings env.page_file in
-  let* html = make_page env settings content in
+let process_page page_file nav_path index widgets config settings =
+  let page_name = FP.basename page_file |> FP.chop_extension in
+  let target_dir = make_page_dir_name settings (Utils.concat_path nav_path) page_name |> FP.concat settings.build_dir in
+  let target_file = make_page_file_name settings page_file target_dir in
+  let orig_path = nav_path in
+  let nav_path = fix_nav_path settings nav_path page_name in
+  let page_url = make_page_url settings nav_path orig_path page_file in
+  let env = {nav_path = nav_path; page_url = page_url; page_file = page_file; target_dir = target_dir} in
+  let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
+  let* content = load_html settings page_file in
+  let* html = make_page settings page_file content in
   (* Section index injection always happens before any widgets have run *)
   let* () =
     (* Section index is inserted only in index pages *)
@@ -239,30 +236,28 @@ let process_page env index widgets config settings =
        settings.index_only  || (!index = [])
     then Ok ()
     else let () = Logs.info @@ fun m -> m "Inserting section index" in
-    Autoindex.insert_indices settings html !index
+    Autoindex.insert_indices settings page_file html !index
   in
   let before_index, after_index, widget_hash = widgets in
-  let* () = process_widgets settings env before_index widget_hash config html in
+  let* () = process_widgets env settings before_index widget_hash config html in
   (* Index extraction *)
   let* () =
     (* Metadata is only extracted from non-index pages *)
-    if (not settings.index) || (page_name = settings.index_page) || not (Autoindex.index_extraction_should_run settings env.page_file) then Ok () else
+    if (not settings.index) || (page_name = settings.index_page) || not (Autoindex.index_extraction_should_run settings page_file) then Ok () else
     let () =
       let () = Logs.info @@ fun m -> m "Extracting page metadata" in
       index := (Autoindex.get_entry settings env html) :: !index
     in Ok ()
   in
   if settings.index_only then Ok () else
-  let* () = process_widgets settings env after_index widget_hash config html in
+  let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in
   let* () = save_html settings html target_file in
   Ok ()
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
-let _process_page env index widgets config settings target_dir page_file =
-    (* Make the page file name accessible to widgets *)
-    let env = {env with page_file=page_file; target_dir=target_dir} in
-    let res = process_page env index widgets config settings in
+let _process_page index widgets config settings (page_file, nav_path) =
+    let res = process_page page_file nav_path index widgets config settings in
     match res with
       Ok _ -> Ok ()
     | Error msg ->
@@ -288,32 +283,6 @@ let save_index settings section_index index =
   match settings.dump_json with
   | None -> ()
   | Some _ -> index := List.append !section_index !index
-
-(* Process the source directory recursively
-   
- *)
-let rec process_dir env index widgets config settings base_src_dir base_dst_dir dirname =
-  let section_index = ref [] in
-  let src_path = base_src_dir +/ dirname in
-  let dst_path = base_dst_dir +/ dirname in
-  let () = Logs.info @@ fun m -> m "Entering directory %s" src_path in
-  let nav_path = if dirname <> "" then List.append env.nav_path [dirname] else env.nav_path in
-  let env = {env with nav_path = nav_path} in
-  let pages, assets = list_section_files settings src_path in
-  let pages = reorder_pages settings pages in
-  let* () =
-    if not settings.index_only then
-      begin
-        let* () = mkdir dst_path in
-        let* () = Utils.cp assets dst_path in
-        Ok ()
-      end
-    else Ok ()
-  in
-  let dirs = List.map (FP.basename) (list_dirs src_path) in
-  let* () = Utils.iter (_process_page env section_index widgets config settings dst_path) pages in
-  let () = save_index settings section_index index in
-  Utils.iter (process_dir env index widgets config settings src_path dst_path) dirs
 
 (* Option parsing and initialization *)
 
@@ -365,13 +334,7 @@ let initialize () =
     if settings.generator_mode then Utils.get_file_content settings.default_template
     else Ok ""
   in
-  let default_env = {
-    template = default_template_str;
-    nav_path = [];
-    page_file = "";
-    page_url = "";
-    target_dir = settings.build_dir
-  } in
+  let settings = {settings with default_template_source=default_template_str} in
   let () =
     begin
       if not settings.generator_mode then
@@ -386,7 +349,7 @@ let initialize () =
     end
   in
   if settings.site_dir = "" then (Error "site_dir must be a directory path, not an empty string")
-  else (Ok (config, widgets, settings, default_env))
+  else (Ok (config, widgets, settings))
 
 let dump_index_json settings index =
   match settings.dump_json with
@@ -396,11 +359,14 @@ let dump_index_json settings index =
     with Sys_error e -> Error e
   
 let main () =
-  let* config, widgets, settings, default_env = initialize () in
+  let* config, widgets, settings = initialize () in
   let () = setup_logging settings.verbose settings.debug in
   let* () = make_build_dir settings.build_dir in
   let index = ref [] in
-  let* () = process_dir default_env index widgets config settings settings.site_dir settings.build_dir "" in
+  let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
+  let* () = Utils.iter (_process_page index widgets config settings) page_files in
+  let* () = Utils.iter (_process_page index widgets config settings) index_files in
+  let* () = Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files in
   let* () = dump_index_json settings !index in
   Ok ()
 
