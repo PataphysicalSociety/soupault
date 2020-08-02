@@ -66,6 +66,22 @@ let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
         else e
     end
 
+(* Result-aware fold *)
+let rec fold_left ?(ignore_errors=false) ?(fmt=(fun x -> x)) f acc xs =
+  match xs with
+  | [] -> Ok acc
+  | x :: xs ->
+    let acc' = f acc x in
+    begin
+      match acc' with
+      | Ok acc' -> fold_left ~ignore_errors:ignore_errors ~fmt:fmt f acc' xs
+      | Error msg as e ->
+        if ignore_errors then
+          let () = Logs.warn @@ fun m -> m "%s" (fmt msg) in
+          fold_left ~ignore_errors:ignore_errors ~fmt:fmt f acc xs
+        else e
+    end
+
 (** Just a convenience function for Re.matches *)
 let get_matching_strings r s =
   try

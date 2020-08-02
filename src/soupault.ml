@@ -233,56 +233,37 @@ let process_page page_file nav_path index widgets config settings =
   let* () =
     (* Section index is inserted only in index pages *)
     if (not settings.index) || (page_name <> settings.index_page) ||
-       settings.index_only  || (!index = [])
+       settings.index_only  || (index = [])
     then Ok ()
     else let () = Logs.info @@ fun m -> m "Inserting section index" in
-    Autoindex.insert_indices settings page_file html !index
+    Autoindex.insert_indices settings page_file html index
   in
   let before_index, after_index, widget_hash = widgets in
   let* () = process_widgets env settings before_index widget_hash config html in
   (* Index extraction *)
-  let* () =
+  let index_entry =
     (* Metadata is only extracted from non-index pages *)
-    if (not settings.index) || (page_name = settings.index_page) || not (Autoindex.index_extraction_should_run settings page_file) then Ok () else
-    let () =
-      let () = Logs.info @@ fun m -> m "Extracting page metadata" in
-      index := (Autoindex.get_entry settings env html) :: !index
-    in Ok ()
+    if (not settings.index) || (page_name = settings.index_page) ||
+       not (Autoindex.index_extraction_should_run settings page_file)
+    then None
+    else Some (Autoindex.get_entry settings env html)
   in
-  if settings.index_only then Ok () else
+  if settings.index_only then Ok index_entry else
   let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in
   let* () = save_html settings html target_file in
-  Ok ()
+  Ok index_entry
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
 let _process_page index widgets config settings (page_file, nav_path) =
     let res = process_page page_file nav_path index widgets config settings in
     match res with
-      Ok _ -> Ok ()
+      Ok _ as res -> res
     | Error msg ->
       let msg = Printf.sprintf "Could not process page %s: %s" page_file msg in
       if settings.strict then Error msg else 
       let () = Logs.warn @@ fun m -> m "%s" msg in
-      Ok ()
-
-(* Reorders the pages so that the index page is processed last,
-   when the section index is available *)
-let reorder_pages settings ps =
-  let find_index = fun p -> (FP.basename p |> FP.chop_extension) = settings.index_page in
-  let index_page = CCList.find_opt find_index ps in
-  match index_page with
-  | None -> ps
-  | Some p ->
-    let ps = CCList.remove ~eq:(=) ~key:p ps in
-    List.append ps [p]
-
-(** If index file path is configured, add section index to the global index
-   that will be saved to the file *)
-let save_index settings section_index index =
-  match settings.dump_json with
-  | None -> ()
-  | Some _ -> index := List.append !section_index !index
+      Ok None
 
 (* Option parsing and initialization *)
 
@@ -362,12 +343,20 @@ let main () =
   let* config, widgets, settings = initialize () in
   let () = setup_logging settings.verbose settings.debug in
   let* () = make_build_dir settings.build_dir in
-  let index = ref [] in
   let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
-  let* () = Utils.iter (_process_page index widgets config settings) page_files in
+  (* Process normal pages and collect index data from them *)
+  let* index = Utils.fold_left
+    (fun acc p ->
+       let ie = _process_page [] widgets config settings p in
+       match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
+    []
+    page_files
+  in
+  (* Now process the index pages, using previously collected index data.
+     This will produce no new index data so we ignore the non-error results. *)
   let* () = Utils.iter (_process_page index widgets config settings) index_files in
   let* () = Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files in
-  let* () = dump_index_json settings !index in
+  let* () = dump_index_json settings index in
   Ok ()
 
 let () =
