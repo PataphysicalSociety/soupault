@@ -109,7 +109,8 @@ let get_path_options config =
      regexes = get_strings_relaxed "path_regex" config;
      pages_exclude = get_strings_relaxed "exclude_page" config;
      sections_exclude = get_strings_relaxed "exclude_section" config;
-     regexes_exclude = get_strings_relaxed "exclude_path_regex" config
+     regexes_exclude = get_strings_relaxed "exclude_path_regex" config;
+     include_subsections = get_bool_default false "include_subsections" config;
   }
 
 let valid_path_options = [

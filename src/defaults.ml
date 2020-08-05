@@ -16,6 +16,7 @@ type path_options = {
   pages_exclude: string list;
   sections_exclude: string list;
   regexes_exclude: string list;
+  include_subsections: bool;
 }
 
 type index_view = {
@@ -142,6 +143,7 @@ let default_path_options = {
   pages_exclude = [];
   sections_exclude = [];
   regexes_exclude = [];
+  include_subsections = false;
 }
 
 let default_settings = {

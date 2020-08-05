@@ -147,13 +147,12 @@ let run_index_processor settings cmd ic index =
   end
 
 let view_includes_page settings page_file view entry =
-  let page_dir = FilePath.dirname page_file in
-  let entry_page_dir = FilePath.dirname entry.page_file in
-  if view.index_view_path_options = Defaults.default_path_options then
+  if (Path_options.is_default view.index_view_path_options) then
     (* If the user hasn't configured the view to specifically include
        or exclude any pages, assume they want an index of the current section
        and its subsections -- more or less like it worked before 2.0.0 *)
-    ((page_dir = entry_page_dir) || (FilePath.is_subdir entry_page_dir page_dir))
+    let include_subsections = view.index_view_path_options.include_subsections in
+    Path_options.section_matches ~include_subsections:include_subsections "" page_file (FilePath.dirname entry.page_file)
   else
     Path_options.page_included view.index_view_path_options settings.site_dir entry.page_file
 
