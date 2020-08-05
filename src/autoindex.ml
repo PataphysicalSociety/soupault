@@ -160,8 +160,9 @@ let insert_index settings page_file soup index view =
   let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
-    let () = Logs.warn @@ fun m -> m "Page doesn't have an element matching selector \"%s\", ignoring index view \"%s\"" view.index_selector view.index_view_name in
-    Ok ()
+    let () = Logs.warn @@ fun m -> m "Page doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
+      view.index_selector view.index_view_name
+    in Ok ()
   | Some ic ->
     begin
       let index = List.filter (view_includes_page settings page_file view) index in
