@@ -40,7 +40,7 @@ depends: [
   "stringext"
   "calendar"
   "spelll"
-  "mustache"
+  "jingoo"
   "tsort" {>= "2.0.0"}
   "lua-ml" {>= "0.9.1"}
 ]

@@ -178,7 +178,7 @@ let valid_index_options = List.append valid_index_options valid_path_options
 let _get_index_view st view_name =
   let _get_template tmpl =
     begin
-      try BuiltInTemplate (Mustache.of_string tmpl)
+      try BuiltInTemplate (Template.of_string tmpl)
       with _ ->
         let () = Logs.warn @@ fun m -> m "Failed to parse template \"%s\", using default (%s)" tmpl default_index_item_template in
         default_index_processor

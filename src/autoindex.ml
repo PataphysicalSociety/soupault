@@ -115,10 +115,15 @@ let json_of_entries settings es =
 let json_string_of_entries ?(minify=false) settings es =
   json_of_entries settings es |> Ezjsonm.to_string ~minify:minify
 
+let jingoo_model_of_entry e =
+  let j = json_of_entry e in
+  match j with
+  | `O js -> List.map (fun (k, v) -> k, Template.jingoo_of_json v) js
+  | _ -> failwith "json_of_entry returned something else than an object, which must not happen"
+
 (** Renders an index using built-in Mustache templates *)
 let render_index template settings soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
-  let strict = not settings.ignore_template_errors in
   try
     let () =
       (* Debug output *)
@@ -126,14 +131,16 @@ let render_index template settings soup entries =
       Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false settings entries)
     in
     let entries = List.sort (compare_entries settings) entries in
-    let entries = List.map (fun e -> json_of_entry e |> Mustache.render ~strict:strict template |> Soup.parse) entries in
+    let entries = List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries in
     let () = List.iter (Soup.append_child soup) entries in
     Ok ()
   with
-  | Mustache_types.Missing_variable s | Mustache_types.Missing_section s | Mustache_types.Missing_partial s ->
-    let err = Printf.sprintf "Failed to render index item template: undefined variable or section \"%s\"" s in
-    Error err
-  | _ -> Error ("Failed to render index: invalid template")
+  | Failure err ->
+    (* Jingoo raises Failure on rendering errors, though it's not a frequent occurence. *)
+    Error (Printf.sprintf "Index template rendering failed: %s" err)
+  | _ ->
+    (* Just in case something else happens *)
+    Error ("Index template rendering failed for an undeterminable reason")
 
 let run_index_processor settings cmd ic index =
   (* Minification is intentional, newline is used as end of input *)
