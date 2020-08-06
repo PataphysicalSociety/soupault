@@ -122,7 +122,7 @@ let jingoo_model_of_entry e =
   | _ -> failwith "json_of_entry returned something else than an object, which must not happen"
 
 (** Renders an index using built-in Mustache templates *)
-let render_index template settings soup entries =
+let render_index ?(item_template=true) template settings soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
   try
     let () =
@@ -131,13 +131,19 @@ let render_index template settings soup entries =
       Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false settings entries)
     in
     let entries = List.sort (compare_entries settings) entries in
-    let entries = List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries in
+    let entries =
+      if item_template then List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
+      else [Template.render template @@ ["entries", Template.jingoo_of_json (json_of_entries settings entries)] |> Soup.parse]
+    in
     let () = List.iter (Soup.append_child soup) entries in
     Ok ()
   with
   | Failure err ->
     (* Jingoo raises Failure on rendering errors, though it's not a frequent occurence. *)
-    Error (Printf.sprintf "Index template rendering failed: %s" err)
+    let msg = Printf.sprintf "Index template rendering failed: %s" err in
+    if settings.ignore_template_errors
+    then let () = Logs.warn @@ fun m -> m "%s" msg in Ok ()
+    else Error msg
   | _ ->
     (* Just in case something else happens *)
     Error ("Index template rendering failed for an undeterminable reason")
@@ -174,7 +180,8 @@ let insert_index settings page_file soup index view =
     begin
       let index = List.filter (view_includes_page settings page_file view) index in
       match view.index_processor with
-      | Defaults.BuiltInTemplate tmpl -> render_index tmpl settings ic index
+      | Defaults.IndexItemTemplate tmpl -> render_index tmpl settings ic index
+      | Defaults.IndexTemplate tmpl -> render_index ~item_template:false tmpl settings ic index
       | Defaults.ExternalIndexer cmd -> run_index_processor settings cmd ic index
     end
 

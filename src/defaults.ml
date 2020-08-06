@@ -7,7 +7,10 @@ type index_field = {
   extract_attribute : string option;
 }
 
-type index_processor = BuiltInTemplate of Template.t | ExternalIndexer of string
+type index_processor =
+  | IndexTemplate of Template.t      (* Applied to the whole list of entries *)
+  | IndexItemTemplate of Template.t  (* Applied to each entry separately *)
+  | ExternalIndexer of string        (* External script, receives a JSON dump of the index *)
 
 type path_options = {
   pages: string list;
@@ -134,7 +137,7 @@ let templates_table = "templates"
 
 let default_index_item_template = "<div> <a href=\"{{url}}\">{{title}}</a> </div>"
 
-let default_index_processor = BuiltInTemplate (Template.of_string default_index_item_template)
+let default_index_processor = IndexItemTemplate (Template.of_string default_index_item_template)
 
 let default_path_options = {
   pages = [];

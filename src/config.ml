@@ -1,5 +1,7 @@
 open Defaults
 
+exception ConfigError of string
+
 let default d o = CCOpt.get_or ~default:d o
 
 (** Checks if config file exists.
@@ -176,32 +178,37 @@ let valid_index_options = [
 let valid_index_options = List.append valid_index_options valid_path_options
 
 let _get_index_view st view_name =
-  let _get_template tmpl =
+  let _get_template ?(item_template=true) tmpl =
     begin
-      try BuiltInTemplate (Template.of_string tmpl)
+      try
+        let t = Template.of_string tmpl in
+        if item_template then IndexItemTemplate t
+        else IndexTemplate t
       with _ ->
-        let () = Logs.warn @@ fun m -> m "Failed to parse template \"%s\", using default (%s)" tmpl default_index_item_template in
-        default_index_processor
+        let () =
+          Logs.warn @@ fun m -> m "Failed to parse template \"%s\", using default (%s)" tmpl default_index_item_template
+        in default_index_processor
     end
   in
   let _get_index_processor st =
-    let template = get_string "index_item_template" st in
+    let item_template = get_string "index_item_template" st in
+    let index_template = get_string "index_template" st in
     let script = get_string "index_processor" st in
-    match template, script with
-    | Some template, None -> _get_template template
-    | None, Some command -> ExternalIndexer command
-    | Some _, Some command ->
-      let () = Logs.warn @@ fun m -> m "Index view \"%s\": Found both index_item_template and index_processor options, using index_processor" view_name in
-      ExternalIndexer command
-    | None, None ->
-      let () = Logs.warn @@ fun m -> m "Index view \"%s\": neither index_item_template nor index_processor are defined, using default template" view_name in
-      default_index_processor
+    match item_template, index_template, script with
+    | Some item_template, None, None -> _get_template item_template
+    | None, Some index_template, None -> _get_template ~item_template:false index_template
+    | None, None, Some script -> ExternalIndexer script
+    | None, None, None ->
+      let () = Logs.warn @@ fun m -> m "Index view \"%s\" does not have index_item_template, index_template, or index_processor option, using default template" view_name
+      in default_index_processor
+    | _ -> raise (ConfigError "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one")
   in
   let selector = get_string_default "body" "index_selector" st in
+  let index_processor = _get_index_processor st in
   {
     index_view_name = view_name;
     index_selector = selector;
-    index_processor = (_get_index_processor st);
+    index_processor = index_processor;
     index_view_path_options = (get_path_options st)
   }
 
@@ -211,9 +218,8 @@ let _get_index_views index_table =
     let* vt = get_table_result "value is not an inline table" k views in
     (* Stricter validation for non-default views *)
     let* _ = get_string_result (Printf.sprintf "Index view \"%s\": Missing required option \"selector\"" k) "index_selector" vt in
-    (* Since getting an index view never actually fails due to backwards-compatibility with
-       original options that all have defaults. *)
-    Ok (_get_index_view vt k)
+    try Ok (_get_index_view vt k)
+    with ConfigError e -> Error e
   in
   let rec get_views ks views acc =
     match ks with
@@ -223,7 +229,7 @@ let _get_index_views index_table =
         let v = get_view k views in
         match v with
         | Error e ->
-          let () = Logs.warn @@ fun m -> m "Malformed index field query \"%s\": %s" k e in
+          let () = Logs.warn @@ fun m -> m "Misconfigured index view \"%s\": %s" k e in
           get_views ks views acc
         | Ok q -> get_views ks views (q :: acc)
       end
