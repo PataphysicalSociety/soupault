@@ -2,17 +2,6 @@ open Defaults
 
 let bind = CCResult.(>>=)
 
-type 'a index_entry = {
-  url: string;
-  page_file: string;
-  nav_path: string list;
-  title: string option;
-  excerpt: string option;
-  date: string option;
-  author: string option;
-  custom_fields : (string * Ezjsonm.value) list;
-}
-
 let string_of_elem strip_tags e =
   if strip_tags then Html_utils.get_element_text e
   else begin
@@ -57,17 +46,17 @@ let get_entry settings env soup =
     Html_utils.select_any_of selector soup >>= string_of_elem settings.index_strip_tags
   in
   {
-    url = env.page_url;
-    page_file = env.page_file;
-    nav_path = env.nav_path;
-    title = string_of_elem settings.index_title_selector soup;
-    excerpt = string_of_elem settings.index_excerpt_selector soup;
+    index_entry_url = env.page_url;
+    index_entry_page_file = env.page_file;
+    index_entry_nav_path = env.nav_path;
+    index_entry_title = string_of_elem settings.index_title_selector soup;
+    index_entry_excerpt = string_of_elem settings.index_excerpt_selector soup;
     (* Try to extract only the texts from the date element,
        to account for things like <em>1970</em>-01-01.
        Probably futile and redundant, but at least no one can say it's not trying.
      *)
-    date = Html_utils.select_any_of settings.index_date_selector soup >>= Html_utils.get_element_text;
-    author = string_of_elem settings.index_author_selector soup;
+    index_entry_date = Html_utils.select_any_of settings.index_date_selector soup >>= Html_utils.get_element_text;
+    index_entry_author = string_of_elem settings.index_author_selector soup;
     custom_fields = get_custom_fields settings.index_strip_tags settings.index_custom_fields soup
   }
 
@@ -80,7 +69,7 @@ let compare_entries settings l r =
   let (>>=) = CCOpt.(>>=) in
   let get_date entry =
     try
-      entry.date >>=
+      entry.index_entry_date >>=
       (fun s -> Some (CalendarLib.Printer.Date.from_fstring settings.index_date_format s))
     with Invalid_argument msg ->
       let () = Logs.warn @@ fun m -> m "Could not parse date: %s" msg in
@@ -100,11 +89,14 @@ let compare_entries settings l r =
   if settings.newest_entries_first then (~- result) else result
 
 let json_of_entry e =
-  let fields = ["title", e.title; "date", e.date; "author", e.author; "excerpt", e.excerpt] in
+  let fields = [
+    "title", e.index_entry_title; "date", e.index_entry_date;
+    "author", e.index_entry_author; "excerpt", e.index_entry_excerpt]
+  in
   let fields = List.map (fun (k, v) -> (k, json_of_string_opt v)) fields in
-  let fields = ("url", `String e.url) :: fields in
-  let fields = ("page_file", `String e.page_file) :: fields in
-  let fields = ("nav_path", `A (List.map (fun x -> `String x) e.nav_path)) :: fields in
+  let fields = ("url", `String e.index_entry_url) :: fields in
+  let fields = ("page_file", `String e.index_entry_page_file) :: fields in
+  let fields = ("nav_path", `A (List.map (fun x -> `String x) e.index_entry_nav_path)) :: fields in
   let fields = List.append fields e.custom_fields in
   `O fields
 
@@ -165,9 +157,9 @@ let view_includes_page settings page_file view entry =
        or exclude any pages, assume they want an index of the current section
        and its subsections -- more or less like it worked before 2.0.0 *)
     let include_subsections = view.index_view_path_options.include_subsections in
-    Path_options.section_matches ~include_subsections:include_subsections "" page_file (FilePath.dirname entry.page_file)
+    Path_options.section_matches ~include_subsections:include_subsections "" page_file (FilePath.dirname entry.index_entry_page_file)
   else
-    Path_options.page_included view.index_view_path_options settings.site_dir entry.page_file
+    Path_options.page_included view.index_view_path_options settings.site_dir entry.index_entry_page_file
 
 let insert_index settings page_file soup index view =
   let index_container = Soup.select_one view.index_selector soup in

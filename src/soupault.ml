@@ -225,7 +225,14 @@ let process_page page_file nav_path index widgets config settings =
   let orig_path = nav_path in
   let nav_path = fix_nav_path settings nav_path page_name in
   let page_url = make_page_url settings nav_path orig_path page_file in
-  let env = {nav_path = nav_path; page_url = page_url; page_file = page_file; target_dir = target_dir} in
+  let env = {
+    nav_path = nav_path;
+    page_url = page_url;
+    page_file = page_file;
+    target_dir = target_dir;
+    site_index = [];
+  }
+  in
   let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
   let* content = load_html settings page_file in
   let* html = make_page settings page_file content in

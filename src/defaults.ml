@@ -119,11 +119,23 @@ type settings = {
   plugin_discovery: bool;
 }
 
+type index_entry = {
+  index_entry_url: string;
+  index_entry_page_file: string;
+  index_entry_nav_path: string list;
+  index_entry_title: string option;
+  index_entry_excerpt: string option;
+  index_entry_date: string option;
+  index_entry_author: string option;
+  custom_fields : (string * Ezjsonm.value) list;
+}
+
 type env = {
   nav_path : string list;
   page_file : string;
   page_url : string;
   target_dir : string;
+  site_index : index_entry list;
 }
 
 let config_file = "soupault.conf"
