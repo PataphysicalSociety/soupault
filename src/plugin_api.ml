@@ -491,6 +491,7 @@ let run_plugin filename lua_code env config soup =
       I.register_globals ["page_file", lua_str.embed env.page_file] state;
       I.register_globals ["page_url", lua_str.embed env.page_url] state;
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
+      I.register_globals ["site_index", lua_of_value (Autoindex.json_of_entries env.site_index)] state;
       I.register_globals ["config", lua_of_config config] state
     in
     let _ = I.dostring ~file:filename state lua_code in
