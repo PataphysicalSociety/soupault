@@ -100,12 +100,13 @@ let json_of_entry e =
   let fields = List.append fields e.custom_fields in
   `O fields
 
-let json_of_entries settings es =
-  let es = List.sort (compare_entries settings) es in
+let sort_entries settings es = List.sort (compare_entries settings) es
+
+let json_of_entries es =
   `A (List.map json_of_entry es)
 
-let json_string_of_entries ?(minify=false) settings es =
-  json_of_entries settings es |> Ezjsonm.to_string ~minify:minify
+let json_string_of_entries ?(minify=false) es =
+  json_of_entries es |> Ezjsonm.to_string ~minify:minify
 
 let jingoo_model_of_entry e =
   let j = json_of_entry e in
@@ -120,12 +121,12 @@ let render_index ?(item_template=true) template settings soup entries =
     let () =
       (* Debug output *)
       if settings.debug then
-      Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false settings entries)
+      Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false entries)
     in
     let entries = List.sort (compare_entries settings) entries in
     let entries =
       if item_template then List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
-      else [Template.render template @@ ["entries", Template.jingoo_of_json (json_of_entries settings entries)] |> Soup.parse]
+      else [Template.render template @@ ["entries", Template.jingoo_of_json (json_of_entries entries)] |> Soup.parse]
     in
     let () = List.iter (Soup.append_child soup) entries in
     Ok ()
@@ -140,9 +141,9 @@ let render_index ?(item_template=true) template settings soup entries =
     (* Just in case something else happens *)
     Error ("Index template rendering failed for an undeterminable reason")
 
-let run_index_processor settings cmd ic index =
+let run_index_processor cmd ic index =
   (* Minification is intentional, newline is used as end of input *)
-  let json = json_string_of_entries ~minify:true settings index in
+  let json = json_string_of_entries ~minify:true index in
   let () = Logs.info @@ fun m -> m "Calling index processor %s" cmd in
   let output = Utils.get_program_output ~input:(Some json) cmd [| |] in
   begin
@@ -174,7 +175,7 @@ let insert_index settings page_file soup index view =
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl -> render_index tmpl settings ic index
       | Defaults.IndexTemplate tmpl -> render_index ~item_template:false tmpl settings ic index
-      | Defaults.ExternalIndexer cmd -> run_index_processor settings cmd ic index
+      | Defaults.ExternalIndexer cmd -> run_index_processor cmd ic index
     end
 
 let insert_indices settings page_file soup index =

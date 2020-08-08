@@ -343,7 +343,7 @@ let dump_index_json settings index =
   match settings.dump_json with
   | None -> Ok ()
   | Some f ->
-    try Ok (Soup.write_file f @@ Autoindex.json_string_of_entries settings index)
+    try Ok (Soup.write_file f @@ Autoindex.json_string_of_entries index)
     with Sys_error e -> Error e
   
 let main () =
@@ -361,6 +361,7 @@ let main () =
   in
   (* Now process the index pages, using previously collected index data.
      This will produce no new index data so we ignore the non-error results. *)
+  let index = Autoindex.sort_entries settings index in
   let* () = Utils.iter (_process_page index widgets config settings) index_files in
   let* () = Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files in
   let* () = dump_index_json settings index in
