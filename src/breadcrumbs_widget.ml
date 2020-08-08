@@ -2,23 +2,16 @@
 
 open Defaults
 
-let make_breadcrumbs nav_path bc_tmpl_str prepend append between =
+let make_breadcrumbs nav_path bc_tmpl prepend append between =
   let rec aux xs bc_soup acc_href =
-    let open Soup.Infix in
+    let box_string s = Template.jingoo_of_json (`String s) in
     match xs with
     | [] -> ()
     | x :: xs ->
-      (* Create a fresh soup from the template so that we can mangle it without fear. *)
-      let bc_tmpl = Soup.parse bc_tmpl_str in
       (* href for each next level accumulates, e.g. section, section/subsection... *)
       let acc_href = Printf.sprintf "%s/%s" acc_href x in
-      (* Sanity checking is done by the widget wrapper,
-         so here it's safe to use $ and other exception-throwing functions *)
-      let bc_a = bc_tmpl $ "a" in
-      let () = Soup.set_attribute "href" acc_href bc_a in
-      (* x here is the section name *)
-      let () = Soup.append_child bc_a (Soup.create_text x) in
-      let () = Soup.append_root bc_soup bc_tmpl in
+      let bc_link = Template.render bc_tmpl ["name", box_string x; "url", box_string acc_href] |> Soup.parse in
+      let () = Soup.append_root bc_soup bc_link in
       (* Fixup: don't insert the "between" after the last element *)
       let () = if (List.length xs) >= 1 then Soup.append_root bc_soup (Soup.parse between) in
       aux xs bc_soup acc_href
@@ -33,11 +26,8 @@ let make_breadcrumbs nav_path bc_tmpl_str prepend append between =
   bc_soup
 
 let check_breadcrumb_template tmpl_str =
-  let s = Soup.parse tmpl_str in
-  let a = Soup.select_one "a" s in
-  match a with
-  | Some _ -> Ok ()
-  | None -> Error (Printf.sprintf "No <a> elements in breadcrumb template \"%s\", nowhere to set the link target" tmpl_str)
+  try let _ = Template.of_string tmpl_str in Ok ()
+  with _ -> Error "Failed to parse a breadcrumb template"
 
 let breadcrumbs env config soup =
   let valid_options = List.append Config.common_widget_options
@@ -59,11 +49,12 @@ let breadcrumbs env config soup =
       | Some container ->
         let path_length = List.length env.nav_path in
         if path_length < min_depth then Ok () else
-        let bc_tmpl_str = Config.get_string_default "<a></a>" "breadcrumb_template" config in
+        let bc_tmpl_str = Config.get_string_default "<a href=\"{{url}}\">{{name}}</a>" "breadcrumb_template" config in
         let* _  = check_breadcrumb_template bc_tmpl_str in
+        let bc_tmpl = Template.of_string bc_tmpl_str in
         let prepend = Config.get_string_default "" "prepend" config in
         let append = Config.get_string_default "" "append" config in
         let between = Config.get_string_default "" "between" config in
-        let breadcrumbs = make_breadcrumbs env.nav_path bc_tmpl_str prepend append between in
+        let breadcrumbs = make_breadcrumbs env.nav_path bc_tmpl prepend append between in
         Ok (Html_utils.insert_element action container breadcrumbs)
     end
