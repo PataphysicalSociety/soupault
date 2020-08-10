@@ -41,18 +41,18 @@ For support and discussion, write a message to the [mailing list](https://lists.
 
 # Installation
 
-Pre-built binaries for Linux, Windows, and mac OS are available from the [website](https://soupault.neocities.org/#downloads)
+Pre-built binaries are available for Linux, Windows, and mac OS. You can download them via [soupault.neocities.org](https://soupault.neocities.org/#downloads)
 and from Github releases.
 
 You can verify the binaries using this signify/minisign key: `RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy`.
 
-You can also install the latest stable releases from [OPAM](https://opam.ocaml.org):
+You can also install stable release versions from [OPAM](https://opam.ocaml.org):
 
 ```
 opam install soupault
 ```
 
-Finally, you can build the last source with:
+Finally, you can build the latest development version with:
 
 ```
 opam pin add git+https://github.com/dmbaturin/soupault
