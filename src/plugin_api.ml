@@ -354,7 +354,50 @@ struct
             ["heading", value; "children", children_table]
         in List.map (fun t -> lua_of_tree t |> V.Table.of_list |> V.table.embed) trees
       end
-   
+
+    let rec value_of_lua v =
+      if V.int.is v then `Int (V.int.project v)
+      (* float is a supertype of int, so int "is" a float, and order of checks is important*)
+      else if V.float.is v then `Float (V.float.project v)
+      else if V.string.is v then `String (V.string.project v)
+      else if V.table.is v then project_lua_table v
+      else if V.unit.is v then `Null
+      (* Everything in Lua has a truth value, so V.bool.is appears to never fail *)
+      else if V.bool.is v then `Bool (V.bool.project v)
+      (* Not sure if this actually can happen *)
+      else raise (Plugin_error "Unimplemented projection")
+    and project_lua_table t =
+      let ts = t |> V.table.project |> V.Luahash.to_seq |> List.of_seq in
+      (* In Lua, everything is a table. There are no arrays/lists, only int-indexed tables.
+         However, many things, like nav_path, are logically lists. They are lists before we pass them to Lua,
+         and it would be nice to have them come back as lists.
+
+         This is why we apply a funny heuristic here: if all keys are integers, we ignore the keys
+         and produce a list. This way embedding OCaml lists is reversible, and users who create
+         such tables by hand, hopefully, aren't surprised.
+       *)
+      let keys = Utils.assoc_keys ts in
+      if CCList.for_all V.int.is keys then `A (Utils.assoc_values ts |> List.map value_of_lua)
+      else `O (List.map (fun (k, v) -> (string_of_lua k, value_of_lua v)) ts)
+    and string_of_lua v =
+      let v' = value_of_lua v in
+      match v' with
+      | `Int i -> string_of_int i
+      | `Float f -> string_of_float f
+      | `String s -> s
+      | _ -> raise
+        (Plugin_error (Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
+          (V.to_string v)))
+
+    let render_template tmpl data =
+      let tmpl = Template.of_string tmpl in
+      if not (V.table.is data) then raise (Plugin_error "String.render_template requires a table") else
+      let data = project_lua_table data in
+      match data with
+      | `O vs -> List.map (fun (k, v) -> (k, Template.jingoo_of_json v)) vs |> Template.render tmpl
+      | `A _ -> raise (Plugin_error "String.render_template requires a string-indexed table, found a number-indexed array")
+      | _ -> raise (Plugin_error "Cannot happen: project_lua_table returned an unexpected result")
+
     let init g = 
       C.register_module "HTML" [
         "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
@@ -437,6 +480,7 @@ struct
        "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify;
        "join", V.efunc (V.string **-> V.list V.string **->> V.string) String.concat;
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
+       "render_template", V.efunc (V.string **-> V.value **->> V.string) render_template
      ] g
   end (* M *)
 end (* MakeLib *)

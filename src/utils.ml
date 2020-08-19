@@ -52,6 +52,8 @@ let in_list xs x = List.exists ((=) x) xs
 (** Extracts keys from an assoc list *)
 let assoc_keys xs = List.fold_left (fun acc (x, _) -> x :: acc) [] xs
 
+let assoc_values xs = List.map (fun (_, v) -> v) xs
+
 (** Result-aware iteration *)
 let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
   match xs with
