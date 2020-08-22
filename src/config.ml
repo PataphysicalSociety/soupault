@@ -1,6 +1,10 @@
 open Defaults
 
-exception ConfigError of string
+open Toml_utils
+
+exception Config_error of string
+
+let config_error err = raise (Config_error err)
 
 let default d o = CCOpt.get_or ~default:d o
 
@@ -59,50 +63,50 @@ let read_config path =
   | Sys_error err -> Error (Printf.sprintf "Could not read config file: %s" err)
   | Toml.Parser.Error (err, _) -> Error (Printf.sprintf "Could not parse config file %s: %s" path err)
 
-let get_table name config = TomlLenses.(get config (key name |-- table))
-let get_table_result err name config = get_table name config |> CCOpt.to_result err
+let get_table name config = field name config |> table
+let get_table_result err name config = try Ok (get_table name config) with _ -> Error err
+let get_table_opt name config = try Some (get_table name config) with _ -> None
 
-let get_string k tbl = TomlLenses.(get tbl (key k |-- string))
-let get_string_default default_value k tbl = get_string k tbl |> default default_value
-let get_string_result err k tbl = get_string k tbl |> CCOpt.to_result err
+let get_string ?(default=None) ?(strict=false) k tbl =
+  let default = Option.map (fun b -> `String b) default in
+  let res = field ~default:default k tbl in
+  string ~strict:strict res
 
-let get_bool k tbl = TomlLenses.(get tbl (key k |-- bool))
-let get_bool_default default_value k tbl = get_bool k tbl |> default default_value
-let get_bool_result err k tbl = get_bool k tbl |> CCOpt.to_result err
+let get_string_result ?(strict=false) err k tbl = 
+  try
+    let res = get_string ~strict:strict k tbl in
+    Ok res
+  with
+  | Key_error _ -> Error err
 
-let get_int k tbl = TomlLenses.(get tbl (key k |-- int))
-let get_int_default default_value k tbl = get_int k tbl |> default default_value
-let get_int_result err k tbl = get_int k tbl |> CCOpt.to_result err
+let get_string_opt ?(strict=false) k tbl = get_string_result ~strict:strict "" k tbl |> Result.to_option
 
-let get_strings k tbl = TomlLenses.(get tbl (key k |-- array |-- strings))
-let get_strings_default default_value k tbl = get_strings k tbl |> default default_value
-let get_strings_result err k tbl = get_strings k tbl |> CCOpt.to_result err
+let get_string_default default name config = get_string ~default:(Some default) name config
 
-(** Converts a TOML table to an assoc list using a given value retrieval function,
-    ignoring None's it may return.
-  *)
-let assoc_of_table f tbl =
-  let has_value (_, v) = match v with Some _ -> true | None -> false in
-  let keys = Toml_utils.list_table_keys tbl in
-  List.fold_left (fun xs k -> (k, f k tbl ) :: xs) [] keys |>
-  List.filter has_value |>
-  List.map (fun (k, v) -> k, Option.get v)
+let get_bool ?(default=None) ?(strict=false) k tbl =
+  let default = Option.map (fun b -> `Bool b) default in
+  let res = field ~default:default k tbl in
+  bool ~strict:strict res
+
+let get_bool_default default name config = get_bool ~default:(Some default) name config
+
+let get_int_default default_value k tbl = field ~default:(Some (`Int default_value)) k tbl |> int
+
 
 (** Tries to get a string list from a config
-    If there's actually a string list, just returns it.
-    If there's a single string, considers it a single item list.
-    If there's nothing like a string at all, return the default.
+    If there's actually a list, converts every item to a string.
+    If there's a single item, makes a single item list.
+    If there's nothing like a string at all, returns the default value.
  *)
-let get_strings_relaxed ?(default=[]) k tbl =
-  let strs = get_strings k tbl in
-  match strs with
-  | Some strs -> strs
-  | None -> begin
-      let str = get_string k tbl in
-      match str with
-      | Some str -> [str]
-      | None -> default
-    end
+let get_strings_relaxed ?(default=([])) k tbl =
+  let open Toml_utils in
+  try field k tbl |> list |> strings
+  with Key_error _ -> default
+
+let assoc_of_table f t =
+  match t with
+  | `O os -> List.map (fun (k, v) -> (k, f v)) os
+  | _ -> failwith ""
 
 let get_path_options config =
   {
@@ -121,49 +125,43 @@ let valid_path_options = [
 
 (* Update global settings with values from the config, if there are any *)
 let _get_preprocessors config =
-  let pt = get_table Defaults.preprocessors_table config in
+  let pt = get_table_opt Defaults.preprocessors_table config in
   match pt with
   | None -> []
-  | Some pt -> assoc_of_table get_string pt
+  | Some pt -> assoc_of_table string pt
 
-let _get_index_queries index_table =
-  let (let*) = Stdlib.Result.bind in
-  let get_query k queries =
-    let* qt = get_table_result "value is not an inline table" k queries in
+let get_index_queries index_table =
+  let get_query k it =
+    let qt = get_table k it in
     let selectors = get_strings_relaxed "selector" qt in
-    let default_value = get_string "default" qt in
-    let extract_attribute = get_string "extract_attribute" qt in
+    let default_value = get_string_opt "default" qt in
+    let extract_attribute = get_string_opt "extract_attribute" qt in
     let select_all = get_bool_default false "select_all" qt in
     let () =
       if (Option.is_some default_value) && select_all then
       Logs.warn @@ fun m -> m "default is ignored when select_all is true"
     in
     (match selectors with
-    | [] -> Error "selector option is required and must be a string or a list of strings"
+    | [] -> config_error "selector option is required and must be a string or a list of strings"
     | _ ->
-      Ok {
+      {
         field_name = k; field_selectors = selectors;
         select_all = select_all; default_field_value = default_value;
         extract_attribute = extract_attribute;
       })
   in
-  let rec get_queries ks queries acc =
+  let rec get_queries qt ks acc =
     match ks with
     | [] -> acc
-    | k :: ks ->
-      begin
-        let q = get_query k queries in
-        match q with
-        | Error e ->
-          let () = Logs.warn @@ fun m -> m "Malformed index field query \"%s\": %s" k e in
-          get_queries ks queries acc
-        | Ok q -> get_queries ks queries (q :: acc)
-      end
+    | k :: ks' ->
+      (try get_queries qt ks' ((get_query k qt) :: acc)
+      with Type_error e | Config_error e -> Printf.ksprintf config_error "Malformed index field config for \"%s\": %s" k e)
   in
-  let qt = get_table "custom_fields" index_table in
+  let qt = get_table_opt "custom_fields" index_table in
   match qt with
   | None -> []
-  | Some qt -> get_queries (Toml_utils.list_table_keys qt) qt []
+  | Some qt -> get_queries qt (Toml_utils.list_table_keys qt) []
+
 
 let valid_index_options = [
   "custom_fields"; "views"; (* subtables rather than options *)
@@ -191,9 +189,9 @@ let _get_index_view st view_name =
     end
   in
   let _get_index_processor st =
-    let item_template = get_string "index_item_template" st in
-    let index_template = get_string "index_template" st in
-    let script = get_string "index_processor" st in
+    let item_template = get_string_opt ~strict:true "index_item_template" st in
+    let index_template = get_string_opt ~strict:true "index_template" st in
+    let script = get_string_opt ~strict:true "index_processor" st in
     match item_template, index_template, script with
     | Some item_template, None, None -> _get_template item_template
     | None, Some index_template, None -> _get_template ~item_template:false index_template
@@ -201,9 +199,9 @@ let _get_index_view st view_name =
     | None, None, None ->
       let () = Logs.warn @@ fun m -> m "Index view \"%s\" does not have index_item_template, index_template, or index_processor option, using default template" view_name
       in default_index_processor
-    | _ -> raise (ConfigError "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one")
+    | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
   in
-  let selector = get_string_default "body" "index_selector" st in
+  let selector = get_string "index_selector" st in
   let index_processor = _get_index_processor st in
   {
     index_view_name = view_name;
@@ -213,34 +211,23 @@ let _get_index_view st view_name =
   }
 
 let _get_index_views index_table =
-  let (let*) = Stdlib.Result.bind in
   let get_view k views =
-    let* vt = get_table_result "value is not an inline table" k views in
-    (* Stricter validation for non-default views *)
-    let* _ = get_string_result (Printf.sprintf "Index view \"%s\": Missing required option \"selector\"" k) "index_selector" vt in
-    try Ok (_get_index_view vt k)
-    with ConfigError e -> Error e
+    let vt = get_table k views in
+    _get_index_view vt k
   in
   let rec get_views ks views acc =
     match ks with
     | [] -> acc
-    | k :: ks ->
-      begin
+    | k :: ks -> begin
+      try
         let v = get_view k views in
-        match v with
-        | Error e ->
-          let () = Logs.warn @@ fun m -> m "Misconfigured index view \"%s\": %s" k e in
-          get_views ks views acc
-        | Ok q -> get_views ks views (q :: acc)
-      end
+        get_views ks views (v :: acc)
+      with Config_error e | Type_error e ->
+        Printf.ksprintf config_error "Misconfigured index view \"%s\": %s" k e
+    end
   in
-  (* In case someone wants to have _only_ custom views and not old style options *)
-  let use_default_view = get_bool_default true "use_default_view" index_table in
-  let views =
-    if use_default_view then [_get_index_view index_table "default"]
-    else []
-  in
-  let vt = get_table "views" index_table in
+  let views = [] in
+  let vt = get_table_opt "views" index_table in
   match vt with
   | None -> views
   | Some vt -> 
@@ -248,38 +235,37 @@ let _get_index_views index_table =
     List.append views custom_views
 
 let _get_index_settings settings config =
-  let st = get_table Defaults.index_settings_table config in
+  let st = get_table_opt Defaults.index_settings_table config in
   match st with
   | None -> settings
   | Some st ->
     let () = check_options valid_index_options st "table \"index\"" in
     {settings with
        index = get_bool_default settings.index "index" st;
-       dump_json = get_string "dump_json" st;
-       newest_entries_first = get_bool_default settings.newest_entries_first "newest_entries_first" st;
+       dump_json = get_string_opt "dump_json" st;
        index_title_selector = get_strings_relaxed ~default:settings.index_title_selector "index_title_selector" st;
        index_excerpt_selector = get_strings_relaxed ~default:settings.index_excerpt_selector "index_excerpt_selector" st;
        index_date_selector = get_strings_relaxed ~default:settings.index_date_selector "index_date_selector" st;
        index_author_selector = get_strings_relaxed ~default:settings.index_author_selector "index_author_selector" st;
-       index_date_format = get_string_default settings.index_date_format "index_date_format" st;
+       newest_entries_first = get_bool_default settings.newest_entries_first "newest_entries_first" st;
        ignore_template_errors = get_bool_default settings.ignore_template_errors "ignore_template_errors" st;
        index_extract_after_widgets = get_strings_relaxed "extract_after_widgets" st;
-       index_custom_fields = _get_index_queries st;
+       index_custom_fields = get_index_queries st;
        index_strip_tags = get_bool_default settings.index_strip_tags "strip_tags" st;
        index_views = _get_index_views st;
-       index_profile = get_string "profile" st;
+       index_profile = get_string_opt "profile" st;
        index_path_options = get_path_options st;
     }
 
 let update_page_template_settings settings config =
   let get_template name settings config =
     (* Retrieve a subtable for given template *)
-    let config = get_table name config in
+    let config = get_table_opt name config in
     match config with
     | None -> settings
     | Some config -> begin
       let path_options = get_path_options config in
-      let file = get_string "file" config in
+      let file = get_string_opt "file" config in
       match file with
       | None ->
         let () = Logs.warn @@ fun m -> m "Missing required option \"file\" in [templates.%s], ignoring" name in
@@ -294,7 +280,7 @@ let update_page_template_settings settings config =
           settings
     end
   in
-  let tt = get_table Defaults.templates_table config in
+  let tt = get_table_opt Defaults.templates_table config in
   match tt with
   | None -> settings
   | Some tt ->
@@ -311,7 +297,7 @@ let valid_settings = [
 ]
 
 let _update_settings settings config =
-  let st = get_table Defaults.settings_table config in
+  let st = get_table_opt Defaults.settings_table config in
   match st with
   | None ->
      let () = Logs.warn @@ fun m -> m "Could not find the [settings] section in the config, using defaults" in
@@ -358,6 +344,7 @@ let update_settings settings config =
   match config with
   | None -> settings
   | Some config ->
+    let config = Toml_utils.json_of_table config in
     let () = check_options ~fmt:bad_section_msg valid_tables config "table \"settings\"" in
     let settings = _update_settings settings config in
     _get_index_settings settings config
