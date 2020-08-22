@@ -508,20 +508,20 @@ let soup_of_lua l =
   let v = HtmlT.makemap I.Value.userdata I.Value.projection in
   v.project l
 
-let rec lua_of_value v =
+let rec lua_of_json v =
   match v with
   | `Bool b -> I.Value.bool.embed b
   | `Int i -> I.Value.int.embed i
   | `Float f -> I.Value.float.embed f
   | `String s -> I.Value.string.embed s
-  | `A vs -> (List.map lua_of_value vs) |> (I.Value.list I.Value.value).embed
+  | `A vs -> (List.map lua_of_json vs) |> (I.Value.list I.Value.value).embed
   | `O vs ->
-    List.map (fun (k, v) -> (k, lua_of_value v)) vs |>
+    List.map (fun (k, v) -> (k, lua_of_json v)) vs |>
     I.Value.Table.of_list |> I.Value.table.embed
   | `Null -> I.Value.unit.embed ()
 
 let lua_of_config c =
-  Toml_utils.assoc_of_table c |> lua_of_value
+  Toml_utils.json_of_table c |> lua_of_json
 
 let run_plugin filename lua_code env config soup =
   let open Defaults in
@@ -535,7 +535,7 @@ let run_plugin filename lua_code env config soup =
       I.register_globals ["page_file", lua_str.embed env.page_file] state;
       I.register_globals ["page_url", lua_str.embed env.page_url] state;
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
-      I.register_globals ["site_index", lua_of_value (Autoindex.json_of_entries env.site_index)] state;
+      I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
       I.register_globals ["config", lua_of_config config] state
     in
     let _ = I.dostring ~file:filename state lua_code in
