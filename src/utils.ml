@@ -141,3 +141,7 @@ let normalize_path path =
   if path = "" then "/" else path
 
 let concat_path fs = List.fold_left FilePath.concat "" fs
+
+let string_of_float f =
+  if f = (Float.round f) then int_of_float f |> string_of_int
+  else string_of_float f

@@ -111,12 +111,12 @@ let toc _ config soup =
   let settings = {
     min_level = Config.get_int_default 1 "min_level" config;
     max_level = Config.get_int_default 6 "max_level" config;
-    toc_class = Config.get_string "toc_list_class" config;
+    toc_class = Config.get_string_opt "toc_list_class" config;
     toc_class_levels = Config.get_bool_default false "toc_class_levels" config;
     numbered_list = Config.get_bool_default false "numbered_list" config;
     link_here = Config.get_bool_default false "heading_links" config;
     link_here_text = Config.get_string_default "#" "heading_link_text" config;
-    link_here_class = Config.get_string "heading_link_class" config;
+    link_here_class = Config.get_string_opt "heading_link_class" config;
     link_here_append = Config.get_bool_default false "heading_links_append" config;
     use_text = Config.get_bool_default false "use_heading_text" config;
     use_slugs = Config.get_bool_default false "use_heading_slug" config;
@@ -126,10 +126,6 @@ let toc _ config soup =
   } in
   let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
   let action = Config.get_string_default "append_child" "action" config in
-  let () =
-    Utils.deprecation_warning Config.get_bool "use_header_text" "use \"use_heading_text\" instead" config;
-    Utils.deprecation_warning Config.get_bool "use_header_slug" "use \"use_heading_slug\" instead" config
-  in
   match selector with
   | Error _ as e -> e
   | Ok selector ->

@@ -356,7 +356,7 @@ struct
       end
 
     let rec value_of_lua v =
-      if V.int.is v then `Int (V.int.project v)
+      if V.int.is v then `Float (V.int.project v |> float_of_int)
       (* float is a supertype of int, so int "is" a float, and order of checks is important*)
       else if V.float.is v then `Float (V.float.project v)
       else if V.string.is v then `String (V.string.project v)
@@ -382,7 +382,6 @@ struct
     and string_of_lua v =
       let v' = value_of_lua v in
       match v' with
-      | `Int i -> string_of_int i
       | `Float f -> string_of_float f
       | `String s -> s
       | _ -> raise
@@ -521,7 +520,7 @@ let rec lua_of_json v =
   | `Null -> I.Value.unit.embed ()
 
 let lua_of_config c =
-  Toml_utils.json_of_table c |> lua_of_json
+   c |> lua_of_json
 
 let run_plugin filename lua_code env config soup =
   let open Defaults in

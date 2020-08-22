@@ -5,6 +5,7 @@ type index_field = {
   select_all : bool;
   default_field_value : string option;
   extract_attribute : string option;
+  fallback_to_content : bool; (* If extract_attribute cannot find the attribute *)
 }
 
 type index_processor =
@@ -99,19 +100,16 @@ type settings = {
 
   index : bool;
   dump_json : string option;
-  newest_entries_first : bool;
-  index_title_selector : string list;
-  index_excerpt_selector : string list;
-  index_date_selector : string list;
-  index_author_selector : string list;
-  index_date_format : string;
   ignore_template_errors : bool;
-  index_custom_fields : index_field list;
+  index_fields : index_field list;
   index_extract_after_widgets : string list;
   index_strip_tags : bool;
-  index_views: index_view list;
-  index_path_options: path_options;
-  index_profile: string option;
+  index_views : index_view list;
+  index_path_options : path_options;
+  index_profile : string option;
+  index_date_input_formats : string list;
+  index_sort_by : string option;
+  index_sort_descending : bool;
 
   preprocessors : (string * string) list;
 
@@ -123,11 +121,7 @@ type index_entry = {
   index_entry_url: string;
   index_entry_page_file: string;
   index_entry_nav_path: string list;
-  index_entry_title: string option;
-  index_entry_excerpt: string option;
-  index_entry_date: string option;
-  index_entry_author: string option;
-  custom_fields : (string * Ezjsonm.value) list;
+  fields : (string * Ezjsonm.value) list;
 }
 
 type env = {
@@ -186,19 +180,16 @@ let default_settings = {
   index = false;
   index_only = false;
   dump_json = None;
-  newest_entries_first = false;
-  index_title_selector = ["h1"];
-  index_excerpt_selector = ["p"];
-  index_date_selector = ["time"];
-  index_author_selector = ["#author"];
-  index_date_format = "%F";
   ignore_template_errors = false;
   index_extract_after_widgets = [];
-  index_custom_fields = [];
+  index_fields = [];
   index_strip_tags = false;
   index_views = [];
   index_path_options = default_path_options;
   index_profile = None;
+  index_date_input_formats = ["%F"];
+  index_sort_by = None;
+  index_sort_descending = true;
 
   preprocessors = [];
 

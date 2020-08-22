@@ -1,13 +1,3 @@
-type value = [
-    `String of string
-  | `Int of int
-  | `Float of float
-  | `Bool of bool
-  | `A of value list
-  | `O of (string * value) list
-  | `Null
-]
-
 module Toml_reader = struct
   let (>>=) = Option.bind
 
@@ -27,7 +17,7 @@ module Toml_reader = struct
 
   let get_string t = TomlLenses.string.get t >>= (fun x -> Some (`String x))
   let get_bool t = TomlLenses.bool.get t >>= (fun x -> Some (`Bool x))
-  let get_int t = TomlLenses.int.get t >>= (fun x -> Some (`Int x))
+  let get_int t = TomlLenses.int.get t >>= (fun x -> Some (`Float (float_of_int x)))
   let get_float t = TomlLenses.float.get t >>= (fun x -> Some (`Float x))
 
   (* There is no generic list retrieval lens, and to.ml doesn't support heterogenous arrays
@@ -36,7 +26,7 @@ module Toml_reader = struct
    *)
   let get_strings t = TomlLenses.(array.get t >>= strings.get) >>= (fun xs -> Some (`A (List.map (fun x -> `String x) xs)))
   let get_bools t = TomlLenses.(array.get t >>= bools.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Bool x) xs)))
-  let get_ints t = TomlLenses.(array.get t >>= ints.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Int x) xs)))
+  let get_ints t = TomlLenses.(array.get t >>= ints.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Float (float_of_int x)) xs)))
   let get_floats t = TomlLenses.(array.get t >>= floats.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Float x) xs)))
 
   let rec json_of_toml toml =
@@ -99,25 +89,36 @@ let string ?(strict=true) j =
   | _ -> begin
     if strict then type_error "value must be a string" else
     match j with
-    | `Int i -> string_of_int i
-    | `Float f -> string_of_float f
+    | `Float f -> Utils.string_of_float f
     | `Bool b -> string_of_bool b
     | `Null -> ""
     | _ -> type_error "cannot to convert an array or table to string"
   end
 
-let int ?(strict=true) j =
+let number ?(strict=true) j =
   match j with
-  | `Int i -> i
+  | `Float f -> f
   | _ -> begin
-    if strict then type_error "value must be an integer" else
+    if strict then type_error "value must be a number" else
     match j with
-     | `String s -> float_of_string s |> int_of_float
-     | `Float f -> Float.round f |> int_of_float
-     | `Bool b -> (if b then 1 else 0)
-     | `Null -> 0
-     | _ -> type_error "cannot to convert an array or table to integer"
+     | `String s -> float_of_string s
+     | `Bool b -> (if b then 1. else 0.)
+     | `Null -> 0.
+     | _ -> type_error "cannot to convert an array or table to number"
  end
+
+let bool ?(strict=true) j =
+  match j with
+  | `Bool b -> b
+  | _ -> begin
+    if strict then type_error "value must be an boolean" else
+    match j with
+    | `String s -> (s = "")
+    | `Float f -> (f = 0.0)
+    | `A a -> (a = [])
+    | `O o -> (o = [])
+    | _ -> false
+  end
 
 let table j =
   match j with

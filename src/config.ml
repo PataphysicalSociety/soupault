@@ -90,7 +90,7 @@ let get_bool ?(default=None) ?(strict=false) k tbl =
 
 let get_bool_default default name config = get_bool ~default:(Some default) name config
 
-let get_int_default default_value k tbl = field ~default:(Some (`Int default_value)) k tbl |> int
+let get_int_default default_value k tbl = field ~default:(Some (`Float (float_of_int default_value))) k tbl |> number |> int_of_float
 
 
 (** Tries to get a string list from a config
@@ -100,7 +100,7 @@ let get_int_default default_value k tbl = field ~default:(Some (`Int default_val
  *)
 let get_strings_relaxed ?(default=([])) k tbl =
   let open Toml_utils in
-  try field k tbl |> list |> strings
+  try field k tbl |> list ~strict:false |> strings ~strict:false
   with Key_error _ -> default
 
 let assoc_of_table f t =
@@ -136,6 +136,7 @@ let get_index_queries index_table =
     let selectors = get_strings_relaxed "selector" qt in
     let default_value = get_string_opt "default" qt in
     let extract_attribute = get_string_opt "extract_attribute" qt in
+    let content_fallback = get_bool_default false "fallback_to_content" qt in
     let select_all = get_bool_default false "select_all" qt in
     let () =
       if (Option.is_some default_value) && select_all then
@@ -147,7 +148,7 @@ let get_index_queries index_table =
       {
         field_name = k; field_selectors = selectors;
         select_all = select_all; default_field_value = default_value;
-        extract_attribute = extract_attribute;
+        extract_attribute = extract_attribute; fallback_to_content = content_fallback;
       })
   in
   let rec get_queries qt ks acc =
@@ -155,22 +156,19 @@ let get_index_queries index_table =
     | [] -> acc
     | k :: ks' ->
       (try get_queries qt ks' ((get_query k qt) :: acc)
-      with Type_error e | Config_error e -> Printf.ksprintf config_error "Malformed index field config for \"%s\": %s" k e)
+      with Type_error e -> Printf.ksprintf config_error "Malformed config for index field \"%s\": %s" k e)
   in
-  let qt = get_table_opt "custom_fields" index_table in
+  let qt = get_table_opt "fields" index_table in
   match qt with
   | None -> []
   | Some qt -> get_queries qt (Toml_utils.list_table_keys qt) []
 
 
 let valid_index_options = [
-  "custom_fields"; "views"; (* subtables rather than options *)
+  "fields"; "views"; (* subtables rather than options *)
   "index"; "dump_json"; "newest_entries_first";
-  "index_selector"; "index_title_selector"; "index_excerpt_selector";
-  "index_date_selector"; "index_author_selector";
-  "index_date_format"; "index_item_template"; "index_processor";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
-  "use_default_view"; "profile"
+  "profile"
 ]
 
 let valid_index_options = List.append valid_index_options valid_path_options
@@ -243,18 +241,15 @@ let _get_index_settings settings config =
     {settings with
        index = get_bool_default settings.index "index" st;
        dump_json = get_string_opt "dump_json" st;
-       index_title_selector = get_strings_relaxed ~default:settings.index_title_selector "index_title_selector" st;
-       index_excerpt_selector = get_strings_relaxed ~default:settings.index_excerpt_selector "index_excerpt_selector" st;
-       index_date_selector = get_strings_relaxed ~default:settings.index_date_selector "index_date_selector" st;
-       index_author_selector = get_strings_relaxed ~default:settings.index_author_selector "index_author_selector" st;
-       newest_entries_first = get_bool_default settings.newest_entries_first "newest_entries_first" st;
        ignore_template_errors = get_bool_default settings.ignore_template_errors "ignore_template_errors" st;
        index_extract_after_widgets = get_strings_relaxed "extract_after_widgets" st;
-       index_custom_fields = get_index_queries st;
+       index_fields = get_index_queries st;
        index_strip_tags = get_bool_default settings.index_strip_tags "strip_tags" st;
        index_views = _get_index_views st;
        index_profile = get_string_opt "profile" st;
        index_path_options = get_path_options st;
+       index_sort_by = get_string_opt "sort_by" st;
+       index_sort_descending = get_bool_default true "sort_descending" st;
     }
 
 let update_page_template_settings settings config =
@@ -289,7 +284,7 @@ let update_page_template_settings settings config =
 
 let valid_settings = [
   "verbose"; "debug"; "strict"; "site_dir"; "build_dir";
-  "content_selector"; "doctype"; "index_page"; "index_file";
+  "default_content_selector"; "doctype"; "index_page"; "index_file";
   "default_template"; "clean_urls"; "page_file_extensions";
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode";
@@ -311,7 +306,7 @@ let _update_settings settings config =
        strict = get_bool_default settings.strict "strict" st;
        site_dir = get_string_default settings.site_dir "site_dir" st |> String.trim;
        build_dir = get_string_default settings.build_dir "build_dir" st |> String.trim |> Utils.normalize_path;
-       content_selector = get_string_default settings.content_selector "content_selector" st;
+       content_selector = get_string_default settings.content_selector "default_content_selector" st;
        doctype = get_string_default settings.doctype "doctype" st;
        index_page = get_string_default settings.index_page "index_page" st;
        index_file = get_string_default settings.index_file "index_file" st;

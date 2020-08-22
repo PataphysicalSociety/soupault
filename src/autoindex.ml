@@ -41,24 +41,21 @@ let rec get_custom_fields strip_tags fields soup =
     field :: (get_custom_fields strip_tags fs soup)
 
 let get_entry settings env soup =
-  let (>>=) = CCOpt.(>>=) in
-  let string_of_elem selector soup =
-    Html_utils.select_any_of selector soup >>= string_of_elem settings.index_strip_tags
-  in
   {
     index_entry_url = env.page_url;
     index_entry_page_file = env.page_file;
     index_entry_nav_path = env.nav_path;
-    index_entry_title = string_of_elem settings.index_title_selector soup;
-    index_entry_excerpt = string_of_elem settings.index_excerpt_selector soup;
-    (* Try to extract only the texts from the date element,
-       to account for things like <em>1970</em>-01-01.
-       Probably futile and redundant, but at least no one can say it's not trying.
-     *)
-    index_entry_date = Html_utils.select_any_of settings.index_date_selector soup >>= Html_utils.get_element_text;
-    index_entry_author = string_of_elem settings.index_author_selector soup;
-    custom_fields = get_custom_fields settings.index_strip_tags settings.index_custom_fields soup
+    fields = get_custom_fields settings.index_strip_tags settings.index_fields soup
   }
+
+let rec parse_date fmts d =
+  match fmts with
+  | [] ->
+    let () = Logs.debug @@ fun m -> m "Field value \"%s\" could not be parsed as a date, interpreting as a string" d in
+    None
+  | f :: fs ->
+    try Some (CalendarLib.Printer.Date.from_fstring f d)
+    with Invalid_argument _ -> parse_date fs d
 
 (** Compares entries by their dates according to these rules:
     1. Entries without known dates are equal
@@ -66,18 +63,20 @@ let get_entry settings env soup =
     3. Of entries with known dates, ones with later dates are newer (who could guess!)
   *)
 let compare_entries settings l r =
-  let (>>=) = CCOpt.(>>=) in
+  let (>>=) = Stdlib.Option.bind in
+  let string_of_field j =
+    try Some (Toml_utils.string ~strict:false j)
+    with Toml_utils.Type_error _ -> None
+  in
   let get_date entry =
-    try
-      entry.index_entry_date >>=
-      (fun s -> Some (CalendarLib.Printer.Date.from_fstring settings.index_date_format s))
-    with Invalid_argument msg ->
-      let () = Logs.warn @@ fun m -> m "Could not parse date: %s" msg in
-      None
+    settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>=
+    string_of_field >>= parse_date settings.index_date_input_formats
   in
   let compare_dates l_date r_date =
     match l_date, r_date with
-    | None, None -> 0
+    | None, None ->
+      (* Neither is a valid date, resort to lexicographic sort *)
+      compare l r
     | Some _, None -> 1
     | None, Some _ -> -1
     | Some l_date, Some r_date ->
@@ -86,18 +85,15 @@ let compare_entries settings l r =
   let l_date = get_date l in
   let r_date = get_date r in
   let result = compare_dates l_date r_date in
-  if settings.newest_entries_first then (~- result) else result
+  if settings.index_sort_descending then (~- result) else result
 
 let json_of_entry e =
   let fields = [
-    "title", e.index_entry_title; "date", e.index_entry_date;
-    "author", e.index_entry_author; "excerpt", e.index_entry_excerpt]
-  in
-  let fields = List.map (fun (k, v) -> (k, json_of_string_opt v)) fields in
-  let fields = ("url", `String e.index_entry_url) :: fields in
-  let fields = ("page_file", `String e.index_entry_page_file) :: fields in
-  let fields = ("nav_path", `A (List.map (fun x -> `String x) e.index_entry_nav_path)) :: fields in
-  let fields = List.append fields e.custom_fields in
+    ("url", `String e.index_entry_url);
+    ("page_file", `String e.index_entry_page_file);
+    ("nav_path", `A (List.map (fun x -> `String x) e.index_entry_nav_path))
+  ] in
+  let fields = List.append fields e.fields in
   `O fields
 
 let sort_entries settings es = List.sort (compare_entries settings) es
