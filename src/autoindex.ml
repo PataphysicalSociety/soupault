@@ -21,7 +21,13 @@ let rec get_custom_fields strip_tags fields soup =
   let get_content f elem =
     match f.extract_attribute with
     | None -> string_of_elem strip_tags elem
-    | Some attr -> Soup.attribute attr elem
+    | Some attr -> begin
+      match (Soup.attribute attr elem) with
+      | Some _ as a -> a
+      | None ->
+        if f.fallback_to_content then string_of_elem strip_tags elem
+        else None
+    end
   in
   let get_field f soup =
     if f.select_all then
