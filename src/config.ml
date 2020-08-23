@@ -295,7 +295,7 @@ let update_page_template_settings settings config =
 let valid_settings = [
   "verbose"; "debug"; "strict"; "site_dir"; "build_dir";
   "default_content_selector"; "doctype"; "index_page"; "index_file";
-  "default_template"; "clean_urls"; "page_file_extensions";
+  "default_template_file"; "clean_urls"; "page_file_extensions";
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery"
@@ -320,7 +320,7 @@ let _update_settings settings config =
        doctype = get_string_default settings.doctype "doctype" st;
        index_page = get_string_default settings.index_page "index_page" st;
        index_file = get_string_default settings.index_file "index_file" st;
-       default_template = get_string_default settings.default_template "default_template" st;
+       default_template = get_string_default settings.default_template "default_template_file" st;
        clean_urls = get_bool_default settings.clean_urls "clean_urls" st;
        page_extensions = get_strings_relaxed ~default:settings.page_extensions "page_file_extensions" st;
        ignore_extensions = get_strings_relaxed ~default:[] "ignore_extensions" st;
