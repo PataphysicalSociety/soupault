@@ -44,7 +44,7 @@ let check_options ?(fmt=bad_option_msg) valid_options config ident =
     if not (List.exists ((=) opt) valid_options) then
     let index = Spellcheck.make_index valid_options in
     let suggestion = Spellcheck.get_suggestion index opt in
-    Logs.warn @@ fun m -> m "%s" (fmt opt ident suggestion)
+    config_error (fmt opt ident suggestion)
   in
   let keys = Toml_utils.list_table_keys config in
   List.iter (check_option valid_options) keys
@@ -172,7 +172,7 @@ let get_index_queries index_table =
 
 let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
-  "index"; "dump_json"; "newest_entries_first";
+  "index"; "dump_json"; "sort_by"; "sort_descending";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
   "profile"
 ]
