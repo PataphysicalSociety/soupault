@@ -97,13 +97,13 @@ let save_html settings soup file =
     Ok ()
   with Sys_error e -> Error e
 
-let include_content settings html content =
-  let element = Soup.select_one settings.content_selector html in
+let include_content selector html content =
+  let element = Soup.select_one selector html in
   match element with
   | Some element -> Ok (Soup.append_child element content)
   | None ->
     Error (Printf.sprintf "No element in the template matches selector \"%s\", nowhere to insert the content"
-           settings.content_selector)
+           selector)
 
 let make_page settings page_file content =
   (* If generator mode is off, treat everything like a complete page *)
@@ -120,18 +120,19 @@ let make_page settings page_file content =
     in Ok content
   | None ->
     let tmpl = List.find_opt
-      (fun (_, _, opts) -> (Path_options.page_included opts settings.site_dir page_file) = true)
+      (fun t -> (Path_options.page_included t.template_path_options settings.site_dir page_file) = true)
       settings.page_templates
     in
-    let html = (match tmpl with
+    let html, content_selector = (match tmpl with
       | None ->
-        let () = Logs.info @@ fun m -> m "Using default template for page %s" page_file in
-        Soup.parse settings.default_template_source
-      | Some (tmpl_data, tmpl_name, _) ->
-        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" tmpl_name page_file in
-        Soup.parse tmpl_data)
+        let () = Logs.info @@ fun m -> m "Using the default template for page %s" page_file in
+        (Soup.parse settings.default_template_source, Some settings.default_content_selector)
+      | Some t ->
+        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" t.template_name page_file in
+        (Soup.parse t.template_data, t.template_content_selector))
     in
-    let* () = include_content settings html content in
+    let content_selector = Option.value ~default:settings.default_content_selector content_selector in
+    let* () = include_content content_selector html content in
     Ok html
 
 (* Widget processing *)

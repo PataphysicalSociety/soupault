@@ -30,6 +30,13 @@ type index_view = {
   index_view_path_options : path_options;
 }
 
+type page_template = {
+  template_name : string;
+  template_data : string;
+  template_path_options : path_options;
+  template_content_selector : string option;
+}
+
 type settings = {
   (* show processing steps *)
   verbose : bool;
@@ -62,10 +69,10 @@ type settings = {
   default_template_source : string;
 
   (* alternative templates for specific pages *)
-  page_templates : (string * string * path_options) list;
+  page_templates : page_template list;
 
   (* element where page content is inserted in the template *)
-  content_selector : string;
+  default_content_selector : string;
 
   (* use clean URLs or mirror the site dir structure exactly *)
   clean_urls : bool;
@@ -167,7 +174,7 @@ let default_settings = {
   default_template = "templates/main.html";
   default_template_source = "";
   page_templates = [];
-  content_selector = "body";
+  default_content_selector = "body";
   clean_urls = true;
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
   ignore_extensions = [];

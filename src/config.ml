@@ -267,18 +267,22 @@ let update_page_template_settings settings config =
     | Some config -> begin
       let path_options = get_path_options config in
       let file = get_string_opt "file" config in
+      let content_selector = get_string_opt "content_selector" config in
       match file with
-      | None ->
-        let () = Logs.warn @@ fun m -> m "Missing required option \"file\" in [templates.%s], ignoring" name in
-        settings
+      | None -> Printf.ksprintf config_error "Missing required option \"file\" in [templates.%s]" name
       | Some file ->
         try
           let tmpl_data = Soup.read_file file in
-          let templates = (tmpl_data, name, path_options) :: settings.page_templates in
+          let tmpl = {
+            template_name = name; template_data=tmpl_data;
+            template_content_selector = content_selector;
+            template_path_options = path_options
+          }
+          in
+          let templates = tmpl :: settings.page_templates in
           {settings with page_templates=templates}
         with Sys_error msg ->
-          let () = Logs.warn @@ fun m -> m "Could not load the file for [templates.%s]: %s, ignoring" name msg in
-          settings
+          Printf.ksprintf config_error "Could not load the file for [templates.%s]: %s, ignoring" name msg
     end
   in
   let tt = get_table_opt Defaults.templates_table config in
@@ -312,7 +316,7 @@ let _update_settings settings config =
        strict = get_bool_default settings.strict "strict" st;
        site_dir = get_string_default settings.site_dir "site_dir" st |> String.trim;
        build_dir = get_string_default settings.build_dir "build_dir" st |> String.trim |> Utils.normalize_path;
-       content_selector = get_string_default settings.content_selector "default_content_selector" st;
+       default_content_selector = get_string_default settings.default_content_selector "default_content_selector" st;
        doctype = get_string_default settings.doctype "doctype" st;
        index_page = get_string_default settings.index_page "index_page" st;
        index_file = get_string_default settings.index_file "index_file" st;
