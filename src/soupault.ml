@@ -311,7 +311,7 @@ let initialize () =
     with Not_found -> Defaults.config_file
   in
   let* config = Config.read_config config_file in
-  let settings = Config.update_settings settings config in
+  let* settings = Config.update_settings settings config in
   let* settings = get_args settings in
   (* Update the log level from the config and arguments  *)
   let () = setup_logging settings.verbose settings.debug in

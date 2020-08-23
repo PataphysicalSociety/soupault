@@ -132,7 +132,10 @@ let _get_preprocessors config =
 
 let get_index_queries index_table =
   let get_query k it =
-    let qt = get_table k it in
+    let qt =
+      try get_table k it
+      with Type_error e -> config_error e
+    in
     let selectors = get_strings_relaxed "selector" qt in
     let default_value = get_string_opt "default" qt in
     let extract_attribute = get_string_opt "extract_attribute" qt in
@@ -155,14 +158,17 @@ let get_index_queries index_table =
     match ks with
     | [] -> acc
     | k :: ks' ->
-      (try get_queries qt ks' ((get_query k qt) :: acc)
-      with Type_error e -> Printf.ksprintf config_error "Malformed config for index field \"%s\": %s" k e)
+      let q =
+        try get_query k qt
+        with Config_error err ->
+          Printf.ksprintf config_error "Malformed config for index field \"%s\": %s" k err
+      in get_queries qt ks' (q :: acc)
   in
   let qt = get_table_opt "fields" index_table in
   match qt with
   | None -> []
-  | Some qt -> get_queries qt (Toml_utils.list_table_keys qt) []
-
+  | Some qt ->
+    get_queries qt (Toml_utils.list_table_keys qt) []
 
 let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
@@ -327,7 +333,7 @@ let _update_settings settings config =
 
 let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"]
 
-let update_settings settings config =
+let update_settings_unsafe settings config =
   let bad_section_msg tbl _ suggestion =
     (* Yay, duplicate code! *)
     let suggestion_msg =
@@ -343,3 +349,7 @@ let update_settings settings config =
     let () = check_options ~fmt:bad_section_msg valid_tables config "table \"settings\"" in
     let settings = _update_settings settings config in
     _get_index_settings settings config
+
+let update_settings settings config =
+  try Ok (update_settings_unsafe settings config)
+  with Config_error e -> Error e
