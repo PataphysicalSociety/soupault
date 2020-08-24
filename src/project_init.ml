@@ -35,7 +35,7 @@ let default_config = "
   strict = true
 
   # Display progress?
-  verbose = false
+  verbose = true
 
   # Display detailed debug output?
   debug = false
@@ -75,12 +75,12 @@ let default_config = "
 
   # Website generator mode requires a page template (an empty page to insert a page body into).
   # If you use \"generator_mode = false\", this file is not required.
-  default_template = \"templates/main.html\"
+  default_template_file = \"templates/main.html\"
 
   # Page content is inserted into a certain element of the page template. This option is a CSS selector
   # used for locating that element.
   # By default the content is inserted into the <body>
-  content_selector = \"body\"
+  default_content_selector = \"body\"
 
   # Soupault currently doesn't preserve the original doctype declaration
   # and uses the HTML5 doctype by default. You can change it using this option.
