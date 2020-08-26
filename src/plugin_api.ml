@@ -1,6 +1,8 @@
 exception Plugin_error of string
 exception Plugin_exit of string option
 
+let plugin_error err = raise (Plugin_error err)
+
 module Re_wrapper = struct
   let replace ?(all=false) s pat sub =
     try
@@ -388,6 +390,31 @@ struct
         (Plugin_error (Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
           (V.to_string v)))
 
+    let rec lua_of_json v =
+      match v with
+      | `Bool b -> V.bool.embed b
+      | `Int i -> V.int.embed i
+      | `Float f -> V.float.embed f
+      | `String s -> V.string.embed s
+      | `A vs -> (List.map lua_of_json vs) |> (V.list V.value).embed
+      | `O vs ->
+        List.map (fun (k, v) -> (k, lua_of_json v)) vs |>
+        V.Table.of_list |> V.table.embed
+      | `Null -> V.unit.embed ()
+
+    let parse_json js =
+      try Ezjsonm.from_string js |> lua_of_json
+      with
+      | Ezjsonm.Parse_error (_, err) -> Printf.ksprintf plugin_error "JSON.from_string parse error: %s" err
+      | Assert_failure (err, line, pos) -> Printf.ksprintf plugin_error "JSON.from_string internal error: %s:%d%d" err line pos
+
+    let print_json j =
+      (* ezjsonm erroneously believes a naked primitive value is not a valid JSON*)
+      match j with
+      | `O _ as j -> Ezjsonm.to_string j
+      | `A _ as j -> Ezjsonm.to_string j
+      | _ as je -> Ezjsonm.to_string (`O ["value", je])
+
     let render_template tmpl data =
       let tmpl = Template.of_string tmpl in
       if not (V.table.is data) then raise (Plugin_error "String.render_template requires a table") else
@@ -480,7 +507,12 @@ struct
        "join", V.efunc (V.string **-> V.list V.string **->> V.string) String.concat;
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
        "render_template", V.efunc (V.string **-> V.value **->> V.string) render_template
-     ] g
+     ] g;
+
+    C.register_module "JSON" [
+      "from_string", V.efunc (V.string **->> V.value) parse_json;
+      "to_string", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json)
+    ] g;
   end (* M *)
 end (* MakeLib *)
 
@@ -519,9 +551,6 @@ let rec lua_of_json v =
     I.Value.Table.of_list |> I.Value.table.embed
   | `Null -> I.Value.unit.embed ()
 
-let lua_of_config c =
-   c |> lua_of_json
-
 let run_plugin filename lua_code env config soup =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
@@ -535,7 +564,7 @@ let run_plugin filename lua_code env config soup =
       I.register_globals ["page_url", lua_str.embed env.page_url] state;
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
       I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
-      I.register_globals ["config", lua_of_config config] state
+      I.register_globals ["config", lua_of_json config] state
     in
     let _ = I.dostring ~file:filename state lua_code in
     Ok ()
