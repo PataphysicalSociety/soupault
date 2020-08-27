@@ -486,7 +486,8 @@ struct
      C.register_module "Plugin" [
        "fail", V.efunc (V.string **->> V.unit) (fun s -> raise (Plugin_error s));
        "exit", V.efunc (V.option V.string **->> V.unit) (fun e -> raise (Plugin_exit e));
-       "require_version", V.efunc (V.string **->> V.unit) Plugin_version.require_version
+       "require_version", V.efunc (V.string **->> V.unit) Plugin_version.require_version;
+       "soupault_version", V.efunc (V.unit **->> V.string) (fun () -> Defaults.version_string);
      ] g;
 
      C.register_module "Sys" [
