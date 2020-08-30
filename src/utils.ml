@@ -145,3 +145,15 @@ let concat_path fs = List.fold_left FilePath.concat "" fs
 let string_of_float f =
   if f = (Float.round f) then int_of_float f |> string_of_int
   else string_of_float f
+
+(* Ezjsonm erroneously believes that JSON only allows arrays or objects at the top level.
+   That hasn't been true for quite a while: bare numbers, strings etc. are valid JSON objects.
+   This is a kludge for compensating for it.
+ *)
+let string_of_json_primitive j =
+  match j with
+  | `String s -> s
+  | `Float f -> string_of_float f
+  | `Bool b -> string_of_bool b
+  | `Null -> "null"
+  | _ -> failwith "Ezjsonm needs a fix for standards compliance"

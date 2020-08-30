@@ -413,7 +413,7 @@ struct
       match j with
       | `O _ as j -> Ezjsonm.to_string j
       | `A _ as j -> Ezjsonm.to_string j
-      | _ as je -> Ezjsonm.to_string (`O ["value", je])
+      | _ as je -> Utils.string_of_json_primitive je
 
     let render_template tmpl data =
       let tmpl = Template.of_string tmpl in
