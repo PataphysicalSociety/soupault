@@ -175,6 +175,15 @@ module Html = struct
     | None -> ()
     | Some node -> to_element node |> Soup.set_attribute attr_name attr_value
 
+  let append_attribute node attr_name attr_value =
+    match node with
+    | None -> ()
+    | Some node ->
+      let node = to_element node in
+      let old_attr_value = Soup.attribute attr_name node |> Option.value ~default:"" in
+      let attr_value = old_attr_value ^ attr_value in
+      Soup.set_attribute attr_name attr_value node
+
   let delete_attribute node attr_name =
     match node with
     | None -> ()
@@ -441,6 +450,7 @@ struct
         "get_tag_name", V.efunc (V.option Map.html **->> V.option V.string) Html.get_tag_name;
         "get_attribute", V.efunc (V.option Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
         "set_attribute", V.efunc (V.option Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
+        "append_attribute", V.efunc (V.option Map.html **-> V.string **-> V.string **->> V.unit) Html.append_attribute;
         "delete_attribute", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.delete_attribute;
         "list_attributes", V.efunc (V.option Map.html **->> V.list V.string) Html.list_attributes;
         "clear_attributes", V.efunc (V.option Map.html **->> V.unit) Html.clear_attributes;
