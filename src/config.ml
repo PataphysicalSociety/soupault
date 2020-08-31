@@ -172,7 +172,7 @@ let get_index_queries index_table =
 
 let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
-  "index"; "dump_json"; "sort_by"; "sort_descending";
+  "index"; "dump_json"; "sort_by"; "sort_descending"; "date_formats";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
   "profile"
 ]
@@ -250,6 +250,11 @@ let _get_index_settings settings config =
   | None -> settings
   | Some st ->
     let () = check_options valid_index_options st "table \"index\"" in
+    let date_formats = get_strings_relaxed "date_formats" st in
+    let date_formats =
+      if date_formats = [] then settings.index_date_input_formats
+      else date_formats
+    in
     {settings with
        index = get_bool_default settings.index "index" st;
        dump_json = get_string_opt "dump_json" st;
@@ -262,6 +267,7 @@ let _get_index_settings settings config =
        index_path_options = get_path_options st;
        index_sort_by = get_string_opt "sort_by" st;
        index_sort_descending = get_bool_default true "sort_descending" st;
+       index_date_input_formats = date_formats;
     }
 
 let update_page_template_settings settings config =
