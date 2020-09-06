@@ -422,11 +422,11 @@ struct
       | Ezjsonm.Parse_error (_, err) -> Printf.ksprintf plugin_error "JSON.from_string parse error: %s" err
       | Assert_failure (err, line, pos) -> Printf.ksprintf plugin_error "JSON.from_string internal error: %s:%d%d" err line pos
 
-    let print_json j =
+    let print_json ?(minify=true) j =
       (* ezjsonm erroneously believes a naked primitive value is not a valid JSON*)
       match j with
-      | `O _ as j -> Ezjsonm.to_string j
-      | `A _ as j -> Ezjsonm.to_string j
+      | `O _ as j -> Ezjsonm.to_string ~minify:minify j
+      | `A _ as j -> Ezjsonm.to_string ~minify:minify j
       | _ as je -> Utils.string_of_json_primitive je
 
     let render_template tmpl data =
@@ -528,7 +528,8 @@ struct
 
     C.register_module "JSON" [
       "from_string", V.efunc (V.string **->> V.value) parse_json;
-      "to_string", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json)
+      "to_string", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json);
+      "pretty_print", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json ~minify:false);
     ] g;
   end (* M *)
 end (* MakeLib *)
