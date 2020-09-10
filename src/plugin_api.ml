@@ -476,6 +476,7 @@ struct
         "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
+        "inner_text", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "is_element", V.efunc (V.option Map.html **->> V.bool) Html.is_element;
         "get_headings_tree", V.efunc (V.option Map.html **->> V.list V.value) get_headings_tree;
         "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
