@@ -280,6 +280,7 @@ let update_page_template_settings settings config =
       let path_options = get_path_options config in
       let file = get_string_opt "file" config in
       let content_selector = get_string_opt "content_selector" config in
+      let content_action = get_string_opt "content_action" config in
       match file with
       | None -> Printf.ksprintf config_error "Missing required option \"file\" in [templates.%s]" name
       | Some file ->
@@ -288,6 +289,7 @@ let update_page_template_settings settings config =
           let tmpl = {
             template_name = name; template_data=tmpl_data;
             template_content_selector = content_selector;
+            template_content_action = content_action;
             template_path_options = path_options
           }
           in
@@ -306,8 +308,9 @@ let update_page_template_settings settings config =
 
 let valid_settings = [
   "verbose"; "debug"; "strict"; "site_dir"; "build_dir";
-  "default_content_selector"; "doctype"; "index_page"; "index_file";
-  "default_template_file"; "clean_urls"; "page_file_extensions";
+  "default_content_selector"; "default_template_file"; "default_content_action"; 
+  "doctype"; "index_page"; "index_file";
+  "clean_urls"; "page_file_extensions";
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery"
@@ -333,6 +336,7 @@ let _update_settings settings config =
        index_page = get_string_default settings.index_page "index_page" st;
        index_file = get_string_default settings.index_file "index_file" st;
        default_template = get_string_default settings.default_template "default_template_file" st;
+       default_content_action = get_string_default settings.default_content_action "default_content_action" st;
        clean_urls = get_bool_default settings.clean_urls "clean_urls" st;
        page_extensions = get_strings_relaxed ~default:settings.page_extensions "page_file_extensions" st;
        ignore_extensions = get_strings_relaxed ~default:[] "ignore_extensions" st;

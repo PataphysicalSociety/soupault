@@ -35,6 +35,7 @@ type page_template = {
   template_data : string;
   template_path_options : path_options;
   template_content_selector : string option;
+  template_content_action : string option;
 }
 
 type settings = {
@@ -67,6 +68,9 @@ type settings = {
 
   (* Temporary place for the template source, now that the global env is gone *)
   default_template_source : string;
+
+  (* what to do with the content *)
+  default_content_action : string;
 
   (* alternative templates for specific pages *)
   page_templates : page_template list;
@@ -173,6 +177,7 @@ let default_settings = {
   index_file = "index.html";
   default_template = "templates/main.html";
   default_template_source = "";
+  default_content_action = "append_child";
   page_templates = [];
   default_content_selector = "body";
   clean_urls = true;
