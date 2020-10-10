@@ -82,6 +82,10 @@ let default_config = "
   # By default the content is inserted into the <body>
   default_content_selector = \"body\"
 
+  # You can choose where exactly to insert the content in its parent element.
+  # The default is append_child, but there are more, including prepend_child and replace_content
+  default_content_action = \"append_child\"
+
   # Soupault currently doesn't preserve the original doctype declaration
   # and uses the HTML5 doctype by default. You can change it using this option.
   doctype = \"<!DOCTYPE html>\"
