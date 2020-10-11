@@ -281,6 +281,14 @@ let _process_page index widgets config settings (page_file, nav_path) =
 (* Option parsing and initialization *)
 
 let get_args settings =
+  (* Due to a workaround, we are going to parse argument twice:
+     first to find out if we actually need to do anything but printing a version or help,
+     second time to override config file options with command line ones if needed.
+
+     The Arg module has a global state: Arg.current that hold the index of the last processed argument.
+     We need to reset it to zero to make the function usable more than once.
+   *)
+  let () = Arg.current := 0 in
   let init = ref false in
   let sr = ref settings in
   let args = [
@@ -316,8 +324,20 @@ let initialize () =
     try Unix.getenv Defaults.config_path_env_var
     with Not_found -> Defaults.config_file
   in
+  (* Parse the arguments to see if we have any real work to do, or it's --version/--help or similar.
+     If it's just --version, we don't even need to read the config. Worse yet, config reading errors
+     will prevent us from doing it.
+
+     An alternative would be to create an intermediate type for holding options obtained from command
+     line arguments and merge it with the settings record, but that sounds just as tedious as this.
+   *)
+  let _ = get_args default_settings in
+  (* Now actually read the config... *)
   let* config = Config.read_config config_file in
   let* settings = Config.update_settings settings config in
+  (* ...and override options from it with values from command line arguments,
+     if any.
+   *)
   let* settings = get_args settings in
   (* Update the log level from the config and arguments  *)
   let () = setup_logging settings.verbose settings.debug in
