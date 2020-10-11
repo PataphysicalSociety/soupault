@@ -390,7 +390,11 @@ let main () =
      This will produce no new index data so we ignore the non-error results. *)
   let index = Autoindex.sort_entries settings index in
   let* () = Utils.iter (_process_page index widgets config settings) index_files in
-  let* () = Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files in
+  let* () =
+    if not settings.index_only
+    then Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files
+    else Ok ()
+  in
   let* () = dump_index_json settings index in
   Ok ()
 
