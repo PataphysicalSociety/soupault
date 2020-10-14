@@ -111,9 +111,11 @@ let deprecation_warning f opt msg config =
    HTML standards only demand that id should not have whitespace in it,
    contrary to the popular opinion.
  *)
-let slugify ?(soft=false) s =
-  if soft then Re.replace ~all:true ~f:(fun _ -> "-") (Re.Perl.compile_pat "\\s+") s
-  else Re.replace ~all:true ~f:(fun _ -> "-") (Re.Perl.compile_pat "[^a-zA-Z0-9\\-]") s |> String.lowercase_ascii
+let slugify ?(lowercase=true) ?(regex=None) ?(sub=None) s =
+  let regex = Option.value ~default:"[^a-zA-Z0-9\\-]" regex in
+  let sub = Option.value ~default:"-" sub in
+  let s = Re.replace ~all:true ~f:(fun _ -> sub) (Re.Perl.compile_pat regex) s in
+  if lowercase then String.lowercase_ascii s else s
 
 let profile_matches profile build_profile =
   (* Processing steps should run unless they have a "profile" option

@@ -1,3 +1,5 @@
+include Soupault_common
+
 (** The table of contents widget *)
 
 type toc_settings = {
@@ -13,6 +15,9 @@ type toc_settings = {
   use_text: bool;
   use_slugs: bool;
   soft_slug: bool;
+  slug_regex: string option;
+  slug_replacement: string option;
+  slug_force_lowercase: bool;
   strip_tags: bool;
   valid_html: bool;
   min_headings: int;
@@ -34,7 +39,18 @@ let get_heading_id settings counter heading =
       match text with
       | None -> counter () |> string_of_int
       | Some t ->
-        if settings.use_slugs then Utils.slugify ~soft:settings.soft_slug t
+        if settings.use_slugs then
+          (* soft_slug is a shortcut for "only replace whitespace with hyphens" *)
+          let regex = if settings.soft_slug then (Some "\\s+") else settings.slug_regex in
+          let lowercase = if settings.soft_slug then false else settings.slug_force_lowercase in
+          try Utils.slugify
+            ~lowercase:lowercase
+            ~regex:regex
+            ~sub:settings.slug_replacement
+            t
+          with _ ->
+            soupault_error @@ Printf.sprintf "Invalid regex in a slug_regex option: '%s'"
+              (Option.value ~default:"" regex)
         else t
     end
 
@@ -106,7 +122,8 @@ let toc _ config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
      "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append"; "valid_html";
-     "use_heading_text"; "use_heading_slug"; "soft_slug"; "use_header_text"; "use_header_slug"; "strip_tags"; "action"]
+     "use_heading_text"; "use_heading_slug"; "soft_slug"; "slug_regex"; "slug_replacement_string"; "slug_force_lowercase";
+     "use_header_text"; "use_header_slug"; "strip_tags"; "action"]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
   let settings = {
@@ -122,6 +139,9 @@ let toc _ config soup =
     use_text = Config.get_bool_default false "use_heading_text" config;
     use_slugs = Config.get_bool_default false "use_heading_slug" config;
     soft_slug = Config.get_bool_default false "soft_slug" config;
+    slug_regex = Config.get_string_opt "slug_regex" config;
+    slug_replacement = Config.get_string_opt "slug_replacement_string" config;
+    slug_force_lowercase = Config.get_bool_default true "slug_force_lowercase" config;
     strip_tags = Config.get_bool_default false "strip_tags" config;
     valid_html = Config.get_bool_default false "valid_html" config;
     min_headings = Config.get_int_default 0 "min_headings" config;
