@@ -123,7 +123,7 @@ let toc _ config soup =
     ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
      "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append"; "valid_html";
      "use_heading_text"; "use_heading_slug"; "soft_slug"; "slug_regex"; "slug_replacement_string"; "slug_force_lowercase";
-     "use_header_text"; "use_header_slug"; "strip_tags"; "action"]
+     "strip_tags"; "action"]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
   let settings = {
