@@ -12,6 +12,7 @@ type toc_settings = {
   link_here_append: bool;
   use_text: bool;
   use_slugs: bool;
+  soft_slug: bool;
   strip_tags: bool;
   valid_html: bool;
   min_headings: int;
@@ -33,7 +34,7 @@ let get_heading_id settings counter heading =
       match text with
       | None -> counter () |> string_of_int
       | Some t ->
-        if settings.use_slugs then Utils.slugify t
+        if settings.use_slugs then Utils.slugify ~soft:settings.soft_slug t
         else t
     end
 
@@ -105,7 +106,7 @@ let toc _ config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
      "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append"; "valid_html";
-     "use_heading_text"; "use_heading_slug"; "use_header_text"; "use_header_slug"; "strip_tags"; "action"]
+     "use_heading_text"; "use_heading_slug"; "soft_slug"; "use_header_text"; "use_header_slug"; "strip_tags"; "action"]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
   let settings = {
@@ -120,6 +121,7 @@ let toc _ config soup =
     link_here_append = Config.get_bool_default false "heading_links_append" config;
     use_text = Config.get_bool_default false "use_heading_text" config;
     use_slugs = Config.get_bool_default false "use_heading_slug" config;
+    soft_slug = Config.get_bool_default false "soft_slug" config;
     strip_tags = Config.get_bool_default false "strip_tags" config;
     valid_html = Config.get_bool_default false "valid_html" config;
     min_headings = Config.get_int_default 0 "min_headings" config;

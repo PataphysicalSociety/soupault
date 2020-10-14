@@ -105,10 +105,15 @@ let deprecation_warning f opt msg config =
   | None -> ()
   | Some _ -> Logs.warn @@ fun m -> m "Deprecated option %s: %s" opt msg
 
-(* Replaces all URL-unsafe characters with hyphens *)
-let slugify s =
-  Re.Str.global_replace (Re.Str.regexp "[^a-zA-Z0-9\\-]") "-" s |>
-  String.lowercase_ascii
+(* Makes a heading slug for the id attribute.
+   In the "hard" mode it replaces everything but ASCII letters and digits with hyphens.
+   In the "soft" mode it only replaces whitespace with hyphens.
+   HTML standards only demand that id should not have whitespace in it,
+   contrary to the popular opinion.
+ *)
+let slugify ?(soft=false) s =
+  if soft then Re.replace ~all:true ~f:(fun _ -> "-") (Re.Perl.compile_pat "\\s+") s
+  else Re.replace ~all:true ~f:(fun _ -> "-") (Re.Perl.compile_pat "[^a-zA-Z0-9\\-]") s |> String.lowercase_ascii
 
 let profile_matches profile build_profile =
   (* Processing steps should run unless they have a "profile" option
