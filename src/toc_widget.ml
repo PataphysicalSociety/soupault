@@ -5,6 +5,7 @@ include Soupault_common
 type toc_settings = {
   min_level: int;
   max_level: int;
+  max_heading_link_level: int;
   toc_class: string option;
   toc_class_levels: bool;
   numbered_list: bool;
@@ -65,9 +66,11 @@ let make_toc_class settings level =
 
 (** Adds a link to the ToC list and sets the identifier
     of the heading so that the link actually works *)
-let add_item settings counter heading container =
+let add_item settings heading container =
   let li = Soup.create_element "li" in
-  let heading_id = get_heading_id settings counter heading in
+  (* It's safe to unsafely unwrap options here because this function
+     is only called for headings that must have had their ids set earlier. *)
+  let heading_id = Soup.attribute "id" heading |> Option.get in
   let h_link = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
   let h_content = Html_utils.child_nodes heading in
   (* Strip tags if configured *)
@@ -78,18 +81,24 @@ let add_item settings counter heading container =
   Soup.append_child h_link h_content;
   Soup.append_child li h_link;
   Soup.append_child container li;
-  Soup.set_attribute "id" heading_id heading;
-  (* Add a link to the current heading if requested *)
-  if settings.link_here then begin
-    let link_text = Soup.parse settings.link_here_text in
-    let link_here = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
-    let () = Soup.append_child link_here link_text in
-    Html_utils.add_class settings.link_here_class link_here;
-    if settings.link_here_append then Soup.append_child heading link_here
-    else Soup.prepend_child heading link_here
-  end;
   (* Return the generated <li> element *)
   li
+
+let make_heading_linkable settings counter heading =
+  if (Html_utils.get_heading_level heading) <= settings.max_heading_link_level then
+  (* Set heading id to make it possible to link directly to a section *)
+  let heading_id = get_heading_id settings counter heading in
+  Soup.set_attribute "id" heading_id heading
+
+let add_section_link settings heading =
+  if (Html_utils.get_heading_level heading) <= settings.max_heading_link_level then
+  let heading_id = Soup.attribute "id" heading |> Option.get in
+  let link_text = Soup.parse settings.link_here_text in
+  let link_here = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
+  let () = Soup.append_child link_here link_text in
+  Html_utils.add_class settings.link_here_class link_here;
+  if settings.link_here_append then Soup.append_child heading link_here
+  else Soup.prepend_child heading link_here
 
 let make_toc_container settings level =
   let tag = if settings.numbered_list then "ol" else "ul" in
@@ -104,14 +113,14 @@ let rec _make_toc settings depth counter parent tree =
   let level = Html_utils.get_heading_level heading in
   if level > settings.max_level then () else
   if level < settings.min_level then List.iter (_make_toc settings depth counter parent) children else
-  let item = add_item settings counter heading parent in
+  let item = add_item settings heading parent in
   match children with
   | [] -> ()
   | _ ->
     let container = make_toc_container settings depth in
     (* According to the HTML specs, and contrary to the popular opinion,
-       a <ul> or <ul> cannot contain another <ul> or <ul>.
-       Nested lists must be inside its <li> elements.
+       a <ul> or <ol> cannot contain another <ul> or <ol>.
+       Nested lists must be inside <li> elements.
        With valid_html the user can force that behaviour.
      *)
     if settings.valid_html then Soup.append_child item container
@@ -119,16 +128,35 @@ let rec _make_toc settings depth counter parent tree =
     List.iter (_make_toc settings (depth + 1) counter container) children
 
 let toc _ config soup =
-  let valid_options = List.append Config.common_widget_options
-    ["selector"; "min_level"; "max_level"; "toc_list_class"; "toc_class_levels"; "numbered_list";
-     "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append"; "valid_html";
-     "use_heading_text"; "use_heading_slug"; "soft_slug"; "slug_regex"; "slug_replacement_string"; "slug_force_lowercase";
-     "strip_tags"; "action"]
+  let valid_options = List.append Config.common_widget_options [
+    (* General options *)
+    "selector"; "action"; "strip_tags";
+    (* Level options *)
+    "min_level"; "max_level"; "max_heading_link_level";
+    (* Styling and layout *)
+    "toc_list_class"; "toc_class_levels";
+    "numbered_list"; "valid_html";
+    (* Settings for the section links placed next to headings *)
+    "heading_links"; "heading_link_text"; "heading_link_class"; "heading_links_append";
+    (* Slugification options *)
+    "use_heading_text"; "use_heading_slug";
+    "soft_slug"; "slug_regex"; "slug_replacement_string";
+    "slug_force_lowercase";
+  ]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
+  let max_level = Config.get_int_default 6 "max_level" config in
   let settings = {
     min_level = Config.get_int_default 1 "min_level" config;
-    max_level = Config.get_int_default 6 "max_level" config;
+    max_level = max_level;
+    max_heading_link_level =
+      (let lvl = Config.get_int_default max_level "max_heading_link_level" config in
+      if lvl < max_level then begin
+        let () = Logs.warn @@ fun m -> m "max_heading_level cannot be lower than max_level, forcing to max_level" in
+        max_level
+      end
+      else lvl)
+    ;
     toc_class = Config.get_string_opt "toc_list_class" config;
     toc_class_levels = Config.get_bool_default false "toc_class_levels" config;
     numbered_list = Config.get_bool_default false "numbered_list" config;
@@ -162,6 +190,7 @@ let toc _ config soup =
         let counter = make_counter 0 in
         let headings = Html_utils.find_headings soup in
         if ((List.length headings) < settings.min_headings) then Ok () else
+        let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
         let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
         match headings_tree with
         | [] ->
@@ -170,6 +199,9 @@ let toc _ config soup =
         | _ ->
           let toc_container = make_toc_container settings 1 in
           let _ = List.iter (_make_toc settings 2 counter toc_container) headings_tree in
-          Ok (Html_utils.insert_element action container toc_container)
+          let () = Html_utils.insert_element action container toc_container in
+          let () =          
+            if settings.link_here then List.iter (fun h -> add_section_link settings h) headings
+          in Ok ()
       end
     end
