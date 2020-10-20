@@ -78,6 +78,8 @@ let get_string_result ?(strict=false) err k tbl =
     Ok res
   with
   | Key_error _ -> Error err
+  | Toml_utils.Type_error err ->
+    Error (Printf.sprintf "wrong value type for option \"%s\": %s" k err)
 
 let get_string_opt ?(strict=false) k tbl = get_string_result ~strict:strict "" k tbl |> Result.to_option
 
