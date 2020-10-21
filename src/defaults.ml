@@ -51,6 +51,9 @@ type settings = {
   (* HTML doctype to insert in generated pages *)
   doctype : string;
 
+  (* Whether to keep the doctype is a page already has one *)
+  keep_doctype : bool;
+
   (* where generated pages are stored *)
   build_dir : string;
 
@@ -171,6 +174,7 @@ let default_settings = {
   debug = false;
   strict = true;
   doctype = "<!DOCTYPE html>";
+  keep_doctype = false;
   build_dir = "build";
   site_dir = "site";
   index_page = "index";

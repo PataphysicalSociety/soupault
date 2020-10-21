@@ -86,8 +86,11 @@ let default_config = "
   # The default is append_child, but there are more, including prepend_child and replace_content
   default_content_action = \"append_child\"
 
-  # Soupault currently doesn't preserve the original doctype declaration
-  # and uses the HTML5 doctype by default. You can change it using this option.
+  # If a page already has a document type declaration, keep the declaration
+  keep_doctype = true;
+
+  # If a page does not have a document type declaration, force it to HTML5
+  # With keep_doctype=false, soupault will replace existing declarations with it too
   doctype = \"<!DOCTYPE html>\"
 
   # Enables or disables clean URLs.
