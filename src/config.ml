@@ -94,6 +94,12 @@ let get_bool_default default name config = get_bool ~default:(Some default) name
 
 let get_int_default default_value k tbl = field ~default:(Some (`Float (float_of_int default_value))) k tbl |> number |> int_of_float
 
+let get_strings k tbl =
+  let open Toml_utils in
+  try
+    let res = field k tbl |> list ~strict:false |> strings ~strict:false in
+    Some res
+  with Key_error _ -> None
 
 (** Tries to get a string list from a config
     If there's actually a list, converts every item to a string.
@@ -101,9 +107,10 @@ let get_int_default default_value k tbl = field ~default:(Some (`Float (float_of
     If there's nothing like a string at all, returns the default value.
  *)
 let get_strings_relaxed ?(default=([])) k tbl =
-  let open Toml_utils in
-  try field k tbl |> list ~strict:false |> strings ~strict:false
-  with Key_error _ -> default
+  let res = get_strings k tbl in
+  match res with
+  | Some res -> res
+  | None -> default
 
 let assoc_of_table f t =
   match t with

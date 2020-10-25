@@ -14,7 +14,7 @@ let no_container_action selectors =
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
 let insert_html _ config soup =
-  let valid_options = List.append Config.common_widget_options ["selector"; "html"; "action"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "html"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"insert_html\"" in
   let selector = get_selectors config in
   let action = Config.get_string_default "append_child" "action" config in
@@ -70,7 +70,7 @@ let make_program_env env =
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
 let include_program_output env config soup =
-  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"exec\"" in
   let selector = get_selectors config in
   let action = Config.get_string_default "append_child" "action" config in
@@ -122,7 +122,7 @@ let preprocess_element env config soup =
         raise (Failure e)
   in
   (* Retrieve configuration options *)
-  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"preprocess_element\"" in
   let action = Config.get_string_default "replace_content" "action" config in
   let parse = Config.get_bool_default true "parse" config in
