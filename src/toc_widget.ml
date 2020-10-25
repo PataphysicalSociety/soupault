@@ -91,7 +91,9 @@ let make_heading_linkable settings counter heading =
   Soup.set_attribute "id" heading_id heading
 
 let add_section_link settings heading =
-  if (Html_utils.get_heading_level heading) <= settings.max_heading_link_level then
+  let heading_level = Html_utils.get_heading_level heading in
+  if (heading_level <= settings.max_heading_link_level) &&
+     (heading_level >= settings.min_level) then
   let heading_id = Soup.attribute "id" heading |> Option.get in
   let link_text = Soup.parse settings.link_here_text in
   let link_here = Soup.create_element ~attributes:["href", "#" ^ heading_id] "a" in
