@@ -2,6 +2,13 @@ open Defaults
 
 let (let*) = Stdlib.Result.bind
 
+let get_selectors config =
+  Config.get_strings "selector" config |> Option.to_result ~none:"Missing required option \"selector\""
+
+let no_container_action selectors =
+  Logs.debug @@ fun m -> m "Page has no elements matching selectors \"%s\", nowhere to insert the snippet"
+    (selectors |> String.concat " ")
+
 (** Widgets that include external resources into the page *)
 
 (** Inserts an HTML snippet from the [html] config option
@@ -9,18 +16,17 @@ let (let*) = Stdlib.Result.bind
 let insert_html _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "action"] in
   let () = Config.check_options valid_options config "widget \"insert_html\"" in
-  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let selector = get_selectors config in
   let action = Config.get_string_default "append_child" "action" config in
   let html_body_context = Config.get_bool_default true "html_context_body" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
-    let* container = Html_utils.select_one selector soup in
+    let container = Html_utils.select_any_of selector soup in
     begin
       match container with
       | None ->
-        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the snippet" selector in
-        Ok ()
+        let () = no_container_action selector in Ok ()
       | Some container ->
         let* html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
         let content = Html_utils.parse_html ~body:html_body_context html_str in
@@ -32,19 +38,18 @@ let insert_html _ config soup =
 let include_file _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"include\"" in
-  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let selector = get_selectors config in
   let action = Config.get_string_default "append_child" "action" config in
   let html_body_context = Config.get_bool_default true "html_context_body" config in
   let parse_content = Config.get_bool_default true "parse" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
-    let* container = Html_utils.select_one selector soup in
+    let container = Html_utils.select_any_of selector soup in
     begin
       match container with
       | None ->
-        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the file" selector in
-        Ok ()
+        let () = no_container_action selector in Ok ()
       | Some container ->
         let* file = Config.get_string_result "Missing required option \"file\"" "file" config in
         let* content = Utils.get_file_content file in
@@ -67,19 +72,18 @@ let make_program_env env =
 let include_program_output env config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"] in
   let () = Config.check_options valid_options config "widget \"exec\"" in
-  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
+  let selector = get_selectors config in
   let action = Config.get_string_default "append_child" "action" config in
   let html_body_context = Config.get_bool_default true "html_context_body" config in
   let parse_content = Config.get_bool_default true "parse" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
-    let* container = Html_utils.select_one selector soup in
+    let container = Html_utils.select_any_of selector soup in
     begin
       match container with
       | None ->
-        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the script output" selector in
-        Ok ()
+        let () = no_container_action selector in Ok ()
       | Some container ->
         let env_array = make_program_env env in
         let* cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
