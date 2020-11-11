@@ -80,7 +80,7 @@ let rec _load_widgets settings config plugins ws hash =
                     with Sys_error msg ->
                       fail @@ Printf.sprintf "Could not read plugin file that provides widget \"%s\": %s" name msg
                   in
-                  let () = Hashtbl.add plugins name (Plugin_api.run_plugin name lua_source) in
+                  let () = Hashtbl.add plugins name (Plugin_api.run_plugin config name lua_source) in
                   let () = Logs.debug @@ fun m -> m "Widget %s is loaded from plugin file %s" name plugin_file in
                   let () = add_widget hash w (find_widget plugins name |> Option.get) widget_config in
                    _load_widgets settings config plugins ws' hash

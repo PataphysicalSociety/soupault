@@ -570,7 +570,7 @@ let rec lua_of_json v =
     I.Value.Table.of_list |> I.Value.table.embed
   | `Null -> I.Value.unit.embed ()
 
-let run_plugin filename lua_code env config soup =
+let run_plugin soupault_config filename lua_code env widget_config soup =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
@@ -583,7 +583,8 @@ let run_plugin filename lua_code env config soup =
       I.register_globals ["page_url", lua_str.embed env.page_url] state;
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
       I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
-      I.register_globals ["config", lua_of_json config] state
+      I.register_globals ["config", lua_of_json widget_config] state;
+      I.register_globals ["soupault_config", lua_of_json soupault_config] state;
     in
     let _ = I.dostring ~file:filename state lua_code in
     Ok ()
