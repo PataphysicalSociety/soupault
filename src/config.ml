@@ -362,7 +362,7 @@ let _update_settings settings config =
        preprocessors = _get_preprocessors config
      }
 
-let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"]
+let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"; "custom_options"]
 
 let update_settings_unsafe settings config =
   let bad_section_msg tbl _ suggestion =
