@@ -422,6 +422,13 @@ struct
       | Ezjsonm.Parse_error (_, err) -> Printf.ksprintf plugin_error "JSON.from_string parse error: %s" err
       | Assert_failure (err, line, pos) -> Printf.ksprintf plugin_error "JSON.from_string internal error: %s:%d%d" err line pos
 
+    let parse_json_unsafe js =
+      try Some (parse_json js)
+      with Plugin_error err ->
+        let () = Logs.warn @@ fun m -> m "JSON.parse_json_unsafe failed to parse JSON, returning nil: %s" err in
+        let () = Logs.debug @@ fun m -> m "JSON string was:\n %s" js in
+        None
+
     let print_json ?(minify=true) j =
       (* ezjsonm erroneously believes a naked primitive value is not a valid JSON*)
       match j with
@@ -529,6 +536,7 @@ struct
 
     C.register_module "JSON" [
       "from_string", V.efunc (V.string **->> V.value) parse_json;
+      "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_json_unsafe;
       "to_string", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json);
       "pretty_print", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json ~minify:false);
     ] g;
