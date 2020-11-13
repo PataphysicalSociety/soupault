@@ -77,7 +77,7 @@ let compare_entries settings l r =
     | Some _, None -> 1
     | None, Some _ -> -1
     | Some l_date, Some r_date ->
-      CalendarLib.Date.compare l_date r_date
+      CalendarLib.Calendar.compare l_date r_date
   in
   let l_date = get_date l in
   let r_date = get_date r in
