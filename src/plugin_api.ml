@@ -445,6 +445,11 @@ struct
       | `A _ -> raise (Plugin_error "String.render_template requires a string-indexed table, found a number-indexed array")
       | _ -> raise (Plugin_error "Cannot happen: project_lua_table returned an unexpected result")
 
+    let reformat_date date_string input_formats output_format =
+      let (>>=) = Stdlib.Option.bind in
+      Utils.parse_date input_formats date_string >>=
+      (fun d -> Some (Utils.format_date output_format d))
+
     let init g = 
       C.register_module "HTML" [
         "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
@@ -539,6 +544,10 @@ struct
       "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_json_unsafe;
       "to_string", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json);
       "pretty_print", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json ~minify:false);
+    ] g;
+
+    C.register_module "Date" [
+      "reformat", V.efunc (V.string **-> V.list V.string **-> V.string **->> V.option V.string) reformat_date;
     ] g;
   end (* M *)
 end (* MakeLib *)

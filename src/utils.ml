@@ -211,3 +211,5 @@ let rec parse_date fmts d =
         raise e
     end
     with Invalid_argument _ -> parse_date fs d
+
+let format_date = CalendarLib.Printer.CalendarPrinter.sprint
