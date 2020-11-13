@@ -164,3 +164,12 @@ let string_of_json_primitive j =
   | `Bool b -> string_of_bool b
   | `Null -> "null"
   | _ -> failwith "Ezjsonm needs a fix for standards compliance"
+
+let rec parse_date fmts d =
+  match fmts with
+  | [] ->
+    let () = Logs.debug @@ fun m -> m "Field value \"%s\" could not be parsed as a date, interpreting as a string" d in
+    None
+  | f :: fs ->
+    try Some (CalendarLib.Printer.Date.from_fstring f d)
+    with Invalid_argument _ -> parse_date fs d

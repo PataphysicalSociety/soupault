@@ -54,15 +54,6 @@ let get_entry settings env soup =
     fields = get_custom_fields settings.index_strip_tags settings.index_fields soup
   }
 
-let rec parse_date fmts d =
-  match fmts with
-  | [] ->
-    let () = Logs.debug @@ fun m -> m "Field value \"%s\" could not be parsed as a date, interpreting as a string" d in
-    None
-  | f :: fs ->
-    try Some (CalendarLib.Printer.Date.from_fstring f d)
-    with Invalid_argument _ -> parse_date fs d
-
 (** Compares entries by their dates according to these rules:
     1. Entries without known dates are equal
     2. Entries with a known date are newer than those without
@@ -76,7 +67,7 @@ let compare_entries settings l r =
   in
   let get_date entry =
     settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>=
-    string_of_field >>= parse_date settings.index_date_input_formats
+    string_of_field >>= Utils.parse_date settings.index_date_input_formats
   in
   let compare_dates l_date r_date =
     match l_date, r_date with
