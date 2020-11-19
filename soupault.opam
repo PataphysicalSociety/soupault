@@ -38,7 +38,7 @@ depends: [
   "ezjsonm"
   "containers"
   "stringext"
-  "calendar"
+  "odate"
   "spelll"
   "jingoo"
   "tsort" {>= "2.0.0"}

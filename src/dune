@@ -12,7 +12,7 @@
    logs.fmt
    stringext
    re
-   calendar
+   odate
    spelll
    ezjsonm
    jingoo

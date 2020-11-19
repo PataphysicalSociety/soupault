@@ -165,51 +165,25 @@ let string_of_json_primitive j =
   | `Null -> "null"
   | _ -> failwith "Ezjsonm needs a fix for standards compliance"
 
-(* XXX: Warning 52 = reliance of a data constructor value.
-
-   Here it's caused by this: Invalid_argument "Cannot create the calendar"
-   Sadly, as of 2.04, the calendar library doesn't provide a better way
-   to determine if parsing fails because a date string "really" doesn't match the format,
-   or because a date-only format was passed to a datetime parsing function.
-
-   Examples:
-
-   Bad format:
-   # CalendarLib.Printer.CalendarPrinter.from_fstring "%F" "2020-01-01 00:00" ;;
-   Exception: Invalid_argument "2020-01-01 00:00 does not match the format %F".
-
-   Incomplete format (
-     missing time, good for CalendarLib.Printer.Date.from_fstring,
-     but not for CalendarLib.Printer.CalendarPrinter.from_fstring):
-   # CalendarLib.Printer.CalendarPrinter.from_fstring "%F" "2020-01-01" ;;
-   Exception: Invalid_argument "Cannot create the calendar".
-
-   So, best we can do right now is "stringly typed" error handling.
- *)
-[@@@ocaml.warning "-52"]
-let rec parse_date fmts d =
+let rec parse_date fmts date_string =
   match fmts with
   | [] ->
-    let () = Logs.debug @@ fun m -> m "Field value \"%s\" could not be parsed as a date, interpreting as a string" d in
+    let () = Logs.debug @@ fun m -> m "Field value \"%s\" could not be parsed as a date, interpreting as a string" date_string in
     None
-  | f :: fs ->
-    try begin
-      try Some (CalendarLib.Printer.CalendarPrinter.from_fstring f d)
-      with
-      | Invalid_argument "Cannot create the calendar" ->
-        (* That format is mostly valid but is missing a time part,
-           parse as a date and add 00:00:00 time.
-         *)
-        let date = CalendarLib.Printer.DatePrinter.from_fstring f d in
-        let time = CalendarLib.Time.make 0 0 0 in
-        let datetime = CalendarLib.Calendar.create date time in
-        Some datetime
-      | Invalid_argument _ as e ->
-        (* Format is completely invalid for this time string,
-           try the remaining formats.
-         *)
-        raise e
-    end
-    with Invalid_argument _ -> parse_date fs d
+  | f :: fs -> begin
+    let parser = ODate.Unix.From.generate_parser f in
+    match parser with
+    | None -> soupault_error (Printf.sprintf "Date format \"%s\" is invalid." f)
+    | Some parser ->
+      try
+        let date = ODate.Unix.From.string parser date_string in
+        let () = Logs.debug @@ fun m -> m "Date string \"%s\" matched format \"%s\"" date_string f in
+        Some date
+      with Failure _ -> parse_date fs date_string
+  end
 
-let format_date = CalendarLib.Printer.CalendarPrinter.sprint
+let format_date fmt date =
+  let printer = ODate.Unix.To.generate_printer fmt in
+  match printer with
+  | None -> soupault_error (Printf.sprintf "Date format \"%s\" is invalid." fmt)
+  | Some printer -> ODate.Unix.To.string printer date
