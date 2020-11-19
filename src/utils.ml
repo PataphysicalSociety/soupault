@@ -133,9 +133,7 @@ let get_extension file =
   try FilePath.get_extension file
   with Not_found -> ""
 
-(* Remove trailing slashes from a path.
-   This is mainly to work around fileutils#14 issue.
- *)
+(* Remove trailing slashes from a path. *)
 let normalize_path path =
   (* If a path is empty, leave it empty.
      Right now soupault treats build_dir="" as

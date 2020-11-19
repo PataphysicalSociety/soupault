@@ -39,92 +39,122 @@ type page_template = {
 }
 
 type settings = {
-  (* show processing steps *)
+  (* Show build progress. *)
   verbose : bool;
 
-  (* show debug information *)
+  (* Show debug information. *)
   debug : bool;
 
-  (* stop on page processing errors *)
+  (* Stop on page processing errors. *)
   strict : bool;
 
-  (* HTML doctype to insert in generated pages *)
+  (* HTML doctype to insert in generated pages. *)
   doctype : string;
 
-  (* Whether to keep the doctype is a page already has one *)
+  (* Whether to keep the doctype if a page already has one. *)
   keep_doctype : bool;
 
-  (* where generated pages are stored *)
+  (* Where generated pages are saved. *)
   build_dir : string;
 
-  (* where page source files are stored *)
+  (* Where to look for page source files. *)
   site_dir : string;
 
-  (* page source file to use for section index, without extension *)
+  (* Page source file to use for section index, without extension. *)
   index_page : string;
 
-  (* generated section index file name *)
+  (* Generated section index file name. *)
   index_file : string;
 
-  (* default HTML page template *)
+  (* Default HTML page template. *)
   default_template : string;
 
-  (* Temporary place for the template source, now that the global env is gone *)
+  (* Default template source string (not a file path). *)
   default_template_source : string;
 
-  (* what to do with the content *)
+  (* What to do with the content. *)
   default_content_action : string;
 
-  (* alternative templates for specific pages *)
+  (* Alternative templates for specific pages. *)
   page_templates : page_template list;
 
-  (* element where page content is inserted in the template *)
+  (* Element where page content is inserted in the template. *)
   default_content_selector : string;
 
-  (* use clean URLs or mirror the site dir structure exactly *)
+  (* Use clean URLs if true (mirror the site dir structure exactly when false). *)
   clean_urls : bool;
 
-  (* Extensions of files assumed to be pages *)
+  (* What files to consider pages rather than assets. *)
   page_extensions : string list;
 
-  (* File extensions to ignore completely *)
+  (* File extensions to ignore completely. *)
   ignore_extensions : string list;
 
-  (* Extension to use for page files with non-standard extensions. *)
-  default_extension : string;
-
-  (* What extensions to consider "standard" for the purpose of setting extensions.
+  (* Extensions to keep intact when generating pages from content files.
      That's for people who want to use Markdown etc. _without_ also using clean URLs,
      so that about.htm remains about.htm, but contact.md becomes contact.html
    *)
   keep_extensions : string list;
 
-  (* Pages that should be just run through the widgets
-      rather than inserted in the template *)
+  (* Extension to use for pages whose content file extension is _not_ in the keep_extensions list.
+     E.g. a user has site/index.md, and it becomes build/index.html,
+     while site/about.html can stay build/about.html
+   *) 
+  default_extension : string;
+
+  (* HTML files considered complete pages rather than content files.
+     Normally those that have an <html> element in them.
+   *)
   complete_page_selector : string;
 
   (* If set to false, soupault doesn't use or require a page template,
-     but treats everything as a complete page *)
+     but treats everything as a complete page. *)
   generator_mode : bool;
 
+  (* Build "profile" normally specified from the CLI with --profile
+     E.g. "dev" or "production".
+     Widgets can be restricted to specific profiles.
+   *)
   build_profile : string option;
 
   (* Only extract the site index, don't generate any pages *)
   index_only : bool;
 
+  (* Enable site metadata extraction. *)
   index : bool;
+
+  (* Save site metadata to a JSON file. *)
   dump_json : string option;
+
+
   ignore_template_errors : bool;
+
+  (* The content model.
+     Starting from 2.0.0 soupault doesn't have a built-in content model,
+     users need to explicitly configure metadata field names
+     and extraction rules (CSS selectors and extraction options).
+   *)
   index_fields : index_field list;
+
+  (* Widgets may generate data useful as metadata.
+     In that case metadata extraction should be scheduled after those widgets have run.
+   *)
   index_extract_after_widgets : string list;
+
+  (* Strip HTML tags from extracted metadata. *)
   index_strip_tags : bool;
+
+  (* Index views define different ways to present the metadata on site. *)
   index_views : index_view list;
   index_path_options : path_options;
   index_profile : string option;
   index_date_input_formats : string list;
+
+  (* Index field to sort by and sort order. *)
   index_sort_by : string option;
   index_sort_descending : bool;
 
+  (* Page preprocessors convert other formats to HTML. *)
   preprocessors : (string * string) list;
 
   plugin_dirs : string list;
