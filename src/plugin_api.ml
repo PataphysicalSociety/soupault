@@ -347,6 +347,7 @@ struct
     module V = C.V
     let ( **-> ) = V.( **-> )
     let ( **->> ) x y = x **-> V.result y
+(*    let ( --> ) = V.( --> ) *)
     module Map = struct
       let html = HtmlV.makemap V.userdata V.projection
     end (* Map *)
@@ -548,6 +549,16 @@ struct
 
     C.register_module "Date" [
       "reformat", V.efunc (V.string **-> V.list V.string **-> V.string **->> V.option V.string) reformat_date;
+    ] g;
+
+    C.register_module "Table" [
+      "has_key", V.efunc (V.table **-> V.value **->> V.bool) (fun t k -> V.Luahash.find_opt t k |> Option.is_some);
+      "iter", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit) V.Luahash.iter;
+      "iter_values", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit) (fun f t -> V.Luahash.iter (fun _ v -> f v) t);
+      "apply", V.efunc ((V.func (V.value **-> V.value **->> V.option V.value)) **-> V.table **->> V.unit) V.Luahash.filter_map_inplace;
+      "fold", V.efunc ((V.func (V.value **-> V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value) V.Luahash.fold;
+      "fold_values", V.efunc ((V.func (V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value)
+        (fun f t i -> V.Luahash.fold (fun _ v acc -> f v acc) t i);
     ] g;
   end (* M *)
 end (* MakeLib *)
