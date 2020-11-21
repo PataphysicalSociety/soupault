@@ -445,10 +445,20 @@ struct
       | `A _ -> raise (Plugin_error "String.render_template requires a string-indexed table, found a number-indexed array")
       | _ -> raise (Plugin_error "Cannot happen: project_lua_table returned an unexpected result")
 
+    (* Datetime helpers *)
     let reformat_date date_string input_formats output_format =
       let (>>=) = Stdlib.Option.bind in
       Utils.parse_date input_formats date_string >>=
       (fun d -> Some (Utils.format_date output_format d))
+
+    let to_timestamp date_string input_formats =
+      let (>>=) = Stdlib.Option.bind in
+      Utils.parse_date input_formats date_string >>=
+      (fun d -> Some (ODate.Unix.To.seconds d))
+
+    let current_date output_format =
+      let now = ODate.Unix.now () in
+      Utils.format_date output_format now
 
     let init g = 
       C.register_module "HTML" [
@@ -548,6 +558,9 @@ struct
 
     C.register_module "Date" [
       "reformat", V.efunc (V.string **-> V.list V.string **-> V.string **->> V.option V.string) reformat_date;
+      "to_timestamp", V.efunc (V.string **-> V.list V.string **->> V.option V.int) to_timestamp;
+      "now_format", V.efunc (V.string **->> V.string) current_date;
+      "now_timestamp", V.efunc (V.unit **->> V.int) (fun () -> ODate.Unix.now () |> ODate.Unix.To.seconds);
     ] g;
 
     C.register_module "Table" [
