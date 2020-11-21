@@ -15,7 +15,7 @@ module Re_wrapper = struct
     try
       let re = Re.Perl.compile_pat pat in
       Re.matches re s
-    with Re__Perl.Parse_error | Re__Perl.Not_supported->
+    with Re__Perl.Parse_error | Re__Perl.Not_supported ->
       raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
 
   let re_match s pat =
@@ -25,7 +25,7 @@ module Re_wrapper = struct
   let split s pat =
     try
       Re.split (Re.Perl.compile_pat pat) s
-    with Re__Perl.Parse_error | Re__Perl.Not_supported->
+    with Re__Perl.Parse_error | Re__Perl.Not_supported ->
       raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
 end
 
@@ -347,7 +347,6 @@ struct
     module V = C.V
     let ( **-> ) = V.( **-> )
     let ( **->> ) x y = x **-> V.result y
-(*    let ( --> ) = V.( --> ) *)
     module Map = struct
       let html = HtmlV.makemap V.userdata V.projection
     end (* Map *)
@@ -374,7 +373,7 @@ struct
 
     let rec value_of_lua v =
       if V.int.is v then `Float (V.int.project v |> float_of_int)
-      (* float is a supertype of int, so int "is" a float, and order of checks is important*)
+      (* float is a supertype of int, so int "is" a float, and order of checks is important *)
       else if V.float.is v then `Float (V.float.project v)
       else if V.string.is v then `String (V.string.project v)
       else if V.table.is v then project_lua_table v
@@ -431,7 +430,7 @@ struct
         None
 
     let print_json ?(minify=true) j =
-      (* ezjsonm erroneously believes a naked primitive value is not a valid JSON*)
+      (* ezjsonm erroneously believes a naked primitive value is not a valid JSON *)
       match j with
       | `O _ as j -> Ezjsonm.to_string ~minify:minify j
       | `A _ as j -> Ezjsonm.to_string ~minify:minify j
@@ -565,7 +564,7 @@ end (* MakeLib *)
 
 module W = Lua.Lib.WithType (T)
 module C  =
-    Lua.Lib.Combine.C5  (* C5 == combine 4 code modules *)
+    Lua.Lib.Combine.C5  (* C5 == combine 5 code modules *)
         (Luaiolib.Make(LuaioT))
         (Luacamllib.Make(LuaioT))
         (W (Luastrlib.M))
