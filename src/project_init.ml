@@ -28,7 +28,7 @@ let default_page = "
 "
 
 let default_config = "
-# To learn about configuring soupalt, visit https://soupault.neocities.org/reference-manual
+# To learn about configuring soupault, visit https://soupault.neocities.org/reference-manual
 
 [settings]
   # Stop on page processing errors?
