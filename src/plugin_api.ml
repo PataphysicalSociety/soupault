@@ -393,8 +393,16 @@ struct
          such tables by hand, hopefully, aren't surprised.
        *)
       let keys = Utils.assoc_keys ts in
-      if CCList.for_all V.int.is keys then `A (Utils.assoc_values ts |> List.map value_of_lua)
-      else `O (List.map (fun (k, v) -> (string_of_lua k, value_of_lua v)) ts)
+      if CCList.for_all V.int.is keys then
+        (* It's an int-indexed table -- a "list".
+           However, Hashtbl.to_seq doesn't know about its intended order,
+           so we need to sort it by keys ourselves.
+         *)
+        let ts = List.sort (fun (k, _) (k', _) -> compare k k') ts in
+        `A (Utils.assoc_values ts |> List.map value_of_lua)
+      else
+         (* Just a normal table, or perhaps a messed-up list... *)
+        `O (List.map (fun (k, v) -> (string_of_lua k, value_of_lua v)) ts)
     and string_of_lua v =
       let v' = value_of_lua v in
       match v' with
