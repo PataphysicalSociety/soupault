@@ -87,7 +87,7 @@ let default_config = "
   default_content_action = \"append_child\"
 
   # If a page already has a document type declaration, keep the declaration
-  keep_doctype = true;
+  keep_doctype = true
 
   # If a page does not have a document type declaration, force it to HTML5
   # With keep_doctype=false, soupault will replace existing declarations with it too
