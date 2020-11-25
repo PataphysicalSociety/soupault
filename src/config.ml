@@ -184,14 +184,12 @@ let valid_index_options = [
   "index"; "dump_json"; "sort_by"; "sort_descending"; "date_formats";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
   "profile"
-]
+] @ valid_path_options
 
 let valid_index_view_options = [
   "index_item_template"; "index_template"; "index_processor";
   "index_selector"
 ] @ valid_path_options
-
-let valid_index_options = List.append valid_index_options valid_path_options
 
 let _get_index_view st view_name =
   let _get_template ?(item_template=true) tmpl =
