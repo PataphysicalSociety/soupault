@@ -1,3 +1,5 @@
+open Soupault_common
+
 open Jingoo
 
 type t = Jg_template.Loaded.t
@@ -14,4 +16,10 @@ let rec jingoo_of_json j =
 
 let render tmpl data = Jg_template.Loaded.eval ~models:data tmpl
 
-let of_string s = Jg_template.Loaded.from_string ~env:({Jg_types.std_env with autoescape=false}) s
+let of_string s =
+  try Jg_template.Loaded.from_string ~env:({Jg_types.std_env with autoescape=false}) s
+  with _ ->
+    (* Jingoo incorrectly does not expose its parse error exception in the module interface,
+       so we have to use a catch-all approach here for now. *)
+    let () = Logs.debug @@ fun m -> m "Invalid template string:\n%s" s in
+    raise (Soupault_error "Failed to parse template. Consult Jingoo documentation for a syntax reference.")
