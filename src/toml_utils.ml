@@ -13,7 +13,7 @@ module Toml_reader = struct
     let v = get_field k tbl in
     match v with
     | Some v -> v
-    | None -> failwith "get_field_unsafe was called in a place where it was really unsafe"
+    | None -> failwith "get_field_unsafe was called in a place where it really was unsafe"
 
   let get_string t = TomlLenses.string.get t >>= (fun x -> Some (`String x))
   let get_bool t = TomlLenses.bool.get t >>= (fun x -> Some (`Bool x))
@@ -62,10 +62,20 @@ exception Type_error of string
 let key_error err = raise (Key_error err)
 let type_error err = raise (Type_error err)
 
+let type_of_value v =
+  match v with
+  | `Null -> "null"  
+  | `Bool _ -> "bool"
+  | `Float _ -> "float"
+  | `String _ -> "string"
+  | `A _ -> "list"
+  | `O _ -> "table"
+  | _ -> "unknown type"
+
 let list_table_keys t =
   match t with
   | `O os -> Utils.assoc_keys os
-  | _ -> type_error "value must be a table"
+  | _ -> Printf.ksprintf type_error "value must be a table, found %s" (type_of_value t)
 
 let field ?(default=None) ?(getter=(fun x -> x)) k j =
   match j with
@@ -87,31 +97,31 @@ let string ?(strict=true) j =
   match j with
   | `String s -> s
   | _ -> begin
-    if strict then type_error "value must be a string" else
+    if strict then Printf.ksprintf type_error "value must be a string, found a %s" (type_of_value j) else
     match j with
     | `Float f -> Utils.string_of_float f
     | `Bool b -> string_of_bool b
     | `Null -> ""
-    | _ -> type_error "cannot to convert an array or table to string"
+    | _ -> Printf.ksprintf type_error "cannot convert %s to string" (type_of_value j)
   end
 
 let number ?(strict=true) j =
   match j with
   | `Float f -> f
   | _ -> begin
-    if strict then type_error "value must be a number" else
+    if strict then Printf.ksprintf type_error "value must be a number, found %s" (type_of_value j) else
     match j with
      | `String s -> float_of_string s
      | `Bool b -> (if b then 1. else 0.)
      | `Null -> 0.
-     | _ -> type_error "cannot to convert an array or table to number"
+     | _ -> Printf.ksprintf type_error "cannot convert %s to number" (type_of_value j)
  end
 
 let bool ?(strict=true) j =
   match j with
   | `Bool b -> b
   | _ -> begin
-    if strict then type_error "value must be an boolean" else
+    if strict then Printf.ksprintf type_error "value must be an boolean, found a %s" (type_of_value j) else
     match j with
     | `String s -> (s = "")
     | `Float f -> (f = 0.0)
