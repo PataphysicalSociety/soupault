@@ -3,17 +3,17 @@ os: osx
 language: generic
 
 env:
-  - SWITCH=4.10.0
+  - SWITCH=4.11.0
+  - OPAM_VERSION=2.0.7
 
 before_script:
   - set -e
-  - wget https://github.com/ocaml/opam/releases/download/2.0.6/opam-2.0.6-x86_64-macos
-  - sudo mv opam-2.0.6-x86_64-macos /usr/local/bin/opam
+  - wget https://github.com/ocaml/opam/releases/download/$OPAM_VERSION/opam-$OPAM_VERSION-x86_64-macos
+  - sudo mv opam-$OPAM_VERSION-x86_64-macos /usr/local/bin/opam
   - sudo chmod a+x /usr/local/bin/opam
   - opam init -y --compiler $SWITCH --disable-sandboxing
   - eval `opam env`
   - ocaml -version
-  - opam pin add -y git+https://github.com/lindig/lua-ml
 
 script:
   - opam pin add -y --no-action soupault .
