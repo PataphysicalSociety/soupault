@@ -14,11 +14,12 @@ let no_container_action selectors =
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
 let insert_html _ config soup =
-  let valid_options = List.append Config.common_widget_options ["selector"; "html"; "action"; "html_context_body"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"insert_html\"" in
   let selector = get_selectors config in
   let action = Config.get_string_default "append_child" "action" config in
   let html_body_context = Config.get_bool_default true "html_context_body" config in
+  let parse_content = Config.get_bool_default true "parse" config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -29,8 +30,10 @@ let insert_html _ config soup =
         let () = no_container_action selector in Ok ()
       | Some container ->
         let* html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
-        let content = Html_utils.parse_html ~body:html_body_context html_str in
-        Ok (Html_utils.insert_element action container content)
+        let content =
+          if parse_content then (Html_utils.parse_html ~body:html_body_context html_str |> Soup.coerce)
+          else Soup.create_text html_str
+        in Ok (Html_utils.insert_element action container content)
     end
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
