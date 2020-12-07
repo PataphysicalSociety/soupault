@@ -28,6 +28,7 @@ let common_widget_options = [
   "path_regex"; "exclude_path_regex";
   "page"; "exclude_page";
   "section"; "exclude_section";
+  "profile";
   "after"
 ]
 
