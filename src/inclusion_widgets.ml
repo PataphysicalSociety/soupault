@@ -9,6 +9,10 @@ let no_container_action selectors =
   Logs.debug @@ fun m -> m "Page has no elements matching selectors \"%s\", nowhere to insert the snippet"
     (selectors |> String.concat " ")
 
+let html_of_string ?(parse=true) ?(body_context=true) html_str =
+  if parse then Html_utils.parse_html ~body:body_context html_str |> Soup.coerce
+  else Soup.create_text html_str
+
 (** Widgets that include external resources into the page *)
 
 (** Inserts an HTML snippet from the [html] config option
@@ -30,10 +34,8 @@ let insert_html _ config soup =
         let () = no_container_action selector in Ok ()
       | Some container ->
         let* html_str = Config.get_string_result "Missing required option \"html\"" "html" config in
-        let content =
-          if parse_content then (Html_utils.parse_html ~body:html_body_context html_str |> Soup.coerce)
-          else Soup.create_text html_str
-        in Ok (Html_utils.insert_element action container content)
+        let content = html_of_string ~parse:parse_content ~body_context:html_body_context html_str in
+        Ok (Html_utils.insert_element action container content)
     end
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
@@ -56,10 +58,8 @@ let include_file _ config soup =
       | Some container ->
         let* file = Config.get_string_result "Missing required option \"file\"" "file" config in
         let* content = Utils.get_file_content file in
-        let content =
-          if parse_content then (Html_utils.parse_html ~body:html_body_context content |> Soup.coerce)
-          else Soup.create_text content
-        in Ok (Html_utils.insert_element action container content)
+        let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
+        Ok (Html_utils.insert_element action container content)
     end
 
 (* External program output inclusion *)
@@ -91,10 +91,8 @@ let include_program_output env config soup =
         let env_array = make_program_env env in
         let* cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
         let* content = Utils.get_program_output cmd env_array in
-        let content =
-          if parse_content then (Html_utils.parse_html ~body:html_body_context content |> Soup.coerce)
-          else Soup.create_text content
-        in Ok (Html_utils.insert_element action container content)
+        let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
+        Ok (Html_utils.insert_element action container content)
     end
 
 let make_node_env node =
@@ -116,11 +114,9 @@ let preprocess_element env config soup =
     let env_array = Array.append program_env node_env in
     let result = Utils.get_program_output ~input:input command env_array in
     match result with
-    | Ok text ->
-        let content =
-          if parse then Html_utils.parse_html ~body:body_context text |> Soup.coerce
-          else Soup.create_text text
-        in Html_utils.insert_element action node content
+    | Ok output ->
+      let content = html_of_string ~parse:parse ~body_context:body_context output in
+      Html_utils.insert_element action node content
     | Error e ->
         raise (Failure e)
   in
