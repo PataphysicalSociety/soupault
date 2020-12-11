@@ -16,5 +16,6 @@
    spelll
    ezjsonm
    jingoo
+   base64
    tsort
    lua-ml))

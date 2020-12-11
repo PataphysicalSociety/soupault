@@ -444,6 +444,18 @@ struct
       | `A _ as j -> Ezjsonm.to_string ~minify:minify j
       | _ as je -> Utils.string_of_json_primitive je
 
+    let base64_decode s =
+      try Some (Base64.decode_exn s)
+      with Invalid_argument msg ->
+        let () = Logs.warn @@ fun m -> m "Could not decode a Base64 string: %s" msg in
+        None
+
+    let base64_encode s =
+      try Some (Base64.encode_exn s)
+      with Invalid_argument msg ->
+        let () = Logs.warn @@ fun m -> m "Could not encode a Base64 string: %s" msg in
+        None
+
     let render_template tmpl data =
       let tmpl = Template.of_string tmpl in
       if not (V.table.is data) then raise (Plugin_error "String.render_template requires a table") else
@@ -554,7 +566,9 @@ struct
        "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify;
        "join", V.efunc (V.string **-> V.list V.string **->> V.string) String.concat;
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
-       "render_template", V.efunc (V.string **-> V.value **->> V.string) render_template
+       "render_template", V.efunc (V.string **-> V.value **->> V.string) render_template;
+       "base64_encode", V.efunc (V.string **->> V.option V.string) base64_encode;
+       "base64_decode", V.efunc (V.string **->> V.option V.string) base64_decode;
      ] g;
 
     C.register_module "JSON" [
