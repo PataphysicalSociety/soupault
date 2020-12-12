@@ -90,7 +90,7 @@ let include_program_output env config soup =
       | Some container ->
         let env_array = make_program_env env in
         let* cmd = Config.get_string_result "Missing required option \"command\"" "command" config in
-        let* content = Utils.get_program_output cmd env_array in
+        let* content = (Utils.get_program_output cmd env_array |> Utils.handle_process_error cmd) in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
         Ok (Html_utils.insert_element action container content)
     end
@@ -112,7 +112,7 @@ let preprocess_element env config soup =
     let node_env = make_node_env node in
     let program_env = make_program_env env in
     let env_array = Array.append program_env node_env in
-    let result = Utils.get_program_output ~input:input command env_array in
+    let result = Utils.get_program_output ~input:input command env_array |> Utils.handle_process_error command in
     match result with
     | Ok output ->
       let content = html_of_string ~parse:parse ~body_context:body_context output in

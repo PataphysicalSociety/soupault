@@ -1,5 +1,7 @@
 include Soupault_common
 
+type process_result = Output of string | ExecutionError of (Unix.process_status * string * string)
+
 (** Reads a file and return its content *)
 let get_file_content file =
   try Ok (Soup.read_file file)
@@ -33,8 +35,26 @@ let get_program_output ?(input=None) command env_array =
   let err = Soup.read_channel std_err in
   let res = Unix.close_process_full (std_out, std_in, std_err) in
   match res with
-  | Unix.WEXITED 0 -> Ok output
-  | _ -> Error (Printf.sprintf "Failed to execute \"%s\": %s%s" command output err)
+  | Unix.WEXITED 0 -> Output output
+  | _ -> ExecutionError (res, output, err)
+
+let format_process_error code =
+  match code with
+  | Unix.WEXITED 0 -> "process exited normally"
+  | Unix.WEXITED num -> Printf.sprintf "process exited with code %d" num
+  | Unix.WSIGNALED num -> Printf.sprintf "process was killed by signal %d" num
+  | Unix.WSTOPPED num -> Printf.sprintf "process was stopped by signal %d" num
+
+let log_process_error cmd out err =
+  Logs.debug @@ fun m ->
+    m "Running \"%s\" produced the following outputs:\n Standard output:\n%s\nStandard error:\n%s" cmd out err
+
+let handle_process_error cmd res =
+  match res with
+  | Output out -> Ok out
+  | ExecutionError (code, out, err) ->
+    let () = log_process_error cmd out err in
+    Error (Printf.sprintf "Failed to run \"%s\": %s" cmd (format_process_error code))
 
 (** Exception-safe list tail function that assumes that empty list's
     tail is an empty list. Used for breadcrumbs. *)

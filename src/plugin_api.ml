@@ -48,19 +48,33 @@ module Sys_wrappers = struct
       Printf.ksprintf plugin_error "Sys.write_file(\"%s\") failed: %s" name msg
 
   let get_program_output cmd =
-    let res = Utils.get_program_output cmd [| |] in
+    let res = Utils.get_program_output cmd [| |] |> Utils.handle_process_error cmd in
     match res with
     | Ok o -> Some o
     | Error msg ->
-      let () = Logs.err @@ fun m -> m "%s" msg in None
+      let () = Logs.err @@ fun m -> m "%s" msg in  
+      None
 
   let run_program cmd =
-    let res = Utils.get_program_output cmd [| |] in
+    let res = Utils.get_program_output cmd [| |] |> Utils.handle_process_error cmd in
     match res with
     | Ok o ->
-      let () = Logs.debug @@ fun m -> m "%s" o in Some 1
+      let () = Logs.debug @@ fun m -> m "Successfully ran \"\", the output was:\n%s" o in Some 1
     | Error msg ->
-      let () = Logs.err @@ fun m -> m "%s" msg in None
+      let () = Logs.err @@ fun m -> m "%s" msg in
+      None
+
+  let run_program_get_exit_code cmd =
+    let res = Utils.get_program_output cmd [| |] in
+    match res with
+    | Utils.Output o ->
+      let () = Logs.debug @@ fun m -> m "Successfully ran \"\", the output was:\n%s" o in 0
+    | Utils.ExecutionError (code, out, err) ->
+      let () = Logs.err @@ fun m -> m "Failed to run \"%s\": %s" cmd (Utils.format_process_error code) in
+      let () = Utils.log_process_error cmd out err in
+      match code with
+      | Unix.WEXITED num -> num
+      | _ -> 1
 end
 
 module Plugin_version = struct
@@ -554,6 +568,7 @@ struct
        "get_file_size", V.efunc (V.string **->> V.option V.int) (fun s -> try Some (Unix.stat s).st_size with _ -> None);
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
+       "run_program_get_exit_code", V.efunc (V.string **->> V.int) (Sys_wrappers.run_program_get_exit_code);
        "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
        "basename", V.efunc (V.string **->> V.string) FilePath.basename;
        "dirname", V.efunc (V.string **->> V.string) FilePath.dirname;
