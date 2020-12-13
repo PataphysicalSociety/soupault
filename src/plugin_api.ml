@@ -40,12 +40,12 @@ module Sys_wrappers = struct
   let read_file name =
     try Some (Soup.read_file name)
     with
-    | Sys_error msg -> let () = Logs.err @@ fun m -> m "Failed to read file: %s" msg in None
+    | Sys_error msg -> let () = Logs.err @@ fun m -> m "Failed to read file \"%s\": %s" name msg in None
 
   let write_file name content =
     try Soup.write_file name content
     with Sys_error msg ->
-      Printf.ksprintf plugin_error "Sys.write_file(\"%s\") failed: %s" name msg
+      Printf.ksprintf plugin_error "Failed to write file \"%s\": %s" name msg
 
   let get_program_output cmd =
     let res = Utils.get_program_output cmd [| |] |> Utils.handle_process_error cmd in
@@ -59,7 +59,7 @@ module Sys_wrappers = struct
     let res = Utils.get_program_output cmd [| |] |> Utils.handle_process_error cmd in
     match res with
     | Ok o ->
-      let () = Logs.debug @@ fun m -> m "Successfully ran \"\", the output was:\n%s" o in Some 1
+      let () = Logs.debug @@ fun m -> m "Successfully ran \"%s\", the output was:\n%s" cmd o in Some 1
     | Error msg ->
       let () = Logs.err @@ fun m -> m "%s" msg in
       None
