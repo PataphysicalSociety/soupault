@@ -391,6 +391,11 @@ let main () =
   let () = setup_logging settings.verbose settings.debug in
   let* () = make_build_dir settings.build_dir in
   let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
+  let* () =
+    if not settings.index_only
+    then Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files
+    else Ok ()
+  in
   (* Process normal pages and collect index data from them *)
   let* index = Utils.fold_left
     (fun acc p ->
@@ -403,11 +408,6 @@ let main () =
      This will produce no new index data so we ignore the non-error results. *)
   let index = Autoindex.sort_entries settings index in
   let* () = Utils.iter (_process_page index widgets config settings) index_files in
-  let* () =
-    if not settings.index_only
-    then Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files
-    else Ok ()
-  in
   let* () = dump_index_json settings index in
   Ok ()
 
