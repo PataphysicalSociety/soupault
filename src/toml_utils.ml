@@ -5,9 +5,9 @@ module Toml_reader = struct
     This is used to retrieve a list of widgets to call
   *)
   let list_table_keys table =
-    TomlTypes.Table.fold (fun k _ ks -> (TomlTypes.Table.Key.to_string k) :: ks ) table []
+    Toml.Types.Table.fold (fun k _ ks -> (Toml.Types.Table.Key.to_string k) :: ks ) table []
 
-  let get_field k tbl = TomlLenses.(get tbl (key k))
+  let get_field k tbl = Toml.Lenses.(get tbl (key k))
 
   let get_field_unsafe k tbl =
     let v = get_field k tbl in
@@ -15,19 +15,19 @@ module Toml_reader = struct
     | Some v -> v
     | None -> failwith "get_field_unsafe was called in a place where it really was unsafe"
 
-  let get_string t = TomlLenses.string.get t >>= (fun x -> Some (`String x))
-  let get_bool t = TomlLenses.bool.get t >>= (fun x -> Some (`Bool x))
-  let get_int t = TomlLenses.int.get t >>= (fun x -> Some (`Float (float_of_int x)))
-  let get_float t = TomlLenses.float.get t >>= (fun x -> Some (`Float x))
+  let get_string t = Toml.Lenses.string.get t >>= (fun x -> Some (`String x))
+  let get_bool t = Toml.Lenses.bool.get t >>= (fun x -> Some (`Bool x))
+  let get_int t = Toml.Lenses.int.get t >>= (fun x -> Some (`Float (float_of_int x)))
+  let get_float t = Toml.Lenses.float.get t >>= (fun x -> Some (`Float x))
 
   (* There is no generic list retrieval lens, and to.ml doesn't support heterogenous arrays
      (even though the TOML spec does).
      So, until we have a better library, that's what we've got
    *)
-  let get_strings t = TomlLenses.(array.get t >>= strings.get) >>= (fun xs -> Some (`A (List.map (fun x -> `String x) xs)))
-  let get_bools t = TomlLenses.(array.get t >>= bools.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Bool x) xs)))
-  let get_ints t = TomlLenses.(array.get t >>= ints.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Float (float_of_int x)) xs)))
-  let get_floats t = TomlLenses.(array.get t >>= floats.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Float x) xs)))
+  let get_strings t = Toml.Lenses.(array.get t >>= strings.get) >>= (fun xs -> Some (`A (List.map (fun x -> `String x) xs)))
+  let get_bools t = Toml.Lenses.(array.get t >>= bools.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Bool x) xs)))
+  let get_ints t = Toml.Lenses.(array.get t >>= ints.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Float (float_of_int x)) xs)))
+  let get_floats t = Toml.Lenses.(array.get t >>= floats.get) >>= (fun xs -> Some (`A (List.map (fun x -> `Float x) xs)))
 
   let rec json_of_toml toml =
     let rec aux toml getters =
@@ -49,7 +49,7 @@ module Toml_reader = struct
   and value_getters = [
     get_string; get_bool; get_int; get_float;
     get_strings; get_bools; get_ints; get_floats;
-    (fun t -> TomlLenses.table.get t >>= (fun x -> Some (json_of_table x)))
+    (fun t -> Toml.Lenses.table.get t >>= (fun x -> Some (json_of_table x)))
   ]
 end
 
