@@ -189,7 +189,7 @@ let valid_index_options = [
 
 let valid_index_view_options = [
   "index_item_template"; "index_template"; "index_processor";
-  "index_selector"
+  "index_selector"; "include_subsections"
 ] @ valid_path_options
 
 let _get_index_view st view_name =
