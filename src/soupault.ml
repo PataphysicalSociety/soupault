@@ -269,10 +269,9 @@ let process_page page_file nav_path index widgets config settings =
   (* Index extraction *)
   let index_entry =
     (* Metadata is only extracted from non-index pages *)
-    if (not settings.index) || (page_name = settings.index_page) ||
-       not (Autoindex.index_extraction_should_run settings page_file)
-    then None
-    else Some (Autoindex.get_entry settings env html)
+    if (Autoindex.index_extraction_should_run settings page_file)
+    then Some (Autoindex.get_entry settings env html)
+    else None
   in
   if settings.index_only then Ok index_entry else
   let* () = process_widgets env settings after_index widget_hash config html in

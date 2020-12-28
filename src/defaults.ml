@@ -149,6 +149,7 @@ type settings = {
   index_path_options : path_options;
   index_profile : string option;
   index_date_input_formats : string list;
+  index_force : string list;
 
   (* Index field to sort by and sort order. *)
   index_sort_by : string option;
@@ -236,6 +237,7 @@ let default_settings = {
   index_date_input_formats = ["%F"];
   index_sort_by = None;
   index_sort_descending = true;
+  index_force = [];
 
   preprocessors = [];
 

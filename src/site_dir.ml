@@ -27,8 +27,13 @@ let split_pages settings ps =
   match index_page with
   | None -> ps, []
   | Some p ->
-    let ps = CCList.remove ~eq:(=) ~key:p ps in
-    ps, [p]
+    if (List.exists (Path_options.regex_matches p) settings.index_force) then
+      (* The main idea of this option is to allow hand-made clean URLs. *)
+      let () = Logs.debug @@ fun m -> m "Index page %s is treated as a normal page due to force_indexing_path_regex" p in
+      ps, []
+    else
+      let ps = CCList.remove ~eq:(=) ~key:p ps in
+      ps, [p]
 
 (* Build a list of site source files to be processed.
 

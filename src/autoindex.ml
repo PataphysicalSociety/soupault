@@ -175,11 +175,24 @@ let insert_indices settings page_file soup index =
   Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings page_file soup index) settings.index_views
 
 let index_extraction_should_run settings page_file =
-  if not (Utils.profile_matches settings.index_profile settings.build_profile) then
-    let () = Logs.debug @@ fun m -> m "Index extraction is disabled by build profile options" in false
-  else begin
-    if Path_options.page_included settings.index_path_options settings.site_dir page_file then true
-    else
-      let () = Logs.debug @@ fun m -> m "Page %s excluded from indexing by page/section/regex options" page_file in
-      false
-  end
+  let page_name = FilePath.basename page_file |> FilePath.chop_extension in
+  (* If indexing is disabled in the config, it definitely should not run. *)
+  if not settings.index then false else
+  (* ...as well as if indexing is disabled by build profile settings. *)
+  if not (Utils.profile_matches settings.index_profile settings.build_profile) then false else
+  (* If a page is in the forced_indexing_path_regex, we should extract metadata from it
+     regardless of its file name. *)
+  if (List.exists (Path_options.regex_matches page_file) settings.index_force) then
+    let () = Logs.debug @@ fun m -> m "Forced indexing is enabled for page %s" page_file in
+    true
+  (* Metadata is not extracted from section index, unless forced by forced_indexing_path_regex.
+     The only valid reason to extract metadata from an section/index.html page is to account for
+     hand-made "clean URLs", otherwise they usually don't contain any content other than pointers
+     to other pages.
+   *)
+  else if (page_name = settings.index_page) then false else
+  (* A normal, non-index page may still be excluded from indexing. *)
+  if not (Path_options.page_included settings.index_path_options settings.site_dir page_file) then
+    let () = Logs.debug @@ fun m -> m "Page %s excluded from indexing by page/section/regex options" page_file in
+    false
+  else true
