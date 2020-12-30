@@ -184,7 +184,7 @@ let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
   "index"; "dump_json"; "sort_by"; "sort_descending"; "date_formats";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
-  "force_indexing_path_regex";
+  "force_indexing_path_regex"; "leaf_file";
   "profile"
 ] @ valid_path_options
 
@@ -278,6 +278,7 @@ let _get_index_settings settings config =
        index_sort_descending = get_bool_default true "sort_descending" st;
        index_date_input_formats = date_formats;
        index_force = get_strings_relaxed "force_indexing_path_regex" st;
+       index_leaf_file = get_string_opt "leaf_file" st;
     }
 
 let update_page_template_settings settings config =

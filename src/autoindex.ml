@@ -175,6 +175,12 @@ let insert_indices settings page_file soup index =
   Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings page_file soup index) settings.index_views
 
 let index_extraction_should_run settings page_file =
+  let has_leaf_file p =
+    match settings.index_leaf_file with
+    | None -> false
+    | Some lf ->
+      FileUtil.test FileUtil.Exists @@ FilePath.concat (FilePath.dirname p) lf
+  in
   let page_name = FilePath.basename page_file |> FilePath.chop_extension in
   (* If indexing is disabled in the config, it definitely should not run. *)
   if not settings.index then false else
@@ -184,6 +190,12 @@ let index_extraction_should_run settings page_file =
      regardless of its file name. *)
   if (List.exists (Path_options.regex_matches page_file) settings.index_force) then
     let () = Logs.debug @@ fun m -> m "Forced indexing is enabled for page %s" page_file in
+    true
+  (* Another way to force an "index" page to be treated as a normal page
+     is to create a "leaf market" file in its directory,
+     if enabled by the index.leaf_file option. *)
+  else if (has_leaf_file page_file) then
+    let () = Logs.debug @@ fun m -> m "Directory with page %s contains a leaf marker file, treating as a non-index page" page_file in
     true
   (* Metadata is not extracted from section index, unless forced by forced_indexing_path_regex.
      The only valid reason to extract metadata from an section/index.html page is to account for

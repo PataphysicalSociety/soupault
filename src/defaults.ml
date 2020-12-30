@@ -150,6 +150,7 @@ type settings = {
   index_profile : string option;
   index_date_input_formats : string list;
   index_force : string list;
+  index_leaf_file: string option;
 
   (* Index field to sort by and sort order. *)
   index_sort_by : string option;
@@ -238,6 +239,7 @@ let default_settings = {
   index_sort_by = None;
   index_sort_descending = true;
   index_force = [];
+  index_leaf_file = None;
 
   preprocessors = [];
 

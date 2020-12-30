@@ -27,9 +27,13 @@ let split_pages settings ps =
   match index_page with
   | None -> ps, []
   | Some p ->
-    if (List.exists (Path_options.regex_matches p) settings.index_force) then
-      (* The main idea of this option is to allow hand-made clean URLs. *)
-      let () = Logs.debug @@ fun m -> m "Index page %s is treated as a normal page due to force_indexing_path_regex" p in
+    if Autoindex.index_extraction_should_run settings p then
+      (* The main idea of this option is to allow hand-made clean URLs.
+         If it's an index page, but force_indexing_path_regex or a leaf file market
+         forced treating it as a normal page, we ignore the fact that it looks like
+         an index page.
+       *)
+      let () = Logs.debug @@ fun m -> m "Index page %s is treated as a normal page" p in
       ps, []
     else
       let ps = CCList.remove ~eq:(=) ~key:p ps in
