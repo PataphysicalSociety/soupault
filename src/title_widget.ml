@@ -13,13 +13,14 @@ let set_title _ config soup =
       title
   in
   (* Retrieve config options. The "selector" option means title source element, by default the first <h1> *)
-  let valid_options = List.append Config.common_widget_options ["selector"; "default"; "prepend"; "append"] in
+  let valid_options = List.append Config.common_widget_options ["selector"; "default"; "prepend"; "append"; "force"; "keep"] in
   let () = Config.check_options valid_options config "widget \"title\"" in
   let selectors = Config.get_strings_relaxed ~default:["h1"] "selector" config in
   let prepend = Config.get_string_default "" "prepend" config in
   let append = Config.get_string_default "" "append" config in
   let default_title = Config.get_string_default "" "default" config in
   let force = Config.get_bool_default false "force" config in
+  let keep = Config.get_bool_default false "keep" config in
   (* Artificially insert a title element if force=true.
      Can be useful in HTML processor mode to add consistency to a bunch of
      handwritten pages. *)
@@ -41,6 +42,7 @@ let set_title _ config soup =
     let () = Logs.debug @@ fun m -> m "Page has no <title> node, assuming you don't want to set it" in
     Ok ()
   | Some title_node ->
+    if (not (Html_utils.is_empty title_node)) && keep then Ok () else
     let title_string =
       Html_utils.select_any_of selectors soup >>= Html_utils.get_element_text
         |> make_title_string default_title prepend append in
