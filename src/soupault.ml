@@ -133,7 +133,7 @@ let make_page settings page_file content =
     in Ok content
   | None ->
     let tmpl = List.find_opt
-      (fun t -> (Path_options.page_included t.template_path_options settings.site_dir page_file) = true)
+      (fun t -> (Path_options.page_included settings t.template_path_options settings.site_dir page_file) = true)
       settings.page_templates
     in
     let html, content_selector, content_action = (match tmpl with
@@ -162,7 +162,7 @@ let rec process_widgets env settings ws wh config soup =
       let open Widgets in
       let widget = Hashtbl.find wh w in
       let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
-      if not (widget_should_run w widget settings.build_profile settings.site_dir env.page_file)
+      if not (widget_should_run settings w widget settings.build_profile settings.site_dir env.page_file)
       then (process_widgets env settings ws' wh config soup) else
       let res =
         try widget.func env widget.config soup

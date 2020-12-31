@@ -168,13 +168,13 @@ let get_widgets settings config plugins index_deps =
 
     If none of those options are present, widget always runs.
  *)
-let widget_should_run name widget build_profile site_dir page_file =
+let widget_should_run settings name widget build_profile site_dir page_file =
   let options = Config.get_path_options widget.config in
   let profile = Config.get_string_opt "profile" widget.config in
   if not (Utils.profile_matches profile build_profile) then
     let () = Logs.debug @@ fun m -> m "Widget %s is not enabled in the current build profile" name in false
   else begin
-    if Path_options.page_included options site_dir page_file then true
+    if Path_options.page_included settings options site_dir page_file then true
     else
       let () = Logs.debug @@ fun m -> m "Page %s is excluded by page/section/regex options, not running the widget" page_file in
       false

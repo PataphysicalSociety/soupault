@@ -151,19 +151,29 @@ let view_includes_page settings page_file view entry =
        or exclude any pages, assume they want an index of the current section
        and its subsections -- more or less like it worked before 2.0.0 *)
     let include_subsections = view.index_view_path_options.include_subsections in
-    Path_options.section_matches ~include_subsections:include_subsections "" page_file (FilePath.dirname entry.index_entry_page_file)
+    let entry_file =
+      (* This is essentially a reverse check: if the current file the index page of a certain section?
+         Thus we need to apply the "hand-made clean URL" fixup to the page we are checking against
+         (the index_entry_page_file).
+       *)
+      if Path_options.is_handmade_clean_url settings entry.index_entry_page_file
+      then FilePath.dirname entry.index_entry_page_file
+      else entry.index_entry_page_file
+    in
+    Path_options.section_matches ~include_subsections:include_subsections settings "" page_file (FilePath.dirname entry_file)
   else
-    Path_options.page_included view.index_view_path_options settings.site_dir entry.index_entry_page_file
+    Path_options.page_included settings view.index_view_path_options settings.site_dir entry.index_entry_page_file
 
 let insert_index settings page_file soup index view =
   let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
-    let () = Logs.warn @@ fun m -> m "Page doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
+    let () = Logs.debug @@ fun m -> m "Page doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
       view.index_selector view.index_view_name
     in Ok ()
   | Some ic ->
     begin
+      let () = Logs.info @@ fun m -> m "Rendering index view \"%s\" on page %s" view.index_view_name page_file in
       let index = List.filter (view_includes_page settings page_file view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl -> render_index tmpl settings ic index
@@ -175,36 +185,21 @@ let insert_indices settings page_file soup index =
   Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings page_file soup index) settings.index_views
 
 let index_extraction_should_run settings page_file =
-  let has_leaf_file p =
-    match settings.index_leaf_file with
-    | None -> false
-    | Some lf ->
-      FileUtil.test FileUtil.Exists @@ FilePath.concat (FilePath.dirname p) lf
-  in
   let page_name = FilePath.basename page_file |> FilePath.chop_extension in
   (* If indexing is disabled in the config, it definitely should not run. *)
   if not settings.index then false else
   (* ...as well as if indexing is disabled by build profile settings. *)
   if not (Utils.profile_matches settings.index_profile settings.build_profile) then false else
-  (* If a page is in the forced_indexing_path_regex, we should extract metadata from it
-     regardless of its file name. *)
-  if (List.exists (Path_options.regex_matches page_file) settings.index_force) then
-    let () = Logs.debug @@ fun m -> m "Forced indexing is enabled for page %s" page_file in
-    true
-  (* Another way to force an "index" page to be treated as a normal page
-     is to create a "leaf market" file in its directory,
-     if enabled by the index.leaf_file option. *)
-  else if (has_leaf_file page_file) then
-    let () = Logs.debug @@ fun m -> m "Directory with page %s contains a leaf marker file, treating as a non-index page" page_file in
-    true
+  (* *)
+  if (Path_options.is_handmade_clean_url settings page_file) then true else
   (* Metadata is not extracted from section index, unless forced by forced_indexing_path_regex.
      The only valid reason to extract metadata from an section/index.html page is to account for
      hand-made "clean URLs", otherwise they usually don't contain any content other than pointers
      to other pages.
    *)
-  else if (page_name = settings.index_page) then false else
+  if (page_name = settings.index_page) then false else
   (* A normal, non-index page may still be excluded from indexing. *)
-  if not (Path_options.page_included settings.index_path_options settings.site_dir page_file) then
+  if not (Path_options.page_included settings settings.index_path_options settings.site_dir page_file) then
     let () = Logs.debug @@ fun m -> m "Page %s excluded from indexing by page/section/regex options" page_file in
     false
   else true
