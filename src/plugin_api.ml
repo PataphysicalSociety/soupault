@@ -568,6 +568,7 @@ struct
      ] g;
 
      C.register_module "Sys" [
+       "mkdir", V.efunc (V.string **->> V.unit) (fun d -> try FileUtil.mkdir ~parent:true d with FileUtil.MkdirError msg -> plugin_error msg);
        "read_file", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.read_file);
        "write_file", V.efunc (V.string **-> V.string **->> V.unit) (Sys_wrappers.write_file);
        "get_file_size", V.efunc (V.string **->> V.option V.int) (fun s -> try Some (Unix.stat s).st_size with _ -> None);
