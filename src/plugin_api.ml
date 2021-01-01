@@ -571,6 +571,7 @@ struct
        "read_file", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.read_file);
        "write_file", V.efunc (V.string **-> V.string **->> V.unit) (Sys_wrappers.write_file);
        "get_file_size", V.efunc (V.string **->> V.option V.int) (fun s -> try Some (Unix.stat s).st_size with _ -> None);
+       "get_file_modification_time", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (Unix.stat s).st_mtime with _ -> None);
        "file_exists", V.efunc (V.string **->> V.bool) (fun s -> FileUtil.test FileUtil.Exists s);
        "is_file", V.efunc (V.string **->> V.bool) (fun s -> FileUtil.test FileUtil.Is_file s);
        "is_dir", V.efunc (V.string **->> V.bool) (fun s -> FileUtil.test FileUtil.Is_dir s);
