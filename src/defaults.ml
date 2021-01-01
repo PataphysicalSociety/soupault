@@ -161,6 +161,8 @@ type settings = {
 
   plugin_dirs : string list;
   plugin_discovery: bool;
+
+  force : bool;
 }
 
 type index_entry = {
@@ -245,6 +247,8 @@ let default_settings = {
 
   plugin_dirs = ["plugins"];
   plugin_discovery = true;
+
+  force = true;
 }
 
 let version = (2, 3, 0, None)

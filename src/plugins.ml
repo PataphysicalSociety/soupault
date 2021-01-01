@@ -16,7 +16,7 @@ let list_plugins config =
   | None -> []
   | Some ps' -> ps'
 
-let rec _load_plugins ps config hash =
+let rec _load_plugins settings ps config hash =
   match ps with
   | [] -> Ok ()
   | p :: ps' ->
@@ -30,20 +30,20 @@ let rec _load_plugins ps config hash =
       | Some file ->
         try
           let lua_source = Soup.read_file file in
-          Hashtbl.add hash p (Plugin_api.run_plugin config file lua_source);
-          _load_plugins ps' config hash
+          Hashtbl.add hash p (Plugin_api.run_plugin settings config file lua_source);
+          _load_plugins settings ps' config hash
         with Sys_error msg ->
           Error (Printf.sprintf "Could not read plugin file %s: %s" file msg)
     end
 
-let get_plugins config =
+let get_plugins settings config =
   let (let*) = Stdlib.Result.bind in
   let hash = Hashtbl.create 1024 in
   match config with
   | None -> Ok hash
   | Some config ->
     let plugins = list_plugins config in
-    let* () = _load_plugins plugins config hash in
+    let* () = _load_plugins settings plugins config hash in
     Ok hash
 
 let rec lookup_plugin_file plugin_dirs file_name =

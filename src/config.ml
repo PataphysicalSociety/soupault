@@ -325,7 +325,8 @@ let valid_settings = [
   "clean_urls"; "page_file_extensions";
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode";
-  "plugin_dirs"; "plugin_discovery"
+  "plugin_dirs"; "plugin_discovery";
+  "force"
 ]
 
 let _update_settings settings config =
@@ -360,6 +361,8 @@ let _update_settings settings config =
 
        plugin_dirs = get_strings_relaxed ~default:settings.plugin_dirs "plugin_dirs" st;
        plugin_discovery = get_bool_default settings.plugin_discovery "plugin_discovery" st;
+
+       force = get_bool_default settings.force "force" st;
 
        preprocessors = _get_preprocessors config
      }

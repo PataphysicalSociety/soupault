@@ -312,6 +312,7 @@ let get_args settings =
     ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "Output directory");
     ("--profile", Arg.String (fun s -> sr := {!sr with build_profile=(Some s)}), "Build profile");
     ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), "Extract site index without generating pages");
+    ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), "Force generating all target files");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
@@ -355,7 +356,7 @@ let initialize () =
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
   let* config = Ok (Toml_utils.json_of_table (config |> Option.get)) in
-  let* plugins = Plugins.get_plugins (Some config) in
+  let* plugins = Plugins.get_plugins settings (Some config) in
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
   let* default_template_str =
     if settings.generator_mode then Utils.get_file_content settings.default_template
