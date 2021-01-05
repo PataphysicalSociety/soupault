@@ -678,6 +678,8 @@ let run_plugin settings soupault_config filename lua_code env widget_config soup
       I.register_globals ["config", lua_of_json widget_config] state;
       I.register_globals ["soupault_config", lua_of_json soupault_config] state;
       I.register_globals ["force", I.Value.bool.embed settings.force] state;
+      I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
+      I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
     in
     let _ = I.dostring ~file:filename state lua_code in
     Ok ()
