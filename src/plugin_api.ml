@@ -624,6 +624,17 @@ struct
       "fold_values", V.efunc ((V.func (V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value)
         (fun f t i -> V.Luahash.fold (fun _ v acc -> f v acc) t i);
     ] g;
+
+    C.register_module "Value" [
+      "is_int", V.efunc (V.value **->> V.bool) V.int.is;
+      "is_float", V.efunc (V.value **->> V.bool) V.float.is;
+      "is_string", V.efunc (V.value **->> V.bool) V.string.is;
+      "is_table", V.efunc (V.value **->> V.bool) V.table.is;
+      "is_list", V.efunc (V.value **->> V.bool) (fun t -> if not (V.table.is t) then false else
+                           t |> V.table.project |> V.Luahash.to_seq |> List.of_seq |>
+                                Utils.assoc_keys |> CCList.for_all V.int.is);
+      "is_nil", V.efunc (V.value **->> V.bool) V.unit.is;
+    ] g;
   end (* M *)
 end (* MakeLib *)
 
