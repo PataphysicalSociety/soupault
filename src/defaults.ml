@@ -251,7 +251,7 @@ let default_settings = {
   force = true;
 }
 
-let version = (2, 3, 0, None)
+let version = (2, 4, 0, Some "dev")
 
 let version_to_string v =
   let major, minor, patch, suffix = v in
