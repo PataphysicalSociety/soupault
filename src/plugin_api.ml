@@ -617,6 +617,7 @@ struct
 
     C.register_module "Table" [
       "has_key", V.efunc (V.table **-> V.value **->> V.bool) (fun t k -> V.Luahash.find_opt t k |> Option.is_some);
+      "get_key_default", V.efunc (V.table **-> V.value **-> V.value **->> V.value) (fun t k d -> V.Luahash.find_opt t k |> Option.value ~default:d);
       "iter", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit) V.Luahash.iter;
       "iter_values", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit) (fun f t -> V.Luahash.iter (fun _ v -> f v) t);
       "apply", V.efunc ((V.func (V.value **-> V.value **->> V.option V.value)) **-> V.table **->> V.unit) V.Luahash.filter_map_inplace;
