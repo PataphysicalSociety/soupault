@@ -135,8 +135,8 @@ module Html = struct
 
   let is_element n =
     match n with
-    | Some (ElementNode _) -> true
-    | Some (GeneralNode n) -> Soup.is_element n
+    | ElementNode _ -> true
+    | GeneralNode n -> Soup.is_element n
     | _ -> false
 
   let to_general n =
@@ -538,7 +538,7 @@ struct
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "inner_text", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
-        "is_element", V.efunc (V.option Map.html **->> V.bool) Html.is_element;
+        "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
         "get_headings_tree", V.efunc (V.option Map.html **->> V.list V.value) get_headings_tree;
         "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
       ] g;
