@@ -340,11 +340,10 @@ module Html = struct
 
   let get_heading_level node =
     let* node = node in
-    match node with
-    | ElementNode n ->
-      if not (Html_utils.is_heading n) then None
-      else Some (Html_utils.get_heading_level n)
-    | _ -> None
+    if not (is_element node) then None else
+    let node = to_element node in
+    if not (Html_utils.is_heading node) then None else
+    Some (Html_utils.get_heading_level node)
   
   let tname = "html"
   let eq _ = fun x y -> Soup.equal_modulo_whitespace (to_general x) (to_general y)
