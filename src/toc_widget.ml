@@ -109,6 +109,10 @@ let make_toc_container settings level =
   Html_utils.add_class toc_class toc_list;
   toc_list
 
+let level_matches settings h =
+  let level = Html_utils.get_heading_level h in
+  (level <= settings.max_level) && (level >= settings.min_level)
+
 let rec _make_toc settings depth counter parent tree =
   let heading = Rose_tree.(tree.value) in
   let children = Rose_tree.(tree.children) in
@@ -119,6 +123,11 @@ let rec _make_toc settings depth counter parent tree =
   match children with
   | [] -> ()
   | _ ->
+    (* Avoid inserting ul/ol ToC containers that are doomed to stay empty
+       because all child headings are deeper than the max_level.
+       Better keep the HTML clean.
+     *)
+    if not (List.exists (level_matches settings) (List.map (fun c -> Rose_tree.(c.value)) children)) then () else
     let container = make_toc_container settings depth in
     (* According to the HTML specs, and contrary to the popular opinion,
        a <ul> or <ol> cannot contain another <ul> or <ol>.
