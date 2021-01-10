@@ -3,11 +3,6 @@ module FP = FilePath
 
 open Defaults
 
-(* Windows doesn't understand normal newlines *)
-let replace_newlines s =
-  if Sys.os_type = "Win32" then Stringext.replace_all s ~pattern:"\n" ~with_:"\r\n"
-  else s
-
 let default_template = "
 <html lang=\"en\">
   <head>
@@ -145,7 +140,7 @@ let init settings  =
        around just for a single use in here *)
     if Config.config_exists Defaults.config_file
     then (print_endline "Config file exists, not overwriting it")
-    else replace_newlines default_config |> Soup.write_file Defaults.config_file;
+    else default_config |> Soup.write_file Defaults.config_file;
 
     if FileUtil.test (FileUtil.Is_dir) settings.site_dir then
       (print_endline "Site directory already exists. Are you running init in an existing project?";
@@ -153,10 +148,10 @@ let init settings  =
     else Printf.printf "Creating site directory %s\n" settings.site_dir; FileUtil.mkdir settings.site_dir;
 
     FU.mkdir settings.site_dir;
-    replace_newlines default_page |> Soup.write_file (FP.concat settings.site_dir settings.index_file);
+    default_page |> Soup.write_file (FP.concat settings.site_dir settings.index_file);
 
     FP.dirname settings.default_template |> FU.mkdir ~parent:true;
-    replace_newlines default_template |> Soup.write_file settings.default_template;
+    default_template |> Soup.write_file settings.default_template;
 
     print_end_message settings
   with Unix.Unix_error (errno, _, _) ->
