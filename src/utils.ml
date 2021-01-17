@@ -116,7 +116,7 @@ let print_version () =
   Printf.printf "soupault %s\n" Defaults.version_string;
   print_endline "Copyright 2021 Daniil Baturin";
   print_endline "Soupault is free software distributed under the MIT license";
-  print_endline "Visit https://soupault.neocities.org/reference-manual for documentation"
+  print_endline "Visit https://www.soupault.app/reference-manual for documentation"
 
 (** Warns about a deprecated option *)
 let deprecation_warning f opt msg config =

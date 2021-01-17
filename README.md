@@ -35,16 +35,16 @@ You can disable "templating", or mix unique and templated pages.
 Soupault is named after the French dadaist and surrealist writer Philippe Soupault
 because it's based on the [lambdasoup](http://aantron.github.io/lambdasoup/) library.
 
-Visit https://soupault.neocities.org for details.
+Visit https://www.soupault.app for details.
 
 For support and discussion, write a message to the [mailing list](https://lists.sr.ht/~dmbaturin/soupault).
 
 # Installation
 
-Pre-built binaries are available for Linux, Windows, and mac OS. You can download them via [soupault.neocities.org](https://soupault.neocities.org/#downloads)
-and from Github releases.
+Pre-built binaries are available for Linux, Windows, and mac OS. You can download them from https://files.baturin.org/software/soupault
+and from Github releases (https://github.com/dmbaturin/soupault/releases).
 
-You can verify the binaries using this signify/minisign key: `RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy`.
+You can verify release archive integrity using this signify/minisign key: `RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy`.
 
 You can also install stable release versions from [OPAM](https://opam.ocaml.org):
 

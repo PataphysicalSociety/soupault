@@ -23,7 +23,7 @@ let default_page = "
 "
 
 let default_config = "
-# To learn about configuring soupault, visit https://soupault.neocities.org/reference-manual
+# To learn about configuring soupault, visit https://www.soupault.app/reference-manual
 
 [settings]
   # Stop on page processing errors?
@@ -97,7 +97,7 @@ let default_config = "
 # that converts it to HTML and writes it to standard output.
 # Example:
 #[preprocessors]
-#  md = \"cmark\"
+#  md = \"cmark --unsafe --smart\"
 #  adoc = \"asciidoctor -o -\"
 
 # Pages can be further processed with \"widgets\"
@@ -108,6 +108,10 @@ let default_config = "
   selector = \"h1\"
   default = \"My Homepage\"
   append = \" &mdash; My Homepage\"
+
+  # Insert a <title> in a page if it doesn't have one already.
+  # By default soupault assumes if it's missing, you don't want it.
+  force = false
 
 # Inserts a generator meta tag in the page <head>
 # Just for demonstration, feel free to remove

@@ -1,24 +1,29 @@
 opam-version: "2.0"
 name: "soupault"
-version: "2.4.0-dev"
+version: "2.4.0"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
 A website generator that works with page element tree rather than text
 and allows you to manipulate pages and retrieve metadata from
 existing HTML using arbitrary CSS selectors.
 
-Built-in functionality includes setting page title, generating ToC and footnotes,
-inserting files/HTML snippets or output of external programs into pages etc.
+With soupault you can:
 
-Metadata extracted from pages can be rendered using Jingoo templates or exported to JSON
-and processed with an external script.
+* Generate ToC and footnotes.
+* Insert file content or an HTML snippet in any element.
+* Preprocess element content with external programs (e.g. run `<pre>` tags through a highlighter)
+* Extract page metadata (think microformats) and render it using a Jingoo template or an external script.
+* Export extracted metadata to JSON.
 
-Extensible with Lua (2.5) plugins. Can also be used as an HTML processor for existing pages.
+Soupault is extensible with Lua (2.5) plugins and provides an API for element tree manipulation,
+similar to web browsers.
+
+The website generator mode is optional, you can use it as post-processor for existing sites.
 """
 maintainer: "Daniil Baturin <daniil+opam@baturin.org>"
 authors: "Daniil Baturin <daniil+soupault@baturin.org>"
 license: "MIT"
-homepage: "https://soupault.neocities.org"
+homepage: "https://www.soupault.app"
 bug-reports: "https://github.com/dmbaturin/soupault/issues"
 dev-repo: "git+https://github.com/dmbaturin/soupault"
 build: [
