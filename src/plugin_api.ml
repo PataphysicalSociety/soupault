@@ -687,6 +687,7 @@ let run_plugin settings soupault_config filename lua_code env widget_config soup
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
       I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
       I.register_globals ["config", lua_of_json widget_config] state;
+      I.register_globals ["widget_config", lua_of_json widget_config] state;
       I.register_globals ["soupault_config", lua_of_json soupault_config] state;
       I.register_globals ["force", I.Value.bool.embed settings.force] state;
       I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
