@@ -27,7 +27,8 @@ let get_program_output ?(input=None) command env_array =
     | None -> ()
     | Some i ->
       let () = Logs.debug @@ fun m -> m "Data sent to program \"%s\": %s" command i in
-      Soup.write_channel std_in i
+      Soup.write_channel std_in i;
+      flush std_in
   in
   (* close stdin to signal the end of input *)
   let () = close_out std_in in
