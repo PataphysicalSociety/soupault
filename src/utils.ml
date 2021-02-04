@@ -1,6 +1,6 @@
 include Soupault_common
 
-type process_result = Output of string | ExecutionError of (Unix.process_status * string * string)
+type process_result = Output of string | ExecutionError of (((Unix.process_status, string) result) * string * string)
 
 (** Reads a file and return its content *)
 let get_file_content file =
@@ -21,30 +21,40 @@ let get_program_output ?(input=None) command env_array =
   (* open_process_full does not automatically pass the existing environment
      to the child process, so we need to add it to our custom environment. *)
   let env_array = Array.append (Unix.environment ()) env_array in
-  let std_out, std_in, std_err = Unix.open_process_full command env_array in
-  let () =
-    match input with
-    | None -> ()
-    | Some i ->
-      let () = Logs.debug @@ fun m -> m "Data sent to program \"%s\": %s" command i in
-      Soup.write_channel std_in i;
-      flush std_in
+  let (res, output, err_output) =
+  begin try
+    let std_out, std_in, std_err = Unix.open_process_full command env_array in
+    let () =
+      begin match input with
+      | None -> ()
+      | Some i ->
+        let () = Logs.debug @@ fun m -> m "Data sent to program \"%s\": %s" command i in
+        let () = Soup.write_channel std_in i; flush std_in in
+        (* close stdin to signal the end of input *)
+        close_out std_in
+      end
+    in
+    let output = Soup.read_channel std_out in
+    let err = Soup.read_channel std_err in
+    let res = Unix.close_process_full (std_out, std_in, std_err) in
+    (Ok res, output, err)
+  with
+  | _ ->
+    let msg = Printexc.get_backtrace () in
+    (Error msg, "", "")
+  end
   in
-  (* close stdin to signal the end of input *)
-  let () = close_out std_in in
-  let output = Soup.read_channel std_out in
-  let err = Soup.read_channel std_err in
-  let res = Unix.close_process_full (std_out, std_in, std_err) in
   match res with
-  | Unix.WEXITED 0 -> Output output
-  | _ -> ExecutionError (res, output, err)
+  | Ok (Unix.WEXITED 0) -> Output output
+  | _ -> ExecutionError (res, output, err_output)
 
 let format_process_error code =
   match code with
-  | Unix.WEXITED 0 -> "process exited normally"
-  | Unix.WEXITED num -> Printf.sprintf "process exited with code %d" num
-  | Unix.WSIGNALED num -> Printf.sprintf "process was killed by signal %d" num
-  | Unix.WSTOPPED num -> Printf.sprintf "process was stopped by signal %d" num
+  | Ok (Unix.WEXITED 0) -> "process exited normally"
+  | Ok (Unix.WEXITED num) -> Printf.sprintf "process exited with code %d" num
+  | Ok (Unix.WSIGNALED num) -> Printf.sprintf "process was killed by signal %d" num
+  | Ok (Unix.WSTOPPED num) -> Printf.sprintf "process was stopped by signal %d" num
+  | Error msg -> Printf.sprintf "process execution caused an exception:\n%s" msg
 
 let log_process_error cmd out err =
   Logs.debug @@ fun m ->
@@ -53,9 +63,9 @@ let log_process_error cmd out err =
 let handle_process_error cmd res =
   match res with
   | Output out -> Ok out
-  | ExecutionError (code, out, err) ->
+  | ExecutionError (res, out, err) ->
     let () = log_process_error cmd out err in
-    Error (Printf.sprintf "Failed to run \"%s\": %s" cmd (format_process_error code))
+    Error (Printf.sprintf "Failed to run \"%s\": %s" cmd (format_process_error res))
 
 (** Exception-safe list tail function that assumes that empty list's
     tail is an empty list. Used for breadcrumbs. *)

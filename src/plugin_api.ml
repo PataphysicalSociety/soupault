@@ -73,7 +73,7 @@ module Sys_wrappers = struct
       let () = Logs.err @@ fun m -> m "Failed to run \"%s\": %s" cmd (Utils.format_process_error code) in
       let () = Utils.log_process_error cmd out err in
       match code with
-      | Unix.WEXITED num -> num
+      | Ok (Unix.WEXITED num) -> num
       | _ -> 1
 
   let delete_file ?(r=false) path =
