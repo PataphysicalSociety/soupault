@@ -39,6 +39,7 @@ let get_program_output ?(input=None) command env_array =
     let res = Unix.close_process_full (std_out, std_in, std_err) in
     (Ok res, output, err)
   with
+  | Sys_error msg -> (Error (Printf.sprintf "System error: %s" msg), "", "")
   | _ ->
     let msg = Printexc.get_backtrace () in
     (Error msg, "", "")
