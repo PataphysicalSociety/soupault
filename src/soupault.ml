@@ -355,7 +355,7 @@ let initialize () =
   (* Update the log level from the config and arguments  *)
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
-  let* config = Ok (Toml_utils.json_of_table (config |> Option.get)) in
+  let* config = Ok (Otoml.value_of_table (config |> Option.get)) in
   let* plugins = Plugins.get_plugins settings (Some config) in
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
   let* default_template_str =

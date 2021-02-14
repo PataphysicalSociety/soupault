@@ -1,6 +1,6 @@
 open Defaults
 
-open Toml_utils
+open Otoml
 
 exception Config_error of string
 
@@ -47,7 +47,7 @@ let check_options ?(fmt=bad_option_msg) valid_options config ident =
     let suggestion = Spellcheck.get_suggestion index opt in
     config_error (fmt opt ident suggestion)
   in
-  let keys = Toml_utils.list_table_keys config in
+  let keys = Otoml.list_table_keys config in
   List.iter (check_option valid_options) keys
 
 (** Read and parse a TOML file *)
@@ -69,7 +69,7 @@ let get_table_result err name config = try Ok (get_table name config) with _ -> 
 let get_table_opt name config = try Some (get_table name config) with _ -> None
 
 let get_string ?(default=None) ?(strict=false) k tbl =
-  let default = Option.map (fun b -> `String b) default in
+  let default = Option.map (fun b -> TomlString b) default in
   let res = field ~default:default k tbl in
   string ~strict:strict res
 
@@ -79,7 +79,7 @@ let get_string_result ?(strict=false) err k tbl =
     Ok res
   with
   | Key_error _ -> Error err
-  | Toml_utils.Type_error err ->
+  | Otoml.Type_error err ->
     Error (Printf.sprintf "wrong value type for option \"%s\": %s" k err)
 
 let get_string_opt ?(strict=false) k tbl = get_string_result ~strict:strict "" k tbl |> Result.to_option
@@ -87,16 +87,16 @@ let get_string_opt ?(strict=false) k tbl = get_string_result ~strict:strict "" k
 let get_string_default default name config = get_string ~default:(Some default) name config
 
 let get_bool ?(default=None) ?(strict=false) k tbl =
-  let default = Option.map (fun b -> `Bool b) default in
+  let default = Option.map (fun b -> TomlBoolean b) default in
   let res = field ~default:default k tbl in
   bool ~strict:strict res
 
 let get_bool_default default name config = get_bool ~default:(Some default) name config
 
-let get_int_default default_value k tbl = field ~default:(Some (`Float (float_of_int default_value))) k tbl |> number |> int_of_float
+let get_int_default default_value k tbl = field ~default:(Some (TomlInteger default_value)) k tbl |> integer
 
 let get_strings k tbl =
-  let open Toml_utils in
+  let open Otoml in
   try
     let res = field k tbl |> list ~strict:false |> strings ~strict:false in
     Some res
@@ -115,7 +115,7 @@ let get_strings_relaxed ?(default=([])) k tbl =
 
 let assoc_of_table f t =
   match t with
-  | `O os -> List.map (fun (k, v) -> (k, f v)) os
+  | TomlTable os | TomlInlineTable os | TomlTableArray os -> List.map (fun (k, v) -> (k, f v)) os
   | _ -> failwith ""
 
 let get_path_options config =
@@ -178,7 +178,7 @@ let get_index_queries index_table =
   match qt with
   | None -> []
   | Some qt ->
-    get_queries qt (Toml_utils.list_table_keys qt) []
+    get_queries qt (Otoml.list_table_keys qt) []
 
 let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
@@ -250,7 +250,7 @@ let _get_index_views index_table =
   match vt with
   | None -> views
   | Some vt -> 
-    let custom_views = get_views (Toml_utils.list_table_keys vt) vt [] in
+    let custom_views = get_views (Otoml.list_table_keys vt) vt [] in
     List.append views custom_views
 
 let _get_index_settings settings config =
@@ -314,7 +314,7 @@ let update_page_template_settings settings config =
   match tt with
   | None -> settings
   | Some tt ->
-    let ks = Toml_utils.list_table_keys tt in
+    let ks = Otoml.list_table_keys tt in
     List.fold_left (fun s k -> get_template k s tt) settings ks
 
 let valid_settings = [
@@ -381,7 +381,7 @@ let update_settings_unsafe settings config =
   match config with
   | None -> settings
   | Some config ->
-    let config = Toml_utils.json_of_table config in
+    let config = Otoml.value_of_table config in
     let () = check_options ~fmt:bad_section_msg valid_tables config "table \"settings\"" in
     let settings = _update_settings settings config in
     _get_index_settings settings config

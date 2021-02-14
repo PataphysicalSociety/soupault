@@ -1,8 +1,8 @@
 open Defaults
 
 type 'a widget = {
-  config: Ezjsonm.value;
-  func: Defaults.env -> Ezjsonm.value -> 'a Soup.node -> (unit, string) result
+  config: Otoml.t;
+  func: Defaults.env -> Otoml.t -> 'a Soup.node -> (unit, string) result
 }
 
 (* The widgets structure is widget priority list plus a hash with actual widgets *)
@@ -35,7 +35,7 @@ let get_widget_config config widget =
    failwith @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget
 
 let list_widgets config =
-  let ws = Config.get_table_opt Defaults.widgets_table config >>= (fun x -> Some (Toml_utils.list_table_keys x)) in
+  let ws = Config.get_table_opt Defaults.widgets_table config >>= (fun x -> Some (Otoml.list_table_keys x)) in
   match ws with
   | None -> []
   | Some ws' -> ws'

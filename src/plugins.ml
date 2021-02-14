@@ -11,7 +11,7 @@ let get_plugin_config config plugin =
    failwith @@ Printf.sprintf "Trying to lookup a non-existent plugin %s" plugin
 
 let list_plugins config =
-  let ps = Config.get_table_opt Defaults.plugins_table config >>= (fun x -> Some (Toml_utils.list_table_keys x)) in
+  let ps = Config.get_table_opt Defaults.plugins_table config >>= (fun x -> Some (Otoml.list_table_keys x)) in
   match ps with
   | None -> []
   | Some ps' -> ps'

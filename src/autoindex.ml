@@ -62,11 +62,11 @@ let get_entry settings env soup =
 let compare_entries settings l r =
   let (>>=) = Stdlib.Option.bind in
   let string_of_field j =
-    try Some (Toml_utils.string ~strict:false j)
-    with Toml_utils.Type_error _ -> None
+    try Some (Otoml.string ~strict:false j)
+    with Otoml.Type_error _ -> None
   in
   let get_date entry =
-    settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>=
+    settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>= (fun s -> Some (Otoml.of_json s)) >>=
     string_of_field >>= Utils.parse_date settings.index_date_input_formats
   in
   let compare_dates l_date r_date =

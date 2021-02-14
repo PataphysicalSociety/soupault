@@ -673,6 +673,22 @@ let rec lua_of_json v =
     I.Value.Table.of_list |> I.Value.table.embed
   | `Null -> I.Value.unit.embed ()
 
+let rec lua_of_toml v =
+  let open Otoml in
+  match v with
+  | TomlBoolean b -> I.Value.bool.embed b
+  | TomlInteger i -> I.Value.int.embed i
+  | TomlFloat f -> I.Value.float.embed f
+  | TomlString s -> I.Value.string.embed s
+  | TomlArray vs -> (List.map lua_of_toml vs) |> (I.Value.list I.Value.value).embed
+  | TomlTable vs | TomlInlineTable vs | TomlTableArray vs ->
+    List.map (fun (k, v) -> (k, lua_of_toml v)) vs |>
+    I.Value.Table.of_list |> I.Value.table.embed
+  | TomlLocalTime s -> I.Value.string.embed s
+  | TomlLocalDate s -> I.Value.string.embed s
+  | TomlLocalDateTime s -> I.Value.string.embed s
+  | TomlOffsetDateTime s -> I.Value.string.embed s
+
 let run_plugin settings soupault_config filename lua_code env widget_config soup =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
@@ -686,9 +702,9 @@ let run_plugin settings soupault_config filename lua_code env widget_config soup
       I.register_globals ["page_url", lua_str.embed env.page_url] state;
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
       I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
-      I.register_globals ["config", lua_of_json widget_config] state;
-      I.register_globals ["widget_config", lua_of_json widget_config] state;
-      I.register_globals ["soupault_config", lua_of_json soupault_config] state;
+      I.register_globals ["config", lua_of_toml widget_config] state;
+      I.register_globals ["widget_config", lua_of_toml widget_config] state;
+      I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
       I.register_globals ["force", I.Value.bool.embed settings.force] state;
       I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
       I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
