@@ -111,6 +111,14 @@ end
 let value_of_toml = Toml_reader.value_of_toml
 let value_of_table = Toml_reader.value_of_table
 
+let from_file path =
+  try
+    let data = Toml.Parser.from_filename path |> Toml.Parser.unsafe in
+    Ok (value_of_table data)
+  with
+  | Sys_error err -> Error (Printf.sprintf "Could not read TOML file: %s" err)
+  | Toml.Parser.Error (err, _) -> Error (Printf.sprintf "Could not parse TOML file %s: %s" path err)
+
 exception Key_error of string
 exception Type_error of string
 
@@ -137,6 +145,26 @@ let field ?(default=None) ?(getter=(fun x -> x)) k j =
         Printf.ksprintf type_error "wrong value type for the field \"%s\": %s" k e
     end
   | _ -> Printf.ksprintf type_error "cannot retrieve field \"%s\": value is not a table" k
+
+let get ?(conv=(fun x -> x)) typ path value =
+  let rec aux path value =
+    match (path, value) with
+    | [], v ->
+      (* Apply type conversion, if a user supplied one *)
+      let v = conv v in
+      let value_type = type_of_value v in
+      if value_type = typ then Ok v
+      else Error (Printf.sprintf
+        "Expected a value of type %s but the actual type is %s"
+        (type_string v)
+        (string_of_type typ))
+    | p :: ps, (TomlTable t) ->
+      let res = List.assoc_opt p t in
+      (match res with
+       | Some v -> aux ps v
+       | None -> Error (Printf.sprintf "table does not have key \"%s\"" p))
+    | _, _ -> Error ""
+  in aux path value
 
 let string ?(strict=true) j =
   match j with
@@ -210,4 +238,5 @@ let rec to_json t =
   | TomlOffsetDateTime s -> `String s
   | TomlArray xs -> `A (List.map to_json xs)
   | TomlTable os | TomlInlineTable os | TomlTableArray os -> `O (List.map (fun (k, v) -> (k, to_json v)) os)
+
   
