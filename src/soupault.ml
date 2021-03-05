@@ -320,12 +320,18 @@ let get_args settings =
   if !init then (Project_init.init !sr; exit 0) else Ok !sr
 
 let check_project_dir settings =
-  if (not (FU.test FU.Exists settings.default_template)) && settings.generator_mode
-  then Logs.warn @@ fun m -> m "Default template %s does not exist" settings.default_template;
-  if (not (FU.test FU.Is_dir settings.site_dir))
+  if (not (FU.test FU.Exists settings.default_template)) && settings.generator_mode then
+    (* Don't make this fatal just yet, because:
+         a) either it will blow up very soon after anyway, when soupault gets to the first page
+         b) or ther user specified a custom template for every path.
+     *)
+    Logs.warn @@ fun m -> m "Default template is required in generator mode, but template file \"%s\" does not exist."
+      settings.default_template
+  else if (not (FU.test FU.Is_dir settings.site_dir))
   then begin
-    Logs.warn @@ fun m -> m "Site directory %s does not exist" settings.site_dir;
-    Logs.warn @@ fun m -> m "Use %s --init to initialize a basic project" Sys.argv.(0);
+    (* Absense of a site dir likely means someone is running soupault in a completely wrong dir. *)
+    Logs.err @@ fun m -> m "Site directory \"%s\" does not exist!" settings.site_dir;
+    Logs.err @@ fun m -> m "You can use %s --init to initialize a basic project." Sys.argv.(0);
     exit 1
   end
 
