@@ -30,7 +30,9 @@ let setup_logging verbose debug =
     else Logs.Warning
   in
   Logs.set_level (Some level);
-  Logs.set_reporter log_reporter
+  Logs.set_reporter log_reporter;
+  (* Enable exception tracing if debug=true *)
+  if debug then Printexc.record_backtrace true
 
 (*** Filesystem stuff ***)
 let (+/) left right =
