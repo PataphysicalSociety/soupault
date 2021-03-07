@@ -306,7 +306,7 @@ let get_args settings =
   let init = ref false in
   let sr = ref settings in
   let args = Arg.align [
-    ("--init", Arg.Unit (fun () -> init := true), " Setup basic directory structure");
+    ("--init", Arg.Unit (fun () -> init := true), " Set up basic directory structure");
     ("--verbose", Arg.Unit (fun () -> sr := {!sr with verbose=true}), " Verbose output");
     ("--debug", Arg.Unit (fun () -> sr := {!sr with debug=true}), " Debug output");
     ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false>  Stop on page processing errors or not");
