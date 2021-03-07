@@ -305,17 +305,17 @@ let get_args settings =
   let () = Arg.current := 0 in
   let init = ref false in
   let sr = ref settings in
-  let args = [
-    ("--init", Arg.Unit (fun () -> init := true), "Setup basic directory structure");
-    ("--verbose", Arg.Unit (fun () -> sr := {!sr with verbose=true}), "Verbose output");
-    ("--debug", Arg.Unit (fun () -> sr := {!sr with debug=true}), "Debug output");
-    ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false> Stop on page processing errors or not");
-    ("--site-dir", Arg.String (fun s -> sr := {!sr with site_dir=s}), "Directory with input files");
-    ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "Output directory");
-    ("--profile", Arg.String (fun s -> sr := {!sr with build_profile=(Some s)}), "Build profile");
-    ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), "Extract site index without generating pages");
-    ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), "Force generating all target files");
-    ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), "Print version and exit")
+  let args = Arg.align [
+    ("--init", Arg.Unit (fun () -> init := true), " Setup basic directory structure");
+    ("--verbose", Arg.Unit (fun () -> sr := {!sr with verbose=true}), " Verbose output");
+    ("--debug", Arg.Unit (fun () -> sr := {!sr with debug=true}), " Debug output");
+    ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false>  Stop on page processing errors or not");
+    ("--site-dir", Arg.String (fun s -> sr := {!sr with site_dir=s}), " Directory with input files");
+    ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), " Output directory");
+    ("--profile", Arg.String (fun s -> sr := {!sr with build_profile=(Some s)}), " Build profile");
+    ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
+    ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
+    ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), " Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
   let () = Arg.parse args (fun _ -> ()) usage in
