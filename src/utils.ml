@@ -39,7 +39,12 @@ let get_program_output ?(input=None) command env_array =
     let res = Unix.close_process_full (std_out, std_in, std_err) in
     (Ok res, output, err)
   with
-  | Sys_error msg -> (Error (Printf.sprintf "System error: %s" msg), "", "")
+  | Sys_error msg ->
+    (* This is especially relevant on Windows.
+       Since Windows doesn't have POSIX signals,
+       conditions like "child process died" are signalled with Sys_error exceptions instead.
+     *)
+    (Error (Printf.sprintf "System error: %s" msg), "", "")
   | _ ->
     let msg = Printexc.get_backtrace () in
     (Error msg, "", "")
