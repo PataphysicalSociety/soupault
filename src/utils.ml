@@ -74,7 +74,7 @@ let handle_process_error cmd res =
     Error (Printf.sprintf "Failed to run \"%s\": %s" cmd (format_process_error res))
 
 (** Exception-safe list tail function that assumes that empty list's
-    tail is an empty list. Used for breadcrumbs. *)
+    tail is an empty list. *)
 let safe_tl xs =
     match xs with
     | [] -> []
@@ -83,8 +83,14 @@ let safe_tl xs =
 (** Removes the last element of a list *)
 let drop_tail xs = List.rev xs |> safe_tl |> List.rev
 
+(** Removes the first element of a list *)
+let drop_head xs = safe_tl xs
+
 (** Shortcut for checking if a list has this element *)
 let in_list xs x = List.exists ((=) x) xs
+
+let any_in_list xs ys =
+  List.fold_left (fun acc x -> (in_list ys x) || acc) false xs
 
 (** Extracts keys from an assoc list *)
 let assoc_keys xs = List.fold_left (fun acc (x, _) -> x :: acc) [] xs
@@ -169,6 +175,17 @@ let profile_matches profile build_profile =
 let get_extension file =
   try FilePath.get_extension file
   with Not_found -> ""
+
+let get_extensions file =
+  let parts = String.split_on_char '.' file in
+  drop_head parts
+
+let has_extension extension file =
+  let extensions = get_extensions file in
+  let res = List.find_opt ((=) extension) extensions in
+  match res with
+  | None -> false
+  | Some _ -> true
 
 (* Remove trailing slashes from a path. *)
 let normalize_path path =

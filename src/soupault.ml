@@ -41,17 +41,6 @@ let (+/) left right =
 let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
-let remove_ignored_files settings files =
-  let ignored settings file = Utils.in_list settings.ignore_extensions (Utils.get_extension file) in
-  List.filter (fun f -> not (ignored settings f)) files
-
-let list_section_files settings path =
-  let is_page_file f = Utils.in_list settings.page_extensions (Utils.get_extension f) in
-  let files = FU.ls path |> FU.filter (FU.Is_file) |> remove_ignored_files settings in
-  let page_files = List.find_all is_page_file files in
-  let other_files = List.find_all (fun f -> not (is_page_file f)) files in
-  page_files, other_files
-
 let make_build_dir build_dir =
   if (FU.test FU.Exists build_dir) then Ok () else
   let () = Logs.info @@ fun m -> m "Build directory \"%s\" does not exist, creating" build_dir in
