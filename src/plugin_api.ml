@@ -584,6 +584,8 @@ struct
        "basename", V.efunc (V.string **->> V.string) FilePath.basename;
        "dirname", V.efunc (V.string **->> V.string) FilePath.dirname;
        "get_extension", V.efunc (V.string **->> V.string) Utils.get_extension;
+       "get_extensions", V.efunc (V.string **->> V.list V.string) Utils.get_extensions;
+       "has_extension", V.efunc (V.string **-> V.string **->> V.bool) (fun f e -> Utils.has_extension e f);
        "random", V.efunc (V.int **->> V.int) Random.int;
        "is_windows", V.efunc (V.unit **->> V.bool) (fun () -> Sys.win32);
        "is_unix", V.efunc (V.unit **->> V.bool) (fun () -> Sys.unix);
