@@ -8,5 +8,6 @@ let widgets = [
   ("breadcrumbs", Breadcrumbs_widget.breadcrumbs);
   ("footnotes", Footnotes_widget.footnotes);
   ("toc", Toc_widget.toc);
-  ("preprocess_element", Inclusion_widgets.preprocess_element)
+  ("preprocess_element", Inclusion_widgets.preprocess_element);
+  ("relative_links", Link_widgets.relative_links)
 ]

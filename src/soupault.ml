@@ -241,6 +241,7 @@ let process_page page_file nav_path index widgets config settings =
     page_file = page_file;
     target_dir = target_dir;
     site_index = index;
+    settings = settings;
   }
   in
   let () = Logs.info @@ fun m -> m "Processing page %s" page_file in

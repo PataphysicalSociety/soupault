@@ -178,6 +178,7 @@ type env = {
   page_url : string;
   target_dir : string;
   site_index : index_entry list;
+  settings : settings;
 }
 
 let config_file = "soupault.conf"
