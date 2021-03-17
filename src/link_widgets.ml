@@ -10,7 +10,7 @@ let re_matches s pat =
   with Re__Perl.Parse_error | Re__Perl.Not_supported ->
     soupault_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
-let link_selectors = [ "a"; "link"; "img"; "script"; "audio"; "video"; "object"; "embed"]
+let link_selectors = ["a"; "link"; "img"; "script"; "audio"; "video"; "object"; "embed"]
 
 let get_target_attr elem =
   let tag_name = Soup.name elem in
@@ -23,7 +23,10 @@ let get_target_attr elem =
   | "video" -> "src"
   | "embed" -> "src"
   | "object" -> "data"
-  | _ -> soupault_error @@ Printf.sprintf "relative_links widget tried to process unsupported element %s" tag_name
+  | _ ->
+    (* Can't happen *)
+    soupault_error @@ Printf.sprintf
+      "Internal error: relative_links widget tried to process an unsupported element <%s>" tag_name
 
 let make_parent_path depth = Containers.String.repeat "../" depth
 
