@@ -10,6 +10,10 @@ let re_matches s pat =
   with Re__Perl.Parse_error | Re__Perl.Not_supported ->
     soupault_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
+(* Handle links that don't have a URI schema and aren't internal anchor links,
+   unless the user specifies otherwise. *)
+let default_exclude_regex = "^((([a-zA-Z0-9]+):)|#)"
+
 let link_selectors = ["a"; "link"; "img"; "script"; "audio"; "video"; "object"; "embed"]
 
 let get_target_attr elem =
@@ -45,7 +49,7 @@ let relativize elem env check_file only_regex exclude_regex =
     Logs.debug @@ fun m -> m "Ignoring a <%s> element without \"%s\" attribute" (Soup.name elem) target_attr
   | Some target ->
     if not (target_matches target)
-    then Logs.debug @@ fun m -> m "Link target \"%s\" matches the exlude_regex, ignoring" target
+    then Logs.debug @@ fun m -> m "Link target \"%s\" matches the exlude_target_regex, ignoring" target
     else begin
       (* Remove the build_dir from the path *)
       if check_file && (Sys.file_exists (FilePath.concat env.target_dir target)) then () else
@@ -63,15 +67,20 @@ let relativize elem env check_file only_regex exclude_regex =
 let relative_links env config soup =
   let valid_options = List.append Config.common_widget_options ["exclude_target_regex"; "only_target_regex"; "check_file"] in
   let () = Config.check_options valid_options config "widget \"relative_links\"" in
-  let exclude_regex = Config.get_string_default "exclude_target_regex" "^((([a-zA-Z0-9]+):)|#)" config in
+  let exclude_regex = Config.get_string_opt "exclude_target_regex" config in
   let only_regex = Config.get_string_opt "only_target_regex" config in
-  let check_file = Config.get_bool_default false "check_file" config in
-  let nodes = Html_utils.select_all link_selectors soup in
-  begin
-    match nodes with
-    | [] ->
-       Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
-    | ns -> List.iter (fun e -> relativize e env check_file only_regex exclude_regex) ns
-  end;
-  Ok ()
+  if (Option.is_some exclude_regex) && (Option.is_some only_regex)
+  then Config.config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
+  else begin
+    let exclude_regex = Option.value ~default:default_exclude_regex exclude_regex in
+    let check_file = Config.get_bool_default false "check_file" config in
+    let nodes = Html_utils.select_all link_selectors soup in
+    begin
+      match nodes with
+      | [] ->
+         Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
+      | ns -> List.iter (fun e -> relativize e env check_file only_regex exclude_regex) ns
+    end;
+    Ok ()
+  end
 
