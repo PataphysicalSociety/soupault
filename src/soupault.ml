@@ -1,3 +1,4 @@
+open Soupault_common
 open Defaults
 
 module FU = FileUtil
@@ -157,7 +158,9 @@ let rec process_widgets env settings ws wh config soup =
       then (process_widgets env settings ws' wh config soup) else
       let res =
         try widget.func env widget.config soup
-        with Utils.Soupault_error s -> Error s
+        with 
+        | Soupault_error s -> Error s
+        | Config.Config_error s -> Error s
       in
       (* In non-strict mode, widget processing errors are tolerated *)
       match res, settings.strict with
