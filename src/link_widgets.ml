@@ -10,9 +10,12 @@ let re_matches s pat =
   with Re__Perl.Parse_error | Re__Perl.Not_supported ->
     soupault_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
-(* Handle links that don't have a URI schema and aren't internal anchor links,
-   unless the user specifies otherwise. *)
-let default_exclude_regex = "^((([a-zA-Z0-9]+):)|#)"
+(* By default, exclude three categories of links from target rewriting:
+     1. Links that have a URI schema (^([a-zA-Z0-9]+):), e.g. https://example.com
+     2. Links to anchors within the same page (^#), e.g. #my-anchor
+     3. Hand-made relative links (^\.), e.g. ../style.css
+ *)
+let default_exclude_regex = "^((([a-zA-Z0-9]+):)|#|\\.)"
 
 let link_selectors = ["a"; "link"; "img"; "script"; "audio"; "video"; "object"; "embed"]
 
