@@ -66,6 +66,30 @@ let relativize elem env check_file only_regex exclude_regex =
       Soup.set_attribute (get_target_attr elem) target elem
     end
 
+let absolutize elem env prefix check_file only_regex exclude_regex =
+  let open Defaults in
+  let target_attr = get_target_attr elem in
+  let target = Soup.attribute target_attr elem in
+  match target with
+  | None ->
+    Logs.debug @@ fun m -> m "Ignoring a <%s> element without \"%s\" attribute" (Soup.name elem) target_attr
+  | Some target ->
+    if not (target_matches only_regex exclude_regex target)
+    then Logs.debug @@ fun m -> m "Link target \"%s\" matches the exlude_target_regex, ignoring" target
+    else begin
+      (* Remove the build_dir from the path *)
+      let relative_target_dir = Utils.regex_replace env.target_dir ("^" ^ env.settings.build_dir) "" in
+      (* Strip leading slashes *)
+      let target = Utils.regex_replace target "^/+" "" in
+      let parent_path =
+        (if check_file && (Sys.file_exists (FilePath.concat env.target_dir target))
+        then let dir_path = Utils.split_path relative_target_dir in String.concat "/" (prefix :: dir_path)
+        else prefix)
+      in
+      let target = FilePath.concat parent_path target in
+      Soup.set_attribute (get_target_attr elem) target elem
+    end
+
 (** Converts all internal links to relative according to the page's location in the directory tree. *)
 let relative_links env config soup =
   let valid_options = List.append Config.common_widget_options ["exclude_target_regex"; "only_target_regex"; "check_file"] in
@@ -82,6 +106,30 @@ let relative_links env config soup =
     | [] ->
       Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
     | ns -> List.iter (fun e -> relativize e env check_file only_regex exclude_regex) ns
+    end;
+    Ok ()
+  end
+
+(** Converts all internal links to absolute. *)
+let absolute_links env config soup =
+  let (let*) = Result.bind in
+  let valid_options = List.append Config.common_widget_options
+    ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
+  in
+  let () = Config.check_options valid_options config "widget \"absolute_links\"" in
+  let* prefix = Config.get_string_result "Missing required_option \"prefix\"" "prefix" config in
+  let exclude_regex = Config.get_string_opt "exclude_target_regex" config in
+  let only_regex = Config.get_string_opt "only_target_regex" config in
+  if (Option.is_some exclude_regex) && (Option.is_some only_regex)
+  then Config.config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
+  else begin
+    let exclude_regex = Option.value ~default:default_exclude_regex exclude_regex in
+    let check_file = Config.get_bool_default false "check_file" config in
+    let nodes = Html_utils.select_all link_selectors soup in begin
+    match nodes with
+    | [] ->
+      Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
+    | ns -> List.iter (fun e -> absolutize e env prefix check_file only_regex exclude_regex) ns
     end;
     Ok ()
   end
