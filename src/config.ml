@@ -326,7 +326,7 @@ let valid_settings = [
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery";
-  "force"
+  "force"; "pretty_print_html"
 ]
 
 let _update_settings settings config =
@@ -363,6 +363,7 @@ let _update_settings settings config =
        plugin_discovery = get_bool_default settings.plugin_discovery "plugin_discovery" st;
 
        force = get_bool_default settings.force "force" st;
+       pretty_print_html = get_bool_default settings.pretty_print_html "pretty_print_html" st;
 
        preprocessors = _get_preprocessors config
      }

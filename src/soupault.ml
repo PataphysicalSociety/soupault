@@ -74,11 +74,12 @@ let load_html settings file =
   with Sys_error e -> Error e
 
 let save_html settings soup file =
+  let print_html = if settings.pretty_print_html then Soup.pretty_print else Soup.to_string in
   try
     let chan = open_out file in
     if settings.keep_doctype then
       begin
-        let html_str = Soup.pretty_print soup in
+        let html_str = print_html soup in
         if String.length html_str = 0 then () else
         let has_doctype =
           (<>) 0 (Re.matches (Re.Perl.compile_pat ~opts:[`Caseless] "^(<!DOCTYPE[^>]*>)") html_str |> List.length)
@@ -95,7 +96,7 @@ let save_html settings soup file =
         match html with
         | Some html ->
           Printf.fprintf chan "%s\n" doctype;
-          Soup.pretty_print html |> Soup.write_channel chan
+          print_html html |> Soup.write_channel chan
         | None -> ()
       end;
    close_out chan;

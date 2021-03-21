@@ -163,6 +163,8 @@ type settings = {
   plugin_discovery: bool;
 
   force : bool;
+
+  pretty_print_html : bool;
 }
 
 type index_entry = {
@@ -250,6 +252,7 @@ let default_settings = {
   plugin_discovery = true;
 
   force = true;
+  pretty_print_html = true;
 }
 
 let version = (2, 5, 0, None)
