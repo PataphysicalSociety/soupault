@@ -209,7 +209,7 @@ let normalize_path path =
 let concat_path fs = List.fold_left FilePath.concat "" fs
 
 let split_path p =
-  let sep = if Sys.win32 then "(\\)+" else "(/)+" in
+  let sep = if Sys.win32 then "(\\\\)+" else "(/)+" in
   Re.split (Re.Perl.compile_pat sep) p
 
 let string_of_float f =
