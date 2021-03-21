@@ -62,7 +62,7 @@ let relativize elem env check_file only_regex exclude_regex =
       let parent_path = make_parent_path depth in
       (* Strip leading slashes *)
       let target = Utils.regex_replace target "^/+" "" in
-      let target = FilePath.concat parent_path target in
+      let target = String.concat "/" [parent_path; target] in
       Soup.set_attribute (get_target_attr elem) target elem
     end
 
@@ -86,7 +86,7 @@ let absolutize elem env prefix check_file only_regex exclude_regex =
         then let dir_path = Utils.split_path relative_target_dir in String.concat "/" (prefix :: dir_path)
         else prefix)
       in
-      let target = FilePath.concat parent_path target in
+      let target = String.concat "/" [parent_path; target] in
       Soup.set_attribute (get_target_attr elem) target elem
     end
 
@@ -118,6 +118,8 @@ let absolute_links env config soup =
   in
   let () = Config.check_options valid_options config "widget \"absolute_links\"" in
   let* prefix = Config.get_string_result "Missing required_option \"prefix\"" "prefix" config in
+  (* Strip trailing slashes to avoid duplicate slashes after concatenation *)
+  let prefix = Utils.regex_replace prefix "/+$" "" in
   let exclude_regex = Config.get_string_opt "exclude_target_regex" config in
   let only_regex = Config.get_string_opt "only_target_regex" config in
   if (Option.is_some exclude_regex) && (Option.is_some only_regex)
