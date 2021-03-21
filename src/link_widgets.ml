@@ -6,8 +6,9 @@ open Soupault_common
      1. Links that have a URI schema (^([a-zA-Z0-9]+):), e.g. https://example.com
      2. Links to anchors within the same page (^#), e.g. #my-anchor
      3. Hand-made relative links (^\.), e.g. ../style.css
+     4. Protocol-relative URLs that begin with //
  *)
-let default_exclude_regex = "^((([a-zA-Z0-9]+):)|#|\\.)"
+let default_exclude_regex = "^((([a-zA-Z0-9]+):)|#|\\.|//)"
 
 let link_selectors = ["a"; "link"; "img"; "script"; "audio"; "video"; "object"; "embed"]
 
