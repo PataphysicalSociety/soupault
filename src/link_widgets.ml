@@ -2,14 +2,6 @@
 
 open Soupault_common
 
-let re_matches s pat =
-  try
-    let re = Re.Perl.compile_pat pat in
-    let ms = Re.matches re s in
-    List.length ms != 0
-  with Re__Perl.Parse_error | Re__Perl.Not_supported ->
-    soupault_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
-
 (* By default, exclude three categories of links from target rewriting:
      1. Links that have a URI schema (^([a-zA-Z0-9]+):), e.g. https://example.com
      2. Links to anchors within the same page (^#), e.g. #my-anchor
@@ -37,21 +29,29 @@ let get_target_attr elem =
 
 let make_parent_path depth = Containers.String.repeat "../" depth
 
+let re_matches s pat =
+  try
+    let re = Re.Perl.compile_pat pat in
+    let ms = Re.matches re s in
+    List.length ms != 0
+  with Re__Perl.Parse_error | Re__Perl.Not_supported ->
+    soupault_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
+
+let target_matches only_regex exclude_regex target =
+  match only_regex with
+  | Some r -> re_matches target r
+  | None ->
+    not (re_matches target exclude_regex)
+
 let relativize elem env check_file only_regex exclude_regex =
   let open Defaults in
-  let target_matches target =
-    (match only_regex with
-     | Some r -> re_matches target r
-     | None ->
-       not (re_matches target exclude_regex))
-  in
   let target_attr = get_target_attr elem in
   let target = Soup.attribute target_attr elem in
   match target with
   | None ->
     Logs.debug @@ fun m -> m "Ignoring a <%s> element without \"%s\" attribute" (Soup.name elem) target_attr
   | Some target ->
-    if not (target_matches target)
+    if not (target_matches only_regex exclude_regex target)
     then Logs.debug @@ fun m -> m "Link target \"%s\" matches the exlude_target_regex, ignoring" target
     else begin
       (* Remove the build_dir from the path *)
@@ -77,12 +77,11 @@ let relative_links env config soup =
   else begin
     let exclude_regex = Option.value ~default:default_exclude_regex exclude_regex in
     let check_file = Config.get_bool_default false "check_file" config in
-    let nodes = Html_utils.select_all link_selectors soup in
-    begin
-      match nodes with
-      | [] ->
-         Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
-      | ns -> List.iter (fun e -> relativize e env check_file only_regex exclude_regex) ns
+    let nodes = Html_utils.select_all link_selectors soup in begin
+    match nodes with
+    | [] ->
+      Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
+    | ns -> List.iter (fun e -> relativize e env check_file only_regex exclude_regex) ns
     end;
     Ok ()
   end
