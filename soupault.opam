@@ -42,7 +42,6 @@ depends: [
   "re"
   "ezjsonm"
   "containers"
-  "stringext"
   "odate"
   "spelll"
   "base64"

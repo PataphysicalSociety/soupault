@@ -10,7 +10,6 @@
    fileutils
    logs
    logs.fmt
-   stringext
    re
    odate
    spelll
