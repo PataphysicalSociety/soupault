@@ -97,7 +97,9 @@ let save_html settings soup file =
         | Some html ->
           Printf.fprintf chan "%s\n" doctype;
           print_html html |> Soup.write_channel chan
-        | None -> ()
+        | None ->
+          Logs.warn @@ fun m -> m "Page has no <HTML> element, not setting doctype";
+          print_html soup |> Soup.write_channel chan
       end;
    close_out chan;
    Ok ()
