@@ -85,12 +85,23 @@ let save_html settings soup file =
           (<>) 0 (Re.matches (Re.Perl.compile_pat ~opts:[`Caseless] "^(<!DOCTYPE[^>]*>)") html_str |> List.length)
         in
         let () =
+          (* Can the page be an invalid, incomplete HTML? Of course it can,
+             but if the user chose to force a doctype, it's their responsibilty.
+           *)
           if not has_doctype then settings.doctype |> String.trim |> Printf.fprintf chan "%s\n"
         in
         Soup.write_channel chan html_str
       end
     else
       begin
+        (* If we are to discard the original doctype and completely replace it,
+           we need to remove the original one.
+
+           As of lambdasoup 0.7.2, there's no way to delete the doctype "element"
+           (which isn't actually an element anyway),
+           so we extract the <html> from the document tree,
+           and prepend a doctype to it.
+           That is, if the document even has <html> to begin with--see below. *)
         let doctype = settings.doctype |> String.trim in
         let html = Soup.select_one "html" soup in
         match html with
@@ -98,6 +109,12 @@ let save_html settings soup file =
           Printf.fprintf chan "%s\n" doctype;
           print_html html |> Soup.write_channel chan
         | None ->
+          (* This may happen if a page (in postprocessor mode)
+             or a page template (in generator mode)
+             is incomplete.
+             At the moment soupault doesn't prohibit invalid HTML,
+             so we need to handle this case.
+           *)
           Logs.warn @@ fun m -> m "Page has no <HTML> element, not setting doctype";
           print_html soup |> Soup.write_channel chan
       end;
