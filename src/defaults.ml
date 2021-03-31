@@ -255,7 +255,7 @@ let default_settings = {
   pretty_print_html = true;
 }
 
-let version = (2, 5, 0, None)
+let version = (2, 5, 1, None)
 
 let version_to_string v =
   let major, minor, patch, suffix = v in
