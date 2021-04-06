@@ -70,7 +70,7 @@ let load_html settings file =
     | Some prep ->
       let prep_cmd = Printf.sprintf "%s %s" prep file in
       let () = Logs.info @@ fun m -> m "Calling preprocessor %s on page %s" prep file in
-      (Utils.get_program_output prep_cmd [| |] |> Utils.handle_process_error prep_cmd) >>= (fun h -> Ok (Soup.parse h))
+      (Process_utils.get_program_output prep_cmd) >>= (fun h -> Ok (Soup.parse h))
   with Sys_error e -> Error e
 
 let save_html settings soup file =

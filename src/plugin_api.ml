@@ -48,7 +48,7 @@ module Sys_wrappers = struct
       Printf.ksprintf plugin_error "Failed to write file \"%s\": %s" name msg
 
   let get_program_output cmd =
-    let res = Utils.get_program_output cmd [| |] |> Utils.handle_process_error cmd in
+    let res = Process_utils.get_program_output cmd in
     match res with
     | Ok o -> Some o
     | Error msg ->
@@ -56,25 +56,20 @@ module Sys_wrappers = struct
       None
 
   let run_program cmd =
-    let res = Utils.get_program_output cmd [| |] |> Utils.handle_process_error cmd in
+    let res = Process_utils.get_program_output cmd in
     match res with
-    | Ok o ->
-      let () = Logs.debug @@ fun m -> m "Successfully ran \"%s\", the output was:\n%s" cmd o in Some 1
+    | Ok _ -> Some 1
     | Error msg ->
       let () = Logs.err @@ fun m -> m "%s" msg in
       None
 
   let run_program_get_exit_code cmd =
-    let res = Utils.get_program_output cmd [| |] in
+    let res = Process_utils.get_program_output_raw cmd in
     match res with
-    | Utils.Output o ->
-      let () = Logs.debug @@ fun m -> m "Successfully ran \"\", the output was:\n%s" o in 0
-    | Utils.ExecutionError (code, out, err) ->
-      let () = Logs.err @@ fun m -> m "Failed to run \"%s\": %s" cmd (Utils.format_process_error code) in
-      let () = Utils.log_process_error cmd out err in
-      match code with
-      | Ok (Unix.WEXITED num) -> num
-      | _ -> 1
+    | Ok _ -> 0
+    | Error status ->
+      let () = Logs.err @@ fun m -> m "%s" (Process_utils.format_error cmd status) in
+      Process_utils.exit_code_of_status status
 
   let delete_file ?(r=false) path =
     try FileUtil.rm ~recurse:r [path]

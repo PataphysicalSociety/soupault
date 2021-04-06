@@ -138,7 +138,7 @@ let run_index_processor cmd ic index =
   (* Minification is intentional, newline is used as end of input *)
   let json = json_string_of_entries ~minify:true index in
   let () = Logs.info @@ fun m -> m "Calling index processor %s" cmd in
-  let output = (Utils.get_program_output ~input:(Some json) cmd [| |]) |> Utils.handle_process_error cmd in
+  let output = (Process_utils.get_program_output ~input:(Some json) cmd) in
   begin
     match output with
     | Error _ as e -> e
