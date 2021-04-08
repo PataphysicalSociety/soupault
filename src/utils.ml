@@ -183,7 +183,7 @@ let rec parse_date fmts date_string =
         let date = ODate.Unix.From.string parser date_string in
         let () = Logs.debug @@ fun m -> m "Date string \"%s\" matched format \"%s\"" date_string f in
         Some date
-      with Failure _ -> parse_date fs date_string
+      with _ -> parse_date fs date_string
   end
 
 let format_date fmt date =
