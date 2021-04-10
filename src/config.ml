@@ -8,6 +8,13 @@ let config_error err = raise (Config_error err)
 
 let default d o = CCOpt.get_or ~default:d o
 
+let sort_type_from_string s =
+  match s with
+  | "calendar" -> Calendar
+  | "numeric" -> Numeric
+  | "lexicographic" -> Lexicographic
+  | _ -> Printf.ksprintf config_error "\"%s\" is not a valid value for the sort_type option. Choose either \"calendar\", \"numeric\" or \"lexicographic\"" s
+
 (** Checks if config file exists.
     When config doesn't exist, soupault uses default settings,
     so this is considered a normal condition.
@@ -182,7 +189,7 @@ let get_index_queries index_table =
 
 let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
-  "index"; "dump_json"; "sort_by"; "sort_descending"; "date_formats";
+  "index"; "dump_json"; "sort_by"; "sort_descending"; "sort_type"; "date_formats";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
   "force_indexing_path_regex"; "leaf_file";
   "profile"
@@ -275,6 +282,7 @@ let _get_index_settings settings config =
        index_profile = get_string_opt "profile" st;
        index_path_options = get_path_options st;
        index_sort_by = get_string_opt "sort_by" st;
+       index_sort_type = get_string_default "calendar" "sort_type" st |> sort_type_from_string;
        index_sort_descending = get_bool_default true "sort_descending" st;
        index_date_input_formats = date_formats;
        index_force = get_strings_relaxed "force_indexing_path_regex" st;

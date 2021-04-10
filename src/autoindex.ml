@@ -65,23 +65,34 @@ let compare_entries settings l r =
     try Some (Otoml.string ~strict:false j)
     with Otoml.Type_error _ -> None
   in
-  let get_date entry =
+  let get_sort_key_field entry =
     settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>= (fun s -> Some (Otoml.of_json s)) >>=
-    string_of_field >>= Utils.parse_date settings.index_date_input_formats
+    string_of_field
   in
-  let compare_dates l_date r_date =
-    match l_date, r_date with
+  let compare_values cmp_func l_val r_val =
+    match l_val, r_val with
     | None, None ->
-      (* Neither is a valid date, resort to lexicographic sort *)
+      (* Neither is a valid value, resort to lexicographic sort and compare original strings. *)
       compare l r
     | Some _, None -> 1
     | None, Some _ -> -1
-    | Some l_date, Some r_date ->
-      ODate.Unix.compare l_date r_date
+    | Some l_val, Some r_val ->
+      cmp_func l_val r_val
   in
-  let l_date = get_date l in
-  let r_date = get_date r in
-  let result = compare_dates l_date r_date in
+  let l_key = get_sort_key_field l in
+  let r_key = get_sort_key_field r in
+  let result =
+    match settings.index_sort_type with
+    | Calendar ->
+      let l_date = l_key >>= Utils.parse_date settings.index_date_input_formats in
+      let r_date = r_key >>= Utils.parse_date settings.index_date_input_formats in
+      compare_values ODate.Unix.compare l_date r_date
+    | Numeric ->
+      let l_num = l_key >>= (fun s -> Some (int_of_string_opt s)) in
+      let r_num = r_key >>= (fun s -> Some (int_of_string_opt s)) in
+      compare l_num r_num
+    | Lexicographic -> compare l_key r_key
+  in
   if settings.index_sort_descending then (~- result) else result
 
 let json_of_entry e =

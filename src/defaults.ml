@@ -1,3 +1,6 @@
+
+type sort_type = Calendar | Numeric | Lexicographic
+
 (** global settings that can be updated from config file or command line options *)
 type index_field = {
   field_name : string;
@@ -155,6 +158,7 @@ type settings = {
   (* Index field to sort by and sort order. *)
   index_sort_by : string option;
   index_sort_descending : bool;
+  index_sort_type : sort_type;
 
   (* Page preprocessors convert other formats to HTML. *)
   preprocessors : (string * string) list;
@@ -242,6 +246,7 @@ let default_settings = {
   index_profile = None;
   index_date_input_formats = ["%F"];
   index_sort_by = None;
+  index_sort_type = Calendar;
   index_sort_descending = true;
   index_force = [];
   index_leaf_file = None;
