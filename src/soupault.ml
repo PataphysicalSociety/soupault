@@ -430,7 +430,7 @@ let main () =
   in
   (* Now process the index pages, using previously collected index data.
      This will produce no new index data so we ignore the non-error results. *)
-  let index = Autoindex.sort_entries settings index in
+  let* index = Autoindex.sort_entries settings index in
   let* () = Utils.iter (_process_page index widgets config settings) index_files in
   let* () = dump_index_json settings index in
   Ok ()

@@ -1,4 +1,5 @@
 open Defaults
+open Soupault_common
 
 let bind = CCResult.(>>=)
 
@@ -54,6 +55,15 @@ let get_entry settings env soup =
     fields = get_custom_fields settings.index_strip_tags settings.index_fields soup
   }
 
+let json_of_entry e =
+  let fields = [
+    ("url", `String e.index_entry_url);
+    ("page_file", `String e.index_entry_page_file);
+    ("nav_path", `A (List.map (fun x -> `String x) e.index_entry_nav_path))
+  ] in
+  let fields = List.append fields e.fields in
+  `O fields
+
 (** Compares entries by their dates according to these rules:
     1. Entries without known dates are equal
     2. Entries with a known date are newer than those without
@@ -79,32 +89,45 @@ let compare_entries settings l r =
     | Some l_val, Some r_val ->
       cmp_func l_val r_val
   in
-  let l_key = get_sort_key_field l in
-  let r_key = get_sort_key_field r in
+  let handle_missing_field e v =
+    match v with
+    | Some _ -> v
+    | None ->
+      if settings.index_sort_strict then Printf.ksprintf soupault_error
+        "Cannot sort entries using sort_by=\"%s\", the following entry is missing that field:\n%s"
+        (Option.get settings.index_sort_by)
+        (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
+      else v
+  in
+  let handle_malformed_field type_name orig e v =
+    match v with
+    | Some _ -> v
+    | None ->
+      if settings.index_sort_strict then Printf.ksprintf soupault_error
+        "Cannot sort entries using sort_by=\"%s\": value \"%s\" could not be parsed as %s. The offending entry is:\n%s"
+        (Option.get settings.index_sort_by) (Option.value ~default:"null" orig) type_name
+        (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
+      else v
+  in
+  let l_key = get_sort_key_field l |> handle_missing_field l in
+  let r_key = get_sort_key_field r |> handle_missing_field r in
   let result =
     match settings.index_sort_type with
     | Calendar ->
-      let l_date = l_key >>= Utils.parse_date settings.index_date_input_formats in
-      let r_date = r_key >>= Utils.parse_date settings.index_date_input_formats in
+      let l_date = l_key >>= Utils.parse_date settings.index_date_input_formats |> handle_malformed_field "a date" l_key l in
+      let r_date = r_key >>= Utils.parse_date settings.index_date_input_formats |> handle_malformed_field "a date" r_key r in
       compare_values ODate.Unix.compare l_date r_date
     | Numeric ->
-      let l_num = l_key >>= (fun s -> Some (int_of_string_opt s)) in
-      let r_num = r_key >>= (fun s -> Some (int_of_string_opt s)) in
+      let l_num = l_key >>= (fun s -> Some (int_of_string_opt s)) |> handle_malformed_field "an integer" l_key l in
+      let r_num = r_key >>= (fun s -> Some (int_of_string_opt s)) |> handle_malformed_field "an integer" r_key r in
       compare l_num r_num
     | Lexicographic -> compare l_key r_key
   in
   if settings.index_sort_descending then (~- result) else result
 
-let json_of_entry e =
-  let fields = [
-    ("url", `String e.index_entry_url);
-    ("page_file", `String e.index_entry_page_file);
-    ("nav_path", `A (List.map (fun x -> `String x) e.index_entry_nav_path))
-  ] in
-  let fields = List.append fields e.fields in
-  `O fields
-
-let sort_entries settings es = List.sort (compare_entries settings) es
+let sort_entries settings es =
+  try Ok (List.sort (compare_entries settings) es)
+  with Soupault_error msg -> Error msg
 
 let json_of_entries es =
   `A (List.map json_of_entry es)
