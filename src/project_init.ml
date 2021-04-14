@@ -12,7 +12,7 @@ let default_template = "
   </head>
   <body>
     <!-- your page content will be inserted here,
-         see the content_selector option in soupault.conf -->
+         see the default_content_selector option in soupault.conf -->
   </body>
 </html>
 "
