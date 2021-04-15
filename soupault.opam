@@ -27,7 +27,7 @@ homepage: "https://www.soupault.app"
 bug-reports: "https://github.com/dmbaturin/soupault/issues"
 dev-repo: "git+https://github.com/dmbaturin/soupault"
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
