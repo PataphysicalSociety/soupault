@@ -1,13 +1,7 @@
 open Defaults
+open Widget_utils
 
 let (let*) = Stdlib.Result.bind
-
-let get_selectors config =
-  Config.get_strings "selector" config |> Option.to_result ~none:"Missing required option \"selector\""
-
-let no_container_action selectors =
-  Logs.debug @@ fun m -> m "Page has no elements matching selectors \"%s\", nowhere to insert the snippet"
-    (selectors |> String.concat " ")
 
 let html_of_string ?(parse=true) ?(body_context=true) html_str =
   if parse then Html_utils.parse_html ~body:body_context html_str |> Soup.coerce
