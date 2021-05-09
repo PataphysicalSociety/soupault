@@ -152,6 +152,41 @@ let insert_element action container content =
     let () = Logs.warn @@ fun m -> m "Invalid action \"%s\", using default (append child).%s" action suggestion in
     Soup.append_child container content
 
+(* Wraps one HTML (sub)tree in another *)
+let wrap ?(selector=None) wrapper content =
+  let (let*) = Stdlib.Result.bind in
+  (* The wrapper is assumed to be a parsed HTML snippet. We need to find an _element_ inside it
+     that we can wrap something in. *)
+  let get_wrapper_element wrapper =
+    (* If the user passed an element node, we can just use it directly. *)
+    if Soup.is_element wrapper then begin
+      let we_opt = Soup.element wrapper in
+      (* This error should never occur, but we are still unsafely unwrapping an option... *)
+      let we = CCOpt.get_exn_or "Soup.element returned None for an element node. Please report a bug." we_opt in
+      Ok we
+    end
+    (* If we are given a parsed snippet, then we have to look inside it and search for elements. *)
+    else match selector with
+    | None ->
+      (* Soup.select only selects elements, so we need not worry about non-element children *)
+      let children = Soup.select "*" wrapper |> Soup.to_list in begin
+      match children with
+      | [] -> Error "the wrapper does not contain any element nodes, cannot wrap anything in it"
+      | [c] ->
+        Ok c
+      | _ -> Error "the wrapper has more then one child element but the wrapper selector is not specified"
+      end
+    | Some s ->
+      (* Right now the agreement is to always insert in the first matching elements if there are more than one *)
+      let child = Soup.select_one s wrapper in begin
+      match child with
+      | None -> Error (Printf.sprintf "the wrapper does not have an element matching selector \"%s\"" s)
+      | Some c -> Ok c
+      end
+  in
+  let* we = get_wrapper_element wrapper in
+  Ok (Soup.append_child we content)
+
 (* Checks if an element is a heading *)
 let is_heading e =
   match (Soup.name e) with
