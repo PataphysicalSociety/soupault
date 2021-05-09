@@ -41,7 +41,7 @@ depends: [
   "fmt"
   "re"
   "ezjsonm"
-  "containers"
+  "containers" {>= "3.4"}
   "odate"
   "spelll"
   "base64"
