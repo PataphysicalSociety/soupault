@@ -3,6 +3,7 @@ let widgets = [
   ("include", Inclusion_widgets.include_file);
   ("insert_html", Inclusion_widgets.insert_html);
   ("delete_element", Html_widgets.delete_element);
+  ("wrap", Html_widgets.wrap);
   ("exec", Inclusion_widgets.include_program_output);
   ("title", Title_widget.set_title);
   ("breadcrumbs", Breadcrumbs_widget.breadcrumbs);
