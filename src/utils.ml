@@ -108,13 +108,13 @@ let slugify ?(lowercase=true) ?(regex=None) ?(sub=None) s =
   let s = Re.replace ~all:true ~f:(fun _ -> sub) (Re.Perl.compile_pat regex) s in
   if lowercase then String.lowercase_ascii s else s
 
-let profile_matches profile build_profile =
+let profile_matches profile build_profiles =
   (* Processing steps should run unless they have a "profile" option
      and it doesn't match the current build profile. *)
-  match profile, build_profile with
+  match profile, build_profiles with
   | None, _ -> true
-  | Some _, None -> false
-  | Some p, Some bp -> p = bp
+  | Some _, [] -> false
+  | Some p, _ -> Option.is_some @@ List.find_opt ((=) p) build_profiles
 
 (* Fixup for FilePath.get_extension raising Not_found for files without extensions.
 

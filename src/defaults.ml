@@ -114,11 +114,11 @@ type settings = {
      but treats everything as a complete page. *)
   generator_mode : bool;
 
-  (* Build "profile" normally specified from the CLI with --profile
+  (* Build "profiles" specified from the CLI with --profile
      E.g. "dev" or "production".
      Widgets can be restricted to specific profiles.
    *)
-  build_profile : string option;
+  build_profiles : string list;
 
   (* Only extract the site index, don't generate any pages *)
   index_only : bool;
@@ -233,7 +233,7 @@ let default_settings = {
   keep_extensions = ["html"; "htm"];
   complete_page_selector = "html";
   generator_mode = true;
-  build_profile = None;
+  build_profiles = [];
 
   index = false;
   index_only = false;

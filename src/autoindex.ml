@@ -223,7 +223,7 @@ let index_extraction_should_run settings page_file =
   (* If indexing is disabled in the config, it definitely should not run. *)
   if not settings.index then false else
   (* ...as well as if indexing is disabled by build profile settings. *)
-  if not (Utils.profile_matches settings.index_profile settings.build_profile) then false else
+  if not (Utils.profile_matches settings.index_profile settings.build_profiles) then false else
   (* *)
   if (Path_options.is_handmade_clean_url settings page_file) then true else
   (* Metadata is not extracted from section index, unless forced by forced_indexing_path_regex.

@@ -174,7 +174,7 @@ let rec process_widgets env settings ws wh config soup =
       let open Widgets in
       let widget = Hashtbl.find wh w in
       let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
-      if not (widget_should_run settings w widget settings.build_profile settings.site_dir env.page_file)
+      if not (widget_should_run settings w widget settings.build_profiles settings.site_dir env.page_file)
       then (process_widgets env settings ws' wh config soup) else
       let res =
         try widget.func env widget.config soup
@@ -325,7 +325,7 @@ let get_args settings =
     ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false>  Stop on page processing errors or not");
     ("--site-dir", Arg.String (fun s -> sr := {!sr with site_dir=s}), "<DIR>  Directory with input files");
     ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "<DIR>  Output directory");
-    ("--profile", Arg.String (fun s -> sr := {!sr with build_profile=(Some s)}), "<NAME>  Build profile");
+    ("--profile", Arg.String (fun s -> sr := {!sr with build_profiles=(s :: !sr.build_profiles)}), "<NAME>  Build profile (you can give this option more than once)");
     ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
     ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), " Print version and exit")
