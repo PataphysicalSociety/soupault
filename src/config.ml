@@ -36,7 +36,8 @@ let common_widget_options = [
   "page"; "exclude_page";
   "section"; "exclude_section";
   "profile";
-  "after"
+  "after";
+  "disabled"
 ]
 
 let bad_option_msg opt ident suggestion =

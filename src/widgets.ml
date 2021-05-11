@@ -169,6 +169,10 @@ let get_widgets settings config plugins index_deps =
     If none of those options are present, widget always runs.
  *)
 let widget_should_run settings name widget build_profiles site_dir page_file =
+  let disabled = Config.get_bool_default false "disabled" widget.config in
+  if disabled then
+    let () = Logs.debug @@ fun m -> m "Widget %s is disabled in the configuration" name in false
+  else
   let options = Config.get_path_options widget.config in
   let profile = Config.get_string_opt "profile" widget.config in
   if not (Utils.profile_matches profile build_profiles) then
