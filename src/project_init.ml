@@ -88,10 +88,21 @@ let default_config = "
   # With keep_doctype=false, soupault will replace existing declarations with it too
   doctype = \"<!DOCTYPE html>\"
 
+  # Insert whitespace into HTML for better readability
+  # When set to false, the original whitespace (if any) will be preserved as is
+  pretty_print_html = true
+
   # Enables or disables clean URLs.
   # When false: site/about.html -> build/about.html
   # When true: site/about.html -> build/about/index.html
   clean_urls = true
+
+  # Plugins can be either automatically discovered or loaded explicitly.
+  # By default discovery is enabled and the place where soupault is looking is the plugins/ subdirectory
+  # in your project.
+  # E.g. a file at plugins/my-plugin.lua will be registered as a widget named \"my-plugin\".
+  plugin_discovery = true
+  plugin_dirs = [\"plugins\"]
 
 # It is possible to store pages in any format if you have a program
 # that converts it to HTML and writes it to standard output.
