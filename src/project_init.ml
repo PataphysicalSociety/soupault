@@ -22,6 +22,7 @@ let default_page = "
 <p>Welcome to my homepage. It's under construction.</p>
 "
 
+(* This part contains the default settings and it's used in more than one place in the code *)
 let default_config = "
 # To learn about configuring soupault, visit https://www.soupault.app/reference-manual
 
@@ -103,6 +104,11 @@ let default_config = "
   # E.g. a file at plugins/my-plugin.lua will be registered as a widget named \"my-plugin\".
   plugin_discovery = true
   plugin_dirs = [\"plugins\"]
+"
+
+(* This part contains example settings for a simple website,
+   to give the user an idea what kind of functionality is available. *)
+let sample_config = "
 
 # It is possible to store pages in any format if you have a program
 # that converts it to HTML and writes it to standard output.
@@ -155,7 +161,7 @@ let init settings  =
        around just for a single use in here *)
     if Config.config_exists Defaults.config_file
     then (print_endline "Config file exists, not overwriting it")
-    else default_config |> Soup.write_file Defaults.config_file;
+    else (default_config ^ " " ^ sample_config) |> Soup.write_file Defaults.config_file;
 
     if FileUtil.test (FileUtil.Is_dir) settings.site_dir then
       (print_endline "Site directory already exists. Are you running init in an existing project?";

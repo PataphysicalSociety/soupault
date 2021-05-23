@@ -328,6 +328,7 @@ let get_args settings =
     ("--profile", Arg.String (fun s -> sr := {!sr with build_profiles=(s :: !sr.build_profiles)}), "<NAME>  Build profile (you can give this option more than once)");
     ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
     ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
+    ("--show-default-config", Arg.Unit (fun () -> print_endline Project_init.default_config; exit 0), " Print the default config and exit");
     ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), " Print version and exit")
   ]
   in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
