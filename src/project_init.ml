@@ -19,7 +19,7 @@ let default_template = "
 
 let default_page = "
 <h1>Welcome!</h1>
-<p>Welcome to my homepage. It's under construction.</p>
+<p>Welcome to my homepage. It&apos;s under construction.</p>
 "
 
 (* This part contains the default settings and it's used in more than one place in the code *)
