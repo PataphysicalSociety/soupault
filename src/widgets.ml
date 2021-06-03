@@ -9,7 +9,7 @@ type 'a widget = {
 type 'a widgets = string list * (string, 'a widget) Hashtbl.t
 
 (* Option monad *)
-let (>>=) = CCOpt.(>>=)
+let (>>=) = Option.bind
 
 
 (* Quick and dirty widget lookup *)

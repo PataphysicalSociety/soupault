@@ -314,7 +314,7 @@ module Html = struct
     | Some node -> to_general node |> Soup.delete
 
   let create_element name text =
-    let text = CCOpt.get_or ~default:"" text in
+    let text = Option.value ~default:"" text in
     ElementNode (Soup.create_element ~inner_text:text name)
 
   let create_text text = GeneralNode (Soup.create_text text)
@@ -327,7 +327,7 @@ module Html = struct
   let strip_tags node =
     match node with
     | None -> ""
-    | Some node -> to_general node |> Html_utils.get_element_text |> CCOpt.get_or ~default:""
+    | Some node -> to_general node |> Html_utils.get_element_text |> Option.value ~default:""
 
   let clone_content node =
     let* node = node in

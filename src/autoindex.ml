@@ -1,8 +1,6 @@
 open Defaults
 open Soupault_common
 
-let bind = CCResult.(>>=)
-
 let string_of_elem strip_tags e =
   if strip_tags then Html_utils.get_element_text e
   else begin
@@ -34,7 +32,7 @@ let rec get_custom_fields strip_tags fields soup =
     if f.select_all then
       `A (Html_utils.select_all f.field_selectors soup |> List.map (fun e -> get_content f e |> json_of_string_opt))
     else
-      let (>>=) = Stdlib.Option.bind in
+      let (>>=) = Option.bind in
       let e = Html_utils.select_any_of f.field_selectors soup >>= get_content f in
       match e, f.default_field_value with
       | None, None -> `Null
@@ -70,7 +68,7 @@ let json_of_entry e =
     3. Of entries with known dates, ones with later dates are newer (who could guess!)
   *)
 let compare_entries settings l r =
-  let (>>=) = Stdlib.Option.bind in
+  let (>>=) = Option.bind in
   let string_of_field j =
     try Some (Otoml.string ~strict:false j)
     with Otoml.Type_error _ -> None

@@ -1,4 +1,4 @@
-let (>>=) = CCOpt.(>>=)
+let (>>=) = Option.bind
 
 (* Title *)
 let set_title _ config soup =

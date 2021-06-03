@@ -75,7 +75,7 @@ let add_item settings heading container =
   let h_content = Html_utils.child_nodes heading in
   (* Strip tags if configured *)
   let h_content =
-    if settings.strip_tags then Html_utils.get_element_text h_content |> CCOpt.get_or ~default:"" |> Soup.parse
+    if settings.strip_tags then Html_utils.get_element_text h_content |> Option.value ~default:"" |> Soup.parse
     else h_content
   in
   Soup.append_child h_link h_content;

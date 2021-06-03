@@ -6,8 +6,6 @@ exception Config_error of string
 
 let config_error err = raise (Config_error err)
 
-let default d o = CCOpt.get_or ~default:d o
-
 let sort_type_from_string s =
   match s with
   | "calendar" -> Calendar
