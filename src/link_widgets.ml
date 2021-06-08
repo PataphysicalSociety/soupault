@@ -103,13 +103,13 @@ let absolutize elem env prefix check_file only_regex exclude_regex =
 let relative_links env config soup =
   let valid_options = List.append Config.common_widget_options ["exclude_target_regex"; "only_target_regex"; "check_file"] in
   let () = Config.check_options valid_options config "widget \"relative_links\"" in
-  let exclude_regex = Config.get_string_opt "exclude_target_regex" config in
-  let only_regex = Config.get_string_opt "only_target_regex" config in
+  let exclude_regex = Config.find_string_opt ["exclude_target_regex"] config in
+  let only_regex = Config.find_string_opt ["only_target_regex"] config in
   if (Option.is_some exclude_regex) && (Option.is_some only_regex)
   then Config.config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
   else begin
     let exclude_regex = Option.value ~default:default_exclude_regex exclude_regex in
-    let check_file = Config.get_bool_default false "check_file" config in
+    let check_file = Config.find_bool_or ~default:false ["check_file"] config in
     let nodes = Html_utils.select_all link_selectors soup in begin
     match nodes with
     | [] ->
@@ -126,16 +126,16 @@ let absolute_links env config soup =
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
   in
   let () = Config.check_options valid_options config "widget \"absolute_links\"" in
-  let* prefix = Config.get_string_result "Missing required_option \"prefix\"" "prefix" config in
+  let* prefix = Config.find_string_result "Missing required_option \"prefix\"" ["prefix"] config in
   (* Strip trailing slashes to avoid duplicate slashes after concatenation *)
   let prefix = Utils.regex_replace prefix "/+$" "" in
-  let exclude_regex = Config.get_string_opt "exclude_target_regex" config in
-  let only_regex = Config.get_string_opt "only_target_regex" config in
+  let exclude_regex = Config.find_string_opt ["exclude_target_regex"] config in
+  let only_regex = Config.find_string_opt ["only_target_regex"] config in
   if (Option.is_some exclude_regex) && (Option.is_some only_regex)
   then Config.config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
   else begin
     let exclude_regex = Option.value ~default:default_exclude_regex exclude_regex in
-    let check_file = Config.get_bool_default false "check_file" config in
+    let check_file = Config.find_bool_or ~default:false ["check_file"] config in
     let nodes = Html_utils.select_all link_selectors soup in begin
     match nodes with
     | [] ->

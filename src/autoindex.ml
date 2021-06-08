@@ -70,7 +70,7 @@ let json_of_entry e =
 let compare_entries settings l r =
   let (>>=) = Option.bind in
   let string_of_field j =
-    try Some (Otoml.string ~strict:false j)
+    try Some (Otoml.get_string ~strict:false j)
     with Otoml.Type_error _ -> None
   in
   let get_sort_key_field entry =

@@ -38,6 +38,8 @@ let assoc_keys xs = List.fold_left (fun acc (x, _) -> x :: acc) [] xs
 
 let assoc_values xs = List.map (fun (_, v) -> v) xs
 
+let assoc_map f kvs = List.map (fun (k, v) -> (k, f v)) kvs
+
 (** Result-aware iteration *)
 let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
   match xs with

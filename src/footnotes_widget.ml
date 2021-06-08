@@ -107,15 +107,15 @@ let footnotes _ config soup =
     ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class";
      "back_links"; "back_link_id_append"; "link_id_prepend"; "action"] in
   let () = Config.check_options valid_options config "widget \"footnotes\"" in
-  let* selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
-  let action = Config.get_string_default "append_child" "action" config in
-  let note_selector = Config.get_strings_relaxed ~default:[".footnote"] "footnote_selector" config in
-  let* ref_tmpl = Config.get_string_default "<sup></sup>" "ref_template" config |> Html_utils.check_template "*" in
-  let* note_tmpl = Config.get_string_default "<p></p>" "footnote_template" config |> Html_utils.check_template "*" in
-  let fn_link_class = Config.get_string_opt "footnote_link_class" config in
-  let back_links = Config.get_bool_default true "back_links" config in
-  let back_link_append = Config.get_string_default "-ref" "back_link_id_append" config in
-  let link_prepend = Config.get_string_default "" "link_id_prepend" config in
+  let* selector = Config.find_string_result "Missing required option \"selector\"" ["selector"] config in
+  let action = Config.find_string_or ~default:"append_child" ["action"] config in
+  let note_selector = Config.find_strings_or ~default:[".footnote"] ["footnote_selector"] config in
+  let* ref_tmpl = Config.find_string_or ~default:"<sup></sup>" ["ref_template"] config |> Html_utils.check_template "*" in
+  let* note_tmpl = Config.find_string_or ~default:"<p></p>" ["footnote_template"] config |> Html_utils.check_template "*" in
+  let fn_link_class = Config.find_string_opt ["footnote_link_class"] config in
+  let back_links = Config.find_bool_or ~default:true ["back_links"] config in
+  let back_link_append = Config.find_string_or ~default:"-ref" ["back_link_id_append"] config in
+  let link_prepend = Config.find_string_or ~default:"" ["link_id_prepend"] config in
   let container = Soup.select_one selector soup in
   match container with
   | None ->

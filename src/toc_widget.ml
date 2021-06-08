@@ -156,37 +156,37 @@ let toc _ config soup =
   ]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
-  let max_level = Config.get_int_default 6 "max_level" config in
+  let max_level = Config.find_integer_or ~default:6 ["max_level"] config in
   let settings = {
-    min_level = Config.get_int_default 1 "min_level" config;
+    min_level = Config.find_integer_or ~default:1 ["min_level"] config;
     max_level = max_level;
     max_heading_link_level =
-      (let lvl = Config.get_int_default max_level "max_heading_link_level" config in
+      (let lvl = Config.find_integer_or ~default:max_level ["max_heading_link_level"] config in
       if lvl < max_level then begin
         let () = Logs.warn @@ fun m -> m "max_heading_level cannot be lower than max_level, forcing to max_level" in
         max_level
       end
       else lvl)
     ;
-    toc_class = Config.get_string_opt "toc_list_class" config;
-    toc_class_levels = Config.get_bool_default false "toc_class_levels" config;
-    numbered_list = Config.get_bool_default false "numbered_list" config;
-    link_here = Config.get_bool_default false "heading_links" config;
-    link_here_text = Config.get_string_default "#" "heading_link_text" config;
-    link_here_class = Config.get_string_opt "heading_link_class" config;
-    link_here_append = Config.get_bool_default false "heading_links_append" config;
-    use_text = Config.get_bool_default false "use_heading_text" config;
-    use_slugs = Config.get_bool_default false "use_heading_slug" config;
-    soft_slug = Config.get_bool_default false "soft_slug" config;
-    slug_regex = Config.get_string_opt "slug_regex" config;
-    slug_replacement = Config.get_string_opt "slug_replacement_string" config;
-    slug_force_lowercase = Config.get_bool_default true "slug_force_lowercase" config;
-    strip_tags = Config.get_bool_default false "strip_tags" config;
-    valid_html = Config.get_bool_default false "valid_html" config;
-    min_headings = Config.get_int_default 0 "min_headings" config;
+    toc_class = Config.find_string_opt ["toc_list_class"] config;
+    toc_class_levels = Config.find_bool_or ~default:false ["toc_class_levels"] config;
+    numbered_list = Config.find_bool_or ~default:false ["numbered_list"] config;
+    link_here = Config.find_bool_or ~default:false ["heading_links"] config;
+    link_here_text = Config.find_string_or ~default:"#" ["heading_link_text"] config;
+    link_here_class = Config.find_string_opt ["heading_link_class"] config;
+    link_here_append = Config.find_bool_or ~default:false ["heading_links_append"] config;
+    use_text = Config.find_bool_or ~default:false ["use_heading_text"] config;
+    use_slugs = Config.find_bool_or ~default:false ["use_heading_slug"] config;
+    soft_slug = Config.find_bool_or ~default:false ["soft_slug"] config;
+    slug_regex = Config.find_string_opt ["slug_regex"] config;
+    slug_replacement = Config.find_string_opt ["slug_replacement_string"] config;
+    slug_force_lowercase = Config.find_bool_or ~default:true ["slug_force_lowercase"] config;
+    strip_tags = Config.find_bool_or ~default:false ["strip_tags"] config;
+    valid_html = Config.find_bool_or ~default:false ["valid_html"] config;
+    min_headings = Config.find_integer_or ~default:0 ["min_headings"] config;
   } in
-  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
-  let action = Config.get_string_default "append_child" "action" config in
+  let selector = Config.find_string_result "Missing required option \"selector\"" ["selector"] config in
+  let action = Config.find_string_or ~default:"append_child" ["action"] config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->

@@ -8,9 +8,9 @@ let (let*) = Stdlib.Result.bind
 let delete_element _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "only_if_empty"; "delete_all"] in
   let () = Config.check_options valid_options config "widget \"delete_element\"" in
-  let selector = Config.get_string_result "Missing required option \"selector\"" "selector" config in
-  let when_empty = Config.get_bool_default false "only_if_empty" config in
-  let delete_all = Config.get_bool_default true "delete_all" config in
+  let selector = Config.find_string_result "Missing required option \"selector\"" ["selector"] config in
+  let when_empty = Config.find_bool_or ~default:false ["only_if_empty"] config in
+  let delete_all = Config.find_bool_or ~default:true ["delete_all"] config in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -53,8 +53,8 @@ let wrap _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "wrapper"; "wrap_all"; "wrapper_selector"] in
   let () = Config.check_options valid_options config "widget \"wrap\"" in
   let selectors = get_selectors config in
-  let wrapper_selector = Config.get_string_opt "wrapper_selector" config in
-  let wrap_all = Config.get_bool_default true "wrap_all" config in
+  let wrapper_selector = Config.find_string_opt ["wrapper_selector"] config in
+  let wrap_all = Config.find_bool_or ~default:true ["wrap_all"] config in
   match selectors with
   | Error _ as e -> e
   | Ok selectors ->
@@ -67,7 +67,7 @@ let wrap _ config soup =
       | [] ->
         let () = no_container_action selectors in Ok ()
       | _ ->
-        let* wrapper_str = Config.get_string_result "Missing required option \"wrapper\"" "wrapper" config in
+        let* wrapper_str = Config.find_string_result "Missing required option \"wrapper\"" ["wrapper"] config in
         let* () = Utils.iter (wrap_elem wrapper_selector wrapper_str) containers in
         Ok ()
     end

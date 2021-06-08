@@ -15,12 +15,12 @@ let set_title _ config soup =
   (* Retrieve config options. The "selector" option means title source element, by default the first <h1> *)
   let valid_options = List.append Config.common_widget_options ["selector"; "default"; "prepend"; "append"; "force"; "keep"] in
   let () = Config.check_options valid_options config "widget \"title\"" in
-  let selectors = Config.get_strings_relaxed ~default:["h1"] "selector" config in
-  let prepend = Config.get_string_default "" "prepend" config in
-  let append = Config.get_string_default "" "append" config in
-  let default_title = Config.get_string_default "" "default" config in
-  let force = Config.get_bool_default false "force" config in
-  let keep = Config.get_bool_default false "keep" config in
+  let selectors = Config.find_strings_or ~default:["h1"] ["selector"] config in
+  let prepend = Config.find_string_or ~default:"" ["prepend"] config in
+  let append = Config.find_string_or ~default:"" ["append"] config in
+  let default_title = Config.find_string_or ~default:"" ["default"] config in
+  let force = Config.find_bool_or ~default:false ["force"] config in
+  let keep = Config.find_bool_or ~default:false ["keep"] config in
   (* Artificially insert a title element if force=true.
      Can be useful in HTML processor mode to add consistency to a bunch of
      handwritten pages. *)

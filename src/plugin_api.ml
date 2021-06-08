@@ -677,8 +677,8 @@ let rec lua_of_toml v =
   | TomlInteger i -> I.Value.int.embed i
   | TomlFloat f -> I.Value.float.embed f
   | TomlString s -> I.Value.string.embed s
-  | TomlArray vs -> (List.map lua_of_toml vs) |> (I.Value.list I.Value.value).embed
-  | TomlTable vs | TomlInlineTable vs | TomlTableArray vs ->
+  | TomlArray vs | TomlTableArray vs -> (List.map lua_of_toml vs) |> (I.Value.list I.Value.value).embed
+  | TomlTable vs | TomlInlineTable vs  ->
     List.map (fun (k, v) -> (k, lua_of_toml v)) vs |>
     I.Value.Table.of_list |> I.Value.table.embed
   | TomlLocalTime s -> I.Value.string.embed s

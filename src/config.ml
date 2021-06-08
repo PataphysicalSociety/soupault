@@ -70,69 +70,48 @@ let read_config path =
   | Sys_error err -> Error (Printf.sprintf "Could not read config file: %s" err)
   | Toml.Parser.Error (err, _) -> Error (Printf.sprintf "Could not parse config file %s: %s" path err)
 
-let get_table name config = field name config |> table
-let get_table_result err name config = try Ok (get_table name config) with _ -> Error err
-let get_table_opt name config = try Some (get_table name config) with _ -> None
+(* Convenience accessor wrappers *)
 
-let get_string ?(default=None) ?(strict=false) k tbl =
-  let default = Option.map (fun b -> TomlString b) default in
-  let res = field ~default:default k tbl in
-  string ~strict:strict res
+let find_table path config = TomlTable (find get_table config path)
+let find_table_opt path config = find_opt get_table config path |> Option.map (fun x -> TomlTable x)
+let find_table_result err path config = find_opt get_table config path |> Option.to_result ~none:err
 
-let get_string_result ?(strict=false) err k tbl = 
-  try
-    let res = get_string ~strict:strict k tbl in
-    Ok res
-  with
-  | Key_error _ -> Error err
-  | Otoml.Type_error err ->
-    Error (Printf.sprintf "wrong value type for option \"%s\": %s" k err)
+let find_string ?(strict=false) path config = find (get_string ~strict:strict) config path
+let find_string_opt ?(strict=false) path config = find_opt (get_string ~strict:strict) config path
+let find_string_or ?(strict=false) ~default:default path config =
+  find_opt (get_string ~strict:strict) config path |> Option.value ~default:default
+let find_string_result ?(strict=false) err path config =
+  find_opt (get_string ~strict:strict) config path |> Option.to_result ~none:err
 
-let get_string_opt ?(strict=false) k tbl = get_string_result ~strict:strict "" k tbl |> Result.to_option
+let find_strings ?(force=true) path config =
+  let res = find (get_array ~strict:(not force)) config path in
+  List.map get_string res
+let find_strings_opt ?(force=true) path config =
+  let res = find_opt (get_array ~strict:(not force)) config path in
+  Option.map (List.map get_string) res
+let find_strings_or ?(force=true) ~default:default path config =
+  try find_strings ~force:force path config
+  with Key_error _ -> default
 
-let get_string_default default name config = get_string ~default:(Some default) name config
+let find_bool ?(strict=false) path config = find (get_bool ~strict:strict) config path
+let find_bool_opt ?(strict=false) path config = find_opt (get_bool ~strict:strict) config path
+let find_bool_or ?(strict=false) ~default:default path config =
+  find_opt (get_bool ~strict:strict) config path |> Option.value ~default:default
 
-let get_bool ?(default=None) ?(strict=false) k tbl =
-  let default = Option.map (fun b -> TomlBoolean b) default in
-  let res = field ~default:default k tbl in
-  bool ~strict:strict res
-
-let get_bool_default default name config = get_bool ~default:(Some default) name config
-
-let get_int_default default_value k tbl = field ~default:(Some (TomlInteger default_value)) k tbl |> integer
-
-let get_strings k tbl =
-  let open Otoml in
-  try
-    let res = field k tbl |> list ~strict:false |> strings ~strict:false in
-    Some res
-  with Key_error _ -> None
-
-(** Tries to get a string list from a config
-    If there's actually a list, converts every item to a string.
-    If there's a single item, makes a single item list.
-    If there's nothing like a string at all, returns the default value.
- *)
-let get_strings_relaxed ?(default=([])) k tbl =
-  let res = get_strings k tbl in
-  match res with
-  | Some res -> res
-  | None -> default
-
-let assoc_of_table f t =
-  match t with
-  | TomlTable os | TomlInlineTable os | TomlTableArray os -> List.map (fun (k, v) -> (k, f v)) os
-  | _ -> failwith ""
+let find_integer ?(strict=false) path config = find (get_integer ~strict:strict) config path
+let find_integer_opt ?(strict=false) path config = find_opt (get_integer ~strict:strict) config path
+let find_integer_or ?(strict=false) ~default:default path config =
+  find_opt (get_integer ~strict:strict) config path |> Option.value ~default:default
 
 let get_path_options config =
   {
-     pages = get_strings_relaxed "page" config;
-     sections = get_strings_relaxed "section" config;
-     regexes = get_strings_relaxed "path_regex" config;
-     pages_exclude = get_strings_relaxed "exclude_page" config;
-     sections_exclude = get_strings_relaxed "exclude_section" config;
-     regexes_exclude = get_strings_relaxed "exclude_path_regex" config;
-     include_subsections = get_bool_default false "include_subsections" config;
+     pages = find_strings_or ~default:[] ["page"] config;
+     sections = find_strings_or ~default:[] ["section"] config;
+     regexes = find_strings_or ~default:[] ["path_regex"] config;
+     pages_exclude = find_strings_or ~default:[] ["exclude_page"] config;
+     sections_exclude = find_strings_or ~default:[] ["exclude_section"] config;
+     regexes_exclude = find_strings_or ~default:[] ["exclude_path_regex"] config;
+     include_subsections = find_bool_or ~default:false ["include_subsections"] config;
   }
 
 let valid_path_options = [
@@ -141,22 +120,20 @@ let valid_path_options = [
 
 (* Update global settings with values from the config, if there are any *)
 let _get_preprocessors config =
-  let pt = get_table_opt Defaults.preprocessors_table config in
-  match pt with
+  let t = find_table_opt [Defaults.preprocessors_table] config in
+  match t with
   | None -> []
-  | Some pt -> assoc_of_table string pt
+  | Some t ->
+    let t = get_table t in
+    Utils.assoc_map get_string t
 
 let get_index_queries index_table =
   let get_query k it =
-    let qt =
-      try get_table k it
-      with Type_error e -> config_error e
-    in
-    let selectors = get_strings_relaxed "selector" qt in
-    let default_value = get_string_opt "default" qt in
-    let extract_attribute = get_string_opt "extract_attribute" qt in
-    let content_fallback = get_bool_default false "fallback_to_content" qt in
-    let select_all = get_bool_default false "select_all" qt in
+    let selectors = find_strings [k; "selector"] it in
+    let default_value = find_string_opt [k; "default"] it in
+    let extract_attribute = find_string_opt [k; "extract_attribute"] it in
+    let content_fallback = find_bool_or ~default:false [k; "fallback_to_content"] it in
+    let select_all = find_bool_or ~default:false [k; "select_all"] it in
     let () =
       if (Option.is_some default_value) && select_all then
       Logs.warn @@ fun m -> m "default is ignored when select_all is true"
@@ -180,7 +157,7 @@ let get_index_queries index_table =
           Printf.ksprintf config_error "Malformed config for index field \"%s\": %s" k err
       in get_queries qt ks' (q :: acc)
   in
-  let qt = get_table_opt "fields" index_table in
+  let qt = find_table_opt ["fields"] index_table in
   match qt with
   | None -> []
   | Some qt ->
@@ -213,9 +190,9 @@ let _get_index_view st view_name =
     end
   in
   let _get_index_processor st =
-    let item_template = get_string_opt ~strict:true "index_item_template" st in
-    let index_template = get_string_opt ~strict:true "index_template" st in
-    let script = get_string_opt ~strict:true "index_processor" st in
+    let item_template = find_string_opt ~strict:true ["index_item_template"] st in
+    let index_template = find_string_opt ~strict:true ["index_template"] st in
+    let script = find_string_opt ~strict:true ["index_processor"] st in
     match item_template, index_template, script with
     | Some item_template, None, None -> _get_template item_template
     | None, Some index_template, None -> _get_template ~item_template:false index_template
@@ -225,7 +202,7 @@ let _get_index_view st view_name =
       in default_index_processor
     | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
   in
-  let selector = get_string "index_selector" st in
+  let selector = find_string ["index_selector"] st in
   let index_processor = _get_index_processor st in
   {
     index_view_name = view_name;
@@ -236,7 +213,7 @@ let _get_index_view st view_name =
 
 let _get_index_views index_table =
   let get_view k views =
-    let vt = get_table k views in
+    let vt = find_table [k] views in
     let () = check_options valid_index_view_options vt "an index view" in
     _get_index_view vt k
   in
@@ -252,7 +229,7 @@ let _get_index_views index_table =
     end
   in
   let views = [] in
-  let vt = get_table_opt "views" index_table in
+  let vt = find_table_opt ["views"] index_table in
   match vt with
   | None -> views
   | Some vt -> 
@@ -260,46 +237,46 @@ let _get_index_views index_table =
     List.append views custom_views
 
 let _get_index_settings settings config =
-  let st = get_table_opt Defaults.index_settings_table config in
+  let st = find_table_opt [Defaults.index_settings_table] config in
   match st with
   | None -> settings
   | Some st ->
     let () = check_options valid_index_options st "table \"index\"" in
-    let date_formats = get_strings_relaxed "date_formats" st in
+    let date_formats = find_strings ["date_formats"] st in
     let date_formats =
       if date_formats = [] then settings.index_date_input_formats
       else date_formats
     in
     {settings with
-       index = get_bool_default settings.index "index" st;
-       dump_json = get_string_opt "dump_json" st;
-       ignore_template_errors = get_bool_default settings.ignore_template_errors "ignore_template_errors" st;
-       index_extract_after_widgets = get_strings_relaxed "extract_after_widgets" st;
+       index = find_bool_or ~default:settings.index ["index"] st;
+       dump_json = find_string_opt ["dump_json"] st;
+       ignore_template_errors = find_bool_or ~default:settings.ignore_template_errors ["ignore_template_errors"] st;
+       index_extract_after_widgets = find_strings ["extract_after_widgets"] st;
        index_fields = get_index_queries st;
-       index_strip_tags = get_bool_default settings.index_strip_tags "strip_tags" st;
+       index_strip_tags = find_bool_or ~default:settings.index_strip_tags ["strip_tags"] st;
        index_views = _get_index_views st;
-       index_profile = get_string_opt "profile" st;
+       index_profile = find_string_opt ["profile"] st;
        index_path_options = get_path_options st;
-       index_sort_by = get_string_opt "sort_by" st;
-       index_sort_type = get_string_default "calendar" "sort_type" st |> sort_type_from_string;
-       index_sort_strict = get_bool_default settings.index_sort_strict "strict_sort" st;
-       index_sort_descending = get_bool_default true "sort_descending" st;
+       index_sort_by = find_string_opt ["sort_by"] st;
+       index_sort_type = find_string_or ~default:"calendar" ["sort_type"] st |> sort_type_from_string;
+       index_sort_strict = find_bool_or ~default:settings.index_sort_strict ["strict_sort"] st;
+       index_sort_descending = find_bool_or ~default:true ["sort_descending"] st;
        index_date_input_formats = date_formats;
-       index_force = get_strings_relaxed "force_indexing_path_regex" st;
-       index_leaf_file = get_string_opt "leaf_file" st;
+       index_force = find_strings_or ~default:[] ["force_indexing_path_regex"] st;
+       index_leaf_file = find_string_opt ["leaf_file"] st;
     }
 
 let update_page_template_settings settings config =
   let get_template name settings config =
     (* Retrieve a subtable for given template *)
-    let config = get_table_opt name config in
+    let config = find_table_opt [name] config in
     match config with
     | None -> settings
     | Some config -> begin
       let path_options = get_path_options config in
-      let file = get_string_opt "file" config in
-      let content_selector = get_string_opt "content_selector" config in
-      let content_action = get_string_opt "content_action" config in
+      let file = find_string_opt ["file"] config in
+      let content_selector = find_string_opt ["content_selector"] config in
+      let content_action = find_string_opt ["content_action"] config in
       match file with
       | None -> Printf.ksprintf config_error "Missing required option \"file\" in [templates.%s]" name
       | Some file ->
@@ -318,7 +295,7 @@ let update_page_template_settings settings config =
           Printf.ksprintf config_error "Could not load the file for [templates.%s]: %s, ignoring" name msg
     end
   in
-  let tt = get_table_opt Defaults.templates_table config in
+  let tt = find_table_opt [Defaults.templates_table] config in
   match tt with
   | None -> settings
   | Some tt ->
@@ -338,7 +315,7 @@ let valid_settings = [
 ]
 
 let _update_settings settings config =
-  let st = get_table_opt Defaults.settings_table config in
+  let st = find_table_opt [Defaults.settings_table] config in
   match st with
   | None ->
      let () = Logs.warn @@ fun m -> m "Could not find the [settings] section in the config, using defaults" in
@@ -347,31 +324,31 @@ let _update_settings settings config =
     let () = check_options valid_settings st "table \"settings\"" in
     let settings = update_page_template_settings settings config in
     {settings with
-       verbose = get_bool_default settings.verbose "verbose" st;
-       debug = get_bool_default settings.debug "debug" st;
-       strict = get_bool_default settings.strict "strict" st;
-       site_dir = get_string_default settings.site_dir "site_dir" st |> String.trim;
-       build_dir = get_string_default settings.build_dir "build_dir" st |> String.trim |> Utils.normalize_path;
-       default_content_selector = get_string_default settings.default_content_selector "default_content_selector" st;
-       doctype = get_string_default settings.doctype "doctype" st;
-       keep_doctype = get_bool_default settings.keep_doctype "keep_doctype" st;
-       index_page = get_string_default settings.index_page "index_page" st;
-       index_file = get_string_default settings.index_file "index_file" st;
-       default_template = get_string_default settings.default_template "default_template_file" st;
-       default_content_action = get_string_default settings.default_content_action "default_content_action" st;
-       clean_urls = get_bool_default settings.clean_urls "clean_urls" st;
-       page_extensions = get_strings_relaxed ~default:settings.page_extensions "page_file_extensions" st;
-       ignore_extensions = get_strings_relaxed ~default:[] "ignore_extensions" st;
-       keep_extensions = get_strings_relaxed ~default:settings.keep_extensions "keep_extensions" st;
-       default_extension = get_string_default settings.default_extension "default_extension" st;
-       complete_page_selector = get_string_default settings.complete_page_selector "complete_page_selector" st;
-       generator_mode = get_bool_default settings.generator_mode "generator_mode" st;
+       verbose = find_bool_or ~default:settings.verbose ["verbose"] st;
+       debug = find_bool_or ~default:settings.debug ["debug"] st;
+       strict = find_bool_or ~default:settings.strict ["strict"] st;
+       site_dir = find_string_or ~default:settings.site_dir ["site_dir"] st |> String.trim;
+       build_dir = find_string_or ~default:settings.build_dir ["build_dir"] st |> String.trim |> Utils.normalize_path;
+       default_content_selector = find_string_or ~default:settings.default_content_selector ["default_content_selector"] st;
+       doctype = find_string_or ~default:settings.doctype ["doctype"] st;
+       keep_doctype = find_bool_or ~default:settings.keep_doctype ["keep_doctype"] st;
+       index_page = find_string_or ~default:settings.index_page ["index_page"] st;
+       index_file = find_string_or ~default:settings.index_file ["index_file"] st;
+       default_template = find_string_or ~default:settings.default_template ["default_template_file"] st;
+       default_content_action = find_string_or ~default:settings.default_content_action ["default_content_action"] st;
+       clean_urls = find_bool_or ~default:settings.clean_urls ["clean_urls"] st;
+       page_extensions = find_strings_or ~default:settings.page_extensions ["page_file_extensions"] st;
+       ignore_extensions = find_strings_or ~default:[] ["ignore_extensions"] st;
+       keep_extensions = find_strings_or ~default:settings.keep_extensions ["keep_extensions"] st;
+       default_extension = find_string_or ~default:settings.default_extension ["default_extension"] st;
+       complete_page_selector = find_string_or ~default:settings.complete_page_selector ["complete_page_selector"] st;
+       generator_mode = find_bool_or ~default:settings.generator_mode ["generator_mode"] st;
 
-       plugin_dirs = get_strings_relaxed ~default:settings.plugin_dirs "plugin_dirs" st;
-       plugin_discovery = get_bool_default settings.plugin_discovery "plugin_discovery" st;
+       plugin_dirs = find_strings_or ~default:settings.plugin_dirs ["plugin_dirs"] st;
+       plugin_discovery = find_bool_or ~default:settings.plugin_discovery ["plugin_discovery"] st;
 
-       force = get_bool_default settings.force "force" st;
-       pretty_print_html = get_bool_default settings.pretty_print_html "pretty_print_html" st;
+       force = find_bool_or ~default:settings.force ["force"] st;
+       pretty_print_html = find_bool_or ~default:settings.pretty_print_html ["pretty_print_html"] st;
 
        preprocessors = _get_preprocessors config
      }

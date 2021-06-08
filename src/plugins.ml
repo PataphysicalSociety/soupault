@@ -2,7 +2,7 @@ let (>>=) = Option.bind
 
 (* Plugin config loading *)
 let get_plugin_config config plugin =
-  let plugins_tbl = Config.get_table_opt Defaults.plugins_table config >>= Config.get_table_opt plugin in
+  let plugins_tbl = Config.find_table_opt [Defaults.plugins_table; plugin] config in
   match plugins_tbl with
   | Some plugins_tbl -> plugins_tbl
   | None ->
@@ -11,7 +11,7 @@ let get_plugin_config config plugin =
    failwith @@ Printf.sprintf "Trying to lookup a non-existent plugin %s" plugin
 
 let list_plugins config =
-  let ps = Config.get_table_opt Defaults.plugins_table config >>= (fun x -> Some (Otoml.list_table_keys x)) in
+  let ps = Config.find_table_opt [Defaults.plugins_table] config >>= (fun x -> Some (Otoml.list_table_keys x)) in
   match ps with
   | None -> []
   | Some ps' -> ps'
@@ -22,7 +22,7 @@ let rec _load_plugins settings ps config hash =
   | p :: ps' ->
     let plugin_cfg = get_plugin_config config p in
     let () = Config.check_options ["file"] plugin_cfg "a plugin config" in
-    let file = Config.get_string_opt "file" plugin_cfg in
+    let file = Config.find_string_opt ["file"] plugin_cfg in
     begin
       match file with
       | None ->
