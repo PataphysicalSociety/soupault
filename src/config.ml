@@ -129,7 +129,7 @@ let _get_preprocessors config =
 
 let get_index_queries index_table =
   let get_query k it =
-    let selectors = find_strings [k; "selector"] it in
+    let selectors = find_strings_or ~default:[] [k; "selector"] it in
     let default_value = find_string_opt [k; "default"] it in
     let extract_attribute = find_string_opt [k; "extract_attribute"] it in
     let content_fallback = find_bool_or ~default:false [k; "fallback_to_content"] it in
@@ -242,16 +242,12 @@ let _get_index_settings settings config =
   | None -> settings
   | Some st ->
     let () = check_options valid_index_options st "table \"index\"" in
-    let date_formats = find_strings ["date_formats"] st in
-    let date_formats =
-      if date_formats = [] then settings.index_date_input_formats
-      else date_formats
-    in
+    let date_formats = find_strings_or ~default:settings.index_date_input_formats ["date_formats"] st in
     {settings with
        index = find_bool_or ~default:settings.index ["index"] st;
        dump_json = find_string_opt ["dump_json"] st;
        ignore_template_errors = find_bool_or ~default:settings.ignore_template_errors ["ignore_template_errors"] st;
-       index_extract_after_widgets = find_strings ["extract_after_widgets"] st;
+       index_extract_after_widgets = find_strings_or ~default:[] ["extract_after_widgets"] st;
        index_fields = get_index_queries st;
        index_strip_tags = find_bool_or ~default:settings.index_strip_tags ["strip_tags"] st;
        index_views = _get_index_views st;

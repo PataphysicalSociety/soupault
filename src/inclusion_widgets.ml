@@ -121,8 +121,7 @@ let preprocess_element env config soup =
   let parse = Config.find_bool_or ~default:true ["parse"] config in
   let html_body_context = Config.find_bool_or ~default:true ["html_context_body"] config in
   let* selectors =
-    Config.find_strings ["selector"] config |>
-    (function [] -> Error "Missing required option \"selector\"" | _ as ss -> Ok ss)
+    Config.find_strings_opt ["selector"] config |> Option.to_result ~none:"Missing required option \"selector\""
   in
   let* command = Config.find_string_result "Missing required option \"command\"" ["command"] config in
   let nodes = Html_utils.select_all selectors soup in
