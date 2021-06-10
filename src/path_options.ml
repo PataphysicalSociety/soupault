@@ -53,9 +53,8 @@ let section_matches ?(include_subsections=false) settings site_dir actual_path c
      then FilePath.dirname page_dir
      else page_dir
    in
-   (* As of fileutils 0.6.3, FilePath.is_subdir appears to be broken for single-dir paths, hence this hack. *)
-   (include_subsections && (FilePath.is_updir page_dir conf_path && (page_dir <> (Utils.normalize_path settings.site_dir)))) ||
-   (conf_path = page_dir)
+   (* is_subdir doesn't consider a dir its own subdir, so we need to handle the same dir case explicitly. *)
+   (include_subsections && (FilePath.is_subdir page_dir conf_path))  || (conf_path = page_dir)
 
 let page_included settings options site_dir page_file =
   if (List.exists (regex_matches page_file) options.regexes_exclude) ||
