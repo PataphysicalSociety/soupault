@@ -289,12 +289,15 @@ let update_field value key new_value =
   | TomlInlineTable fs -> TomlInlineTable (update fs key new_value)
   | _ -> Printf.ksprintf key_error "cannot update field %s: value is %s, not a table" key (type_string value)
 
-let rec update value path new_value =
+let rec update value ?(use_inline_tables=false) path new_value =
+  let make_empty_table use_inline =
+    if use_inline then (TomlInlineTable []) else (TomlTable [])
+  in
   match path with
   | [] -> failwith "Cannot update a TOML value at an empty path"
   | [p] -> update_field value p new_value
   | p :: ps ->
-    let nested_value = field p value in
+    let nested_value = field_opt p value |> Option.value ~default:(make_empty_table use_inline_tables) in
     let nested_value = update nested_value ps new_value in
     update_field value p (Some nested_value)
 
