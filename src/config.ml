@@ -399,7 +399,10 @@ let inject_defaults settings config =
       inject_default ["settings"; "default_extension"] (string settings.default_extension) |>
       inject_default ["settings"; "keep_extensions"] (array @@ List.map string settings.keep_extensions) |>
       inject_default ["settings"; "complete_page_selector"] (string settings.complete_page_selector) |>
-      inject_default ["settings"; "generator_mode"] (boolean settings.generator_mode)
+      inject_default ["settings"; "generator_mode"] (boolean settings.generator_mode) |>
+      inject_default ["settings"; "pretty_print_html"] (boolean settings.pretty_print_html) |>
+      inject_default ["settings"; "plugin_discovery"] (boolean settings.plugin_discovery) |>
+      inject_default ["settings"; "plugin_dirs"] (array @@ List.map string settings.plugin_dirs)
   in
   let inject_default_index_settings settings config =
       inject_default ["index"; "index"] (boolean settings.index) config |>
