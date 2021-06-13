@@ -381,6 +381,9 @@ let initialize () =
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
   let* config = Ok (Otoml.value_of_table (config |> Option.get)) in
+  (* Inject defaults and updated values back into the TOML config
+     to make the complete effective settings available to plugins. *)
+  let config = Config.inject_defaults settings config in
   let* plugins = Plugins.get_plugins settings (Some config) in
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
   let* default_template_str =

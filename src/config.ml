@@ -371,3 +371,47 @@ let update_settings_unsafe settings config =
 let update_settings settings config =
   try Ok (update_settings_unsafe settings config)
   with Config_error e -> Error e
+
+let inject_default path default config =
+  let value = find_opt (fun x -> x) config path in
+  match value with
+  | Some _ -> config
+  | None -> let () = Logs.debug @@ fun m -> m "Injecting default at %s" (String.concat "." path) in
+     update config path (Some default)
+
+let inject_defaults settings config =
+  let inject_default_settings settings config =
+      inject_default ["settings"; "verbose"] (boolean settings.verbose) config |>
+      inject_default ["settings"; "debug"] (boolean settings.debug) |>
+      inject_default ["settings"; "strict"] (boolean settings.strict) |>
+      inject_default ["settings"; "doctype"] (string settings.doctype) |>
+      inject_default ["settings"; "keep_doctype"] (boolean settings.keep_doctype) |>
+      inject_default ["settings"; "build_dir"] (string settings.build_dir) |>
+      inject_default ["settings"; "site_dir"] (string settings.site_dir) |>
+      inject_default ["settings"; "index_page"] (string settings.index_page) |>
+      inject_default ["settings"; "index_file"] (string settings.index_file) |>
+      inject_default ["settings"; "default_template"] (string settings.default_template) |>
+      inject_default ["settings"; "default_content_action"] (string settings.default_content_action) |>
+      inject_default ["settings"; "default_content_selector"] (string settings.default_content_selector) |>
+      inject_default ["settings"; "clean_urls"] (boolean settings.clean_urls) |>
+      inject_default ["settings"; "page_file_extensions"] (array @@ List.map string settings.page_extensions) |>
+      inject_default ["settings"; "ignore_extensions"] (array []) |>
+      inject_default ["settings"; "default_extension"] (string settings.default_extension) |>
+      inject_default ["settings"; "keep_extensions"] (array @@ List.map string settings.keep_extensions) |>
+      inject_default ["settings"; "complete_page_selector"] (string settings.complete_page_selector) |>
+      inject_default ["settings"; "generator_mode"] (boolean settings.generator_mode)
+  in
+  let inject_default_index_settings settings config =
+      inject_default ["index"; "index"] (boolean settings.index) config |>
+      inject_default ["index"; "ignore_template_errors"] (boolean settings.ignore_template_errors) |>
+      inject_default ["index"; "extract_after_widgets"] (array []) |>
+      inject_default ["index"; "strip_tags"] (boolean settings.index_strip_tags) |>
+      inject_default ["index"; "date_formats"] (array @@ List.map string settings.index_date_input_formats) |>
+      inject_default ["index"; "sort_type"] (string "calendar") |>
+      inject_default ["index"; "strict_sort"] (boolean settings.index_sort_strict) |>
+      inject_default ["index"; "sort_descending"] (boolean settings.index_sort_descending) |>
+      inject_default ["index"; "force_indexing_path_regex"] (array [])
+  in
+  let res = inject_default_settings settings config |> inject_default_index_settings settings in
+  let () = Logs.debug @@ fun m -> m	"Date fmts: %s"	(find get_array res ["index";	"date_formats"] |> List.map get_string |> String.concat " ") in
+  res
