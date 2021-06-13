@@ -307,6 +307,8 @@ let _process_page index widgets config settings (page_file, nav_path) =
 
 (* Option parsing and initialization *)
 
+type soupault_action = DoActualWork | InitProject | ShowVersion | ShowDefaultConfig
+
 let get_args settings =
   (* Due to a workaround, we are going to parse argument twice:
      first to find out if we actually need to do anything but printing a version or help,
@@ -316,10 +318,10 @@ let get_args settings =
      We need to reset it to zero to make the function usable more than once.
    *)
   let () = Arg.current := 0 in
-  let init = ref false in
+  let actions = ref [] in
   let sr = ref settings in
   let args = Arg.align [
-    ("--init", Arg.Unit (fun () -> init := true), " Set up basic directory structure");
+    ("--init", Arg.Unit (fun () -> actions := (InitProject :: !actions)), " Set up basic directory structure");
     ("--verbose", Arg.Unit (fun () -> sr := {!sr with verbose=true}), " Verbose output");
     ("--debug", Arg.Unit (fun () -> sr := {!sr with debug=true}), " Debug output");
     ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false>  Stop on page processing errors or not");
@@ -328,12 +330,17 @@ let get_args settings =
     ("--profile", Arg.String (fun s -> sr := {!sr with build_profiles=(s :: !sr.build_profiles)}), "<NAME>  Build profile (you can give this option more than once)");
     ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
     ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
-    ("--show-default-config", Arg.Unit (fun () -> print_endline Project_init.default_config; exit 0), " Print the default config and exit");
-    ("--version", Arg.Unit (fun () -> Utils.print_version (); exit 0), " Print version and exit")
+    ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
+    ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and exit")
   ]
-  in let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
+  in
+  let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
   let () = Arg.parse args (fun _ -> ()) usage in
-  if !init then (Project_init.init !sr; exit 0) else Ok !sr
+  match !actions with
+  | [] -> Ok (DoActualWork, !sr)
+  | [a] -> Ok (a, !sr)
+  | _ ->
+    Error "Incorrect comand line option combination. Please specify only one of --version, --help, or --show-default-config"
 
 let check_project_dir settings =
   let () =
@@ -362,21 +369,11 @@ let initialize () =
     try Unix.getenv Defaults.config_path_env_var
     with Not_found -> Defaults.config_file
   in
-  (* Parse the arguments to see if we have any real work to do, or it's --version/--help or similar.
-     If it's just --version, we don't even need to read the config. Worse yet, config reading errors
-     will prevent us from doing it.
-
-     An alternative would be to create an intermediate type for holding options obtained from command
-     line arguments and merge it with the settings record, but that sounds just as tedious as this.
-   *)
-  let _ = get_args default_settings in
-  (* Now actually read the config... *)
   let* config = Config.read_config config_file in
+  (* First, populate the settings from the config file data. *)
   let* settings = Config.update_settings settings config in
-  (* ...and override options from it with values from command line arguments,
-     if any.
-   *)
-  let* settings = get_args settings in
+  (* Then override options from it with values from command line arguments, if there are any. *)
+  let* (_, settings) = get_args settings in
   (* Update the log level from the config and arguments  *)
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
@@ -415,29 +412,52 @@ let dump_index_json settings index =
     with Sys_error e -> Error e
   
 let main () =
-  let* config, widgets, settings = initialize () in
-  let () = setup_logging settings.verbose settings.debug in
-  let* () = make_build_dir settings.build_dir in
-  let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
-  let* () =
-    if not settings.index_only
-    then Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files
-    else Ok ()
-  in
-  (* Process normal pages and collect index data from them *)
-  let* index = Utils.fold_left
-    (fun acc p ->
-       let ie = _process_page [] widgets config settings p in
-       match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
-    []
-    page_files
-  in
-  (* Now process the index pages, using previously collected index data.
-     This will produce no new index data so we ignore the non-error results. *)
-  let* index = Autoindex.sort_entries settings index in
-  let* () = Utils.iter (_process_page index widgets config settings) index_files in
-  let* () = dump_index_json settings index in
-  Ok ()
+  (* Parse the arguments to see if we have any real work to do, or it's --version or similar.
+     If it's an action that doesn't rely on the config, we don't even need to read the config file.
+     Worse yet, config reading errors will prevent us from executing the action.
+   *)
+  let* (action, settings) = get_args Defaults.default_settings in
+  match action with
+  | ShowVersion ->
+    let () = Utils.print_version () in
+    exit 0
+  | ShowDefaultConfig ->
+    let () = print_endline Project_init.default_config in
+    exit 0
+  | InitProject ->
+    let () =
+      if (settings.site_dir <> Defaults.default_settings.site_dir) ||
+         (settings.build_dir <> Defaults.default_settings.build_dir)
+      (* Logging is not set at up this point, it's done by `initialize ()`,
+         so we use a "normal" print to emit a warning here. *)
+      then print_string "Warning: --site-dir and --build-dir options are ignored by --project-init\n\n"
+    in
+    let () = Project_init.init Defaults.default_settings in
+    exit 0
+  | DoActualWork ->
+    let* config, widgets, settings = initialize () in
+    let () = setup_logging settings.verbose settings.debug in
+    let* () = make_build_dir settings.build_dir in
+    let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
+    let* () =
+      if not settings.index_only
+      then Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files
+      else Ok ()
+    in
+    (* Process normal pages and collect index data from them *)
+    let* index = Utils.fold_left
+      (fun acc p ->
+         let ie = _process_page [] widgets config settings p in
+         match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
+      []
+      page_files
+    in
+    (* Now process the index pages, using previously collected index data.
+       This will produce no new index data so we ignore the non-error results. *)
+    let* index = Autoindex.sort_entries settings index in
+    let* () = Utils.iter (_process_page index widgets config settings) index_files in
+    let* () = dump_index_json settings index in
+    Ok ()
 
 let () =
   let res = main () in
