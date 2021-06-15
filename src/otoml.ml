@@ -107,6 +107,78 @@ module Toml_reader = struct
   ]
 end
 
+let force_inline v =
+  match v with
+  | TomlTable t -> TomlInlineTable t
+  | _ as v -> v
+
+let rec format_primitive ?(table_path=[]) ?(indent=0) ?(inline=false) ?(table_array=false) callback v =
+  match v with
+  | TomlString s ->
+    callback "\""; callback @@ String.escaped s; callback "\""
+  | TomlInteger i ->
+    callback @@ string_of_int i
+  | TomlFloat f ->
+    callback @@ string_of_float f
+  | TomlBoolean b ->
+    callback @@ string_of_bool b
+  | TomlOffsetDateTime dt ->
+    callback dt
+  | TomlLocalDateTime dt ->
+    callback dt
+  | TomlLocalDate dt ->
+    callback dt
+  | TomlLocalTime t ->
+    callback t
+  | TomlArray a ->
+    let a = List.map force_inline a in
+    let last_index = (List.length a) - 1 in
+    callback "[";
+    List.iteri (fun n v ->
+      format_primitive ~indent:0 callback v;
+      (* Avoid trailing commas after the last item. *)
+      if n <> last_index then callback ", ")
+    a;
+    callback "]"
+  | TomlTable t ->
+    format_table ~table_path:table_path ~indent:indent ~inline:inline ~table_array:table_array callback t
+  | TomlInlineTable t ->
+    let last_index = (List.length t) - 1 in
+    callback "{";
+    List.iteri (fun n (k, v) ->
+      callback @@ Printf.sprintf "%s = " k;
+      (* If an _inline_ table contains other tables or table arrays,
+         we have to force them all to inline table format to produce valid TOML. *)
+      let v = force_inline v in
+      format_primitive ~table_path:[] ~indent:0 callback v;
+      if n <> last_index then callback ", ")
+    t;
+    callback "}"
+  | TomlTableArray _ -> failwith "TOML arrays of tables cannot be formatted out of the parent table context"
+and format_pair ?(table_path=[]) ?(indent=0) ?(inline=false) ?(table_array=false) callback (k, v) =
+  match v with
+  | TomlTable _ as v ->
+    format_primitive ~table_path:(table_path @ [k]) ~indent:indent ~table_array:table_array callback v
+  | TomlTableArray v -> format_table_array ~table_path:(table_path) ~indent:indent callback k v
+  | _ as v ->
+    callback @@ Printf.sprintf "%s%s = " (String.make indent ' ') k;
+    format_primitive ~table_path:table_path callback v;
+    if not inline then callback "\n"
+and format_table ?(table_path=[]) ?(indent=0) ?(inline=false) ?(table_array=false) callback t =
+  let () =
+    if (table_path <> []) then begin
+      if table_array then callback @@ Printf.sprintf "[[%s]]\n" (String.concat "." table_path)
+      else callback @@ Printf.sprintf "[%s]\n" (String.concat "." table_path)
+    end
+  in
+  let inline = if table_array then false else inline in
+  let t = if table_array then List.map (fun (k, v) -> (k, force_inline v)) t else t in
+  List.iter (format_pair ~table_path:table_path ~indent:indent ~inline:inline ~table_array:table_array callback) t
+and format_table_array ?(table_path=[]) ?(indent=0) callback k ta =
+  let ta = List.map (fun v -> (k, v)) ta in
+  List.iter (
+    format_pair ~table_path:table_path ~indent:indent ~inline:true ~table_array:true callback) ta
+
 let value_of_toml = Toml_reader.value_of_toml
 let value_of_table = Toml_reader.value_of_table
 
