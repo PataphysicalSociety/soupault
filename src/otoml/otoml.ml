@@ -115,7 +115,7 @@ let force_inline v =
 let rec format_primitive ?(table_path=[]) ?(indent=0) ?(inline=false) ?(table_array=false) callback v =
   match v with
   | TomlString s ->
-    callback "\""; callback @@ String.escaped s; callback "\""
+    callback "\""; callback @@ Oprint.escape_string s; callback "\""
   | TomlInteger i ->
     callback @@ string_of_int i
   | TomlFloat f ->
