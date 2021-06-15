@@ -119,7 +119,7 @@ let rec format_primitive ?(table_path=[]) ?(indent=0) ?(inline=false) ?(table_ar
   | TomlInteger i ->
     callback @@ string_of_int i
   | TomlFloat f ->
-    callback @@ string_of_float f
+    callback @@ Printf.sprintf "%.2f" f
   | TomlBoolean b ->
     callback @@ string_of_bool b
   | TomlOffsetDateTime dt ->
