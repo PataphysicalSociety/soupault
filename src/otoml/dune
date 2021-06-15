@@ -1,0 +1,6 @@
+(library
+  (name otoml)
+;  (public_name otoml)
+  (synopsis "A TOML library")
+  (libraries toml)
+  (flags :standard -color always -safe-string -warn-error))

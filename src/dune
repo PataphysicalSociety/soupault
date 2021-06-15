@@ -6,6 +6,7 @@
  (libraries
    lambdasoup
    toml
+   otoml
    containers
    fileutils
    logs
