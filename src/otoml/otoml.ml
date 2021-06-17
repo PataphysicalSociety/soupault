@@ -129,13 +129,6 @@ type formatter_settings = {
   newline_before_table: bool
 }
 
-let default_formatter_settings = {
-  indent_width = 2;
-  indent_character = ' ';
-  indent_subtables = false;
-  newline_before_table = true
-}
-
 let make_indent indent settings level =
   if not indent then "" else
   String.make (settings.indent_width * level) settings.indent_character
@@ -229,6 +222,28 @@ and format_pair ?(table_path=[]) ?(indent=true) ?(indent_level=0) ?(inline=false
     callback @@ Printf.sprintf "%s%s = " (make_indent indent settings indent_level) k;
     format_primitive ~table_path:table_path ~indent:indent settings callback v;
     if not inline then callback "\n"
+
+let to_string ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) v =
+  let settings = {
+    indent_width = indent_width;
+    indent_character = indent_character;
+    indent_subtables = indent_subtables;
+    newline_before_table = newline_before_table
+  }
+  in
+  let buf = Buffer.create 4096 in
+  let () = format_primitive settings (Buffer.add_string buf) v in
+  Buffer.contents buf
+
+let to_channel ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) chan v =
+  let settings = {
+    indent_width = indent_width;
+    indent_character = indent_character;
+    indent_subtables = indent_subtables;
+    newline_before_table = newline_before_table
+  }
+  in
+  format_primitive settings (output_string chan) v
 
 let value_of_toml = Toml_reader.value_of_toml
 let value_of_table = Toml_reader.value_of_table
