@@ -307,7 +307,7 @@ let _process_page index widgets config settings (page_file, nav_path) =
 
 (* Option parsing and initialization *)
 
-type soupault_action = DoActualWork | InitProject | ShowVersion | ShowDefaultConfig
+type soupault_action = DoActualWork | InitProject | ShowVersion | ShowDefaultConfig | ShowEffectiveConfig
 
 let get_args settings =
   (* Due to a workaround, we are going to parse argument twice:
@@ -331,6 +331,7 @@ let get_args settings =
     ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
     ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
     ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
+    ("--show-effectve-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
     ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and exit")
   ]
   in
@@ -434,8 +435,9 @@ let main () =
     in
     let () = Project_init.init Defaults.default_settings in
     exit 0
-  | DoActualWork ->
+  | DoActualWork | ShowEffectiveConfig ->
     let* config, widgets, settings = initialize () in
+    if action = ShowEffectiveConfig then (Otoml.to_channel stdout config; exit 0) else
     let () = setup_logging settings.verbose settings.debug in
     let* () = make_build_dir settings.build_dir in
     let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
