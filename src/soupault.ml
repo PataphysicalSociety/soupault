@@ -341,7 +341,14 @@ let get_args settings =
   | [] -> Ok (DoActualWork, !sr)
   | [a] -> Ok (a, !sr)
   | _ ->
-    Error "Incorrect comand line option combination. Please specify only one of --version, --help, or --show-default-config"
+    (* This function is first called at a point when the logger isn't setup yet,
+       so we need to the the plain old print to tell the user about errors. *)
+    let () =
+      print_endline "Error: Incorrect comand line option combination.";
+      print_endline "Please specify only one of --version, --help, --show-default-config, or --show-effective-config";
+      print_endline "To build your website, simply run soupault without any options."
+    in
+    exit 1
 
 let check_project_dir settings =
   let () =
