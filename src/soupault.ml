@@ -331,7 +331,7 @@ let get_args settings =
     ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
     ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
     ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
-    ("--show-effectve-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
+    ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
     ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and exit")
   ]
   in
