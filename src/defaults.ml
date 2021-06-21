@@ -188,7 +188,8 @@ type env = {
   settings : settings;
 }
 
-let config_file = "soupault.conf"
+let config_file = "soupault.toml"
+let config_file_alt = "soupault.conf"
 let config_path_env_var = "SOUPAULT_CONFIG"
 let settings_table = "settings"
 let index_settings_table = "index"

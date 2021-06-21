@@ -369,13 +369,32 @@ let check_project_dir settings =
     end
   in ()
 
+let find_config_file () =
+  let conf_exists = Sys.file_exists Defaults.config_file in
+  let alt_conf_exists = Sys.file_exists Defaults.config_file_alt in
+  match conf_exists, alt_conf_exists with
+  | true, false -> Ok Defaults.config_file
+  | false, true -> Ok Defaults.config_file_alt
+  | true, true ->
+    let () = Logs.warn @@ fun m -> m "Both %s and %s files exist, using %s"
+      Defaults.config_file Defaults.config_file_alt Defaults.config_file
+    in Ok Defaults.config_file
+  | false, false ->
+      let () =
+        Logs.err @@ fun m -> m "Could not find either %s or %s in the current directory."
+          Defaults.config_file Defaults.config_file_alt;
+        Logs.err @@ fun m -> m "Make sure you are in a soupault project directory or specify configuration file location in \
+          %s environment variable." Defaults.config_path_env_var
+      in
+      Error "Cannot proceed without a configuration file."
+
 let initialize () =
   let () = Random.self_init () in
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose settings.debug in
-  let config_file =
-    try Unix.getenv Defaults.config_path_env_var
-    with Not_found -> Defaults.config_file
+  let* config_file =
+    try Ok (Unix.getenv Defaults.config_path_env_var)
+    with Not_found -> find_config_file ()
   in
   let* config = Config.read_config config_file in
   (* First, populate the settings from the config file data. *)
