@@ -17,6 +17,12 @@ let mkdir dir =
 (*** Logging setup ***)
 
 let get_color_style () =
+  (* Most Windows terminals don't support ANSI colors at all,
+     so we automatically disable it on that platform.
+     If there's a good way to test if the terminal actually supports it,
+     then this check can be made more granular.
+   *)
+  if Sys.win32 then `None else
   (* See https://no-color.org/
      All command-line software which outputs text with ANSI color added
      should check for the presence of a NO_COLOR environment variable that, when present
