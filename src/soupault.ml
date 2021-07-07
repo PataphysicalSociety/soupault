@@ -16,10 +16,44 @@ let mkdir dir =
 
 (*** Logging setup ***)
 
+let get_color_style () =
+  (* See https://no-color.org/
+     All command-line software which outputs text with ANSI color added
+     should check for the presence of a NO_COLOR environment variable that, when present
+     (regardless of its value), prevents the addition of ANSI color.
+   *)
+  let no_color = Sys.getenv_opt "NO_COLOR" |> Option.is_some in
+  (* Logs always go to stderr, so we don't check stdout. *)
+  let interactive = Unix.isatty (Unix.descr_of_out_channel stderr) in
+  if interactive && (not no_color) then `Ansi_tty else `None 
+
+let color_level ppf l =
+  let app_style = `Cyan in
+  let err_style = `Red in
+  let warn_style = `Yellow in
+  let info_style = `Green in
+  let debug_style = `Blue in
+  let f ppf style l =
+    Fmt.pf ppf "%a" Fmt.(styled style string)
+      (Logs.level_to_string (Some l) |> String.uppercase_ascii)
+  in
+  let l = if Option.is_none l then Logs.App else Option.get l in
+  match l with
+  | Logs.App ->
+    f ppf app_style l
+  | Logs.Error ->
+    f ppf err_style l
+  | Logs.Warning ->
+    f ppf warn_style l
+  | Logs.Info ->
+    f ppf info_style l
+  | Logs.Debug ->
+    f ppf debug_style l
+
 (* Omit the executable name from the logs, the user knows already *)
 let pp_header ppf (l, h) =
   match h with
-  | None -> if l = Logs.App then () else Format.fprintf ppf "[%a] " Logs.pp_level l
+  | None -> if l = Logs.App then () else Format.fprintf ppf "[%a] " color_level (Some l)
   | Some h -> Format.fprintf ppf "[%s] " h
 
 let log_reporter = Logs.format_reporter ~pp_header:pp_header  ()
@@ -30,7 +64,9 @@ let setup_logging verbose debug =
     else if verbose then Logs.Info
     else Logs.Warning
   in
+  let style = get_color_style () in
   Logs.set_level (Some level);
+  Fmt_tty.setup_std_outputs ~style_renderer:style ();
   Logs.set_reporter log_reporter;
   (* Enable exception tracing if debug=true *)
   if debug then Printexc.record_backtrace true

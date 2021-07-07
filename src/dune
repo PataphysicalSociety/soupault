@@ -11,6 +11,7 @@
    fileutils
    logs
    logs.fmt
+   fmt.tty
    re
    odate
    spelll
