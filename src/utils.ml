@@ -193,3 +193,28 @@ let format_date fmt date =
   match printer with
   | None -> soupault_error (Printf.sprintf "Date format \"%s\" is invalid." fmt)
   | Some printer -> ODate.Unix.To.string printer date
+
+(* TOML/JSON convertors *)
+let rec toml_of_json j =
+  let open Otoml in
+  match j with
+  | `Float n -> TomlFloat n
+  | `Bool b -> TomlBoolean b
+  | `String s -> TomlString s
+  | `A js -> TomlArray (List.map toml_of_json js)
+  | `O os -> TomlTable (List.map (fun (k, v) -> (k, toml_of_json v)) os)
+  | `Null -> TomlTable []
+
+let rec toml_to_json t =
+  let open Otoml in
+  match t with
+  | TomlString s -> `String s
+  | TomlInteger i -> `Float (float_of_int i)
+  | TomlFloat f -> `Float f
+  | TomlBoolean b -> `Bool b
+  | TomlLocalTime s -> `String s
+  | TomlLocalDate s -> `String s
+  | TomlLocalDateTime s -> `String s
+  | TomlOffsetDateTime s -> `String s
+  | TomlArray xs | TomlTableArray xs -> `A (List.map toml_to_json xs)
+  | TomlTable os | TomlInlineTable os -> `O (List.map (fun (k, v) -> (k, toml_to_json v)) os)

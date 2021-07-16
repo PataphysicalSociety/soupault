@@ -446,7 +446,7 @@ let initialize () =
   (* Update the log level from the config and arguments  *)
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
-  let* config = Ok (Otoml.value_of_table (config |> Option.get)) in
+  let* config = Ok (config |> Option.get) in
   (* Inject defaults and updated values back into the TOML config
      to make the complete effective settings available to plugins. *)
   let config = Config.inject_defaults settings config in
@@ -505,7 +505,7 @@ let main () =
     exit 0
   | DoActualWork | ShowEffectiveConfig ->
     let* config, widgets, settings = initialize () in
-    if action = ShowEffectiveConfig then (Otoml.to_channel stdout config; exit 0) else
+    if action = ShowEffectiveConfig then (Otoml.Printer.to_channel stdout config; exit 0) else
     let () = setup_logging settings.verbose settings.debug in
     let* () = make_build_dir settings.build_dir in
     let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in

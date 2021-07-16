@@ -74,7 +74,7 @@ let compare_entries settings l r =
     with Otoml.Type_error _ -> None
   in
   let get_sort_key_field entry =
-    settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>= (fun s -> Some (Otoml.of_json s)) >>=
+    settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>= (fun s -> Some (Utils.toml_of_json s)) >>=
     string_of_field
   in
   let compare_values cmp_func l_val r_val =

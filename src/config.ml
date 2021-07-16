@@ -63,45 +63,47 @@ let read_config path =
     Ok None
   else
   try
-    let open Toml.Parser in
-    let conf = from_filename path |> unsafe in
+    let conf = Otoml.Parser.from_file path in
     Ok (Some conf)
   with
   | Sys_error err -> Error (Printf.sprintf "Could not read config file: %s" err)
-  | Toml.Parser.Error (err, _) -> Error (Printf.sprintf "Could not parse config file %s: %s" path err)
+  | Otoml.Parse_error (pos, msg) ->
+    let msg = Printf.sprintf "Could not parse config file %s: %s"
+      path (Otoml.Parser.format_parse_error pos msg)
+    in Error msg
 
 (* Convenience accessor wrappers *)
 
-let find_table path config = TomlTable (find get_table config path)
-let find_table_opt path config = find_opt get_table config path |> Option.map (fun x -> TomlTable x)
-let find_table_result err path config = find_opt get_table config path |> Option.to_result ~none:err
+let find_table path config = TomlTable (find config get_table path)
+let find_table_opt path config = find_opt config get_table path |> Option.map (fun x -> TomlTable x)
+let find_table_result err path config = find_opt config get_table path |> Option.to_result ~none:err
 
-let find_string ?(strict=false) path config = find (get_string ~strict:strict) config path
-let find_string_opt ?(strict=false) path config = find_opt (get_string ~strict:strict) config path
+let find_string ?(strict=false) path config = find config (get_string ~strict:strict) path
+let find_string_opt ?(strict=false) path config = find_opt config (get_string ~strict:strict) path
 let find_string_or ?(strict=false) ~default:default path config =
-  find_opt (get_string ~strict:strict) config path |> Option.value ~default:default
+  find_opt config (get_string ~strict:strict) path |> Option.value ~default:default
 let find_string_result ?(strict=false) err path config =
-  find_opt (get_string ~strict:strict) config path |> Option.to_result ~none:err
+  find_opt config (get_string ~strict:strict) path |> Option.to_result ~none:err
 
 let find_strings ?(force=true) path config =
-  let res = find (get_array ~strict:(not force)) config path in
+  let res = find config (get_array ~strict:(not force)) path in
   List.map get_string res
 let find_strings_opt ?(force=true) path config =
-  let res = find_opt (get_array ~strict:(not force)) config path in
+  let res = find_opt config (get_array ~strict:(not force)) path in
   Option.map (List.map get_string) res
 let find_strings_or ?(force=true) ~default:default path config =
   try find_strings ~force:force path config
   with Key_error _ -> default
 
-let find_bool ?(strict=false) path config = find (get_bool ~strict:strict) config path
-let find_bool_opt ?(strict=false) path config = find_opt (get_bool ~strict:strict) config path
+let find_bool ?(strict=false) path config = find config (get_boolean ~strict:strict) path
+let find_bool_opt ?(strict=false) path config = find_opt config (get_boolean ~strict:strict) path
 let find_bool_or ?(strict=false) ~default:default path config =
-  find_opt (get_bool ~strict:strict) config path |> Option.value ~default:default
+  find_opt config (get_boolean ~strict:strict) path |> Option.value ~default:default
 
-let find_integer ?(strict=false) path config = find (get_integer ~strict:strict) config path
-let find_integer_opt ?(strict=false) path config = find_opt (get_integer ~strict:strict) config path
+let find_integer ?(strict=false) path config = find config (get_integer ~strict:strict) path
+let find_integer_opt ?(strict=false) path config = find_opt config (get_integer ~strict:strict) path
 let find_integer_or ?(strict=false) ~default:default path config =
-  find_opt (get_integer ~strict:strict) config path |> Option.value ~default:default
+  find_opt config (get_integer ~strict:strict) path |> Option.value ~default:default
 
 let get_path_options config =
   {
@@ -363,7 +365,6 @@ let update_settings_unsafe settings config =
   match config with
   | None -> settings
   | Some config ->
-    let config = Otoml.value_of_table config in
     let () = check_options ~fmt:bad_section_msg valid_tables config "table \"settings\"" in
     let settings = _update_settings settings config in
     _get_index_settings settings config
@@ -373,7 +374,7 @@ let update_settings settings config =
   with Config_error e -> Error e
 
 let inject_default path default config =
-  let value = find_opt (fun x -> x) config path in
+  let value = find_opt config (fun x -> x) path in
   match value with
   | Some _ -> config
   | None -> let () = Logs.debug @@ fun m -> m "Injecting default at %s" (String.concat "." path) in
@@ -416,5 +417,5 @@ let inject_defaults settings config =
       inject_default ["index"; "force_indexing_path_regex"] (array [])
   in
   let res = inject_default_settings settings config |> inject_default_index_settings settings in
-  let () = Logs.debug @@ fun m -> m	"Date fmts: %s"	(find get_array res ["index";	"date_formats"] |> List.map get_string |> String.concat " ") in
+  let () = Logs.debug @@ fun m -> m	"Date fmts: %s"	(find res get_array ["index"; "date_formats"] |> List.map get_string |> String.concat " ") in
   res

@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "soupault"
-version: "2.8.0"
+version: "3.0.0-dev"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
 A website generator that works with page element tree rather than text
@@ -35,7 +35,7 @@ depends: [
   "dune" {>= "2.0.0"}
   "lambdasoup" {>= "0.7.2"}
   "markup" {>= "1.0.0-1"}
-  "toml" {>= "6.0.0"}
+  "otoml"
   "fileutils"
   "logs"
   "fmt"

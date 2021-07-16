@@ -5,7 +5,6 @@
 ; (flags (-ccopt -static))
  (libraries
    lambdasoup
-   toml
    otoml
    containers
    fileutils
