@@ -41,6 +41,7 @@ depends: [
   "fmt"
   "re"
   "ezjsonm"
+  "yaml" {>= "2.0.0"}
   "containers" {>= "3.4"}
   "odate"
   "spelll" {>= "0.3"}

@@ -477,6 +477,19 @@ struct
         let () = Logs.debug @@ fun m -> m "TOML string was:\n %s" ts in
         None
 
+    (* For the YAML module. *)
+
+    let parse_yaml ys =
+      try Yaml.of_string_exn ys |> lua_of_json
+      with Invalid_argument err -> Printf.ksprintf plugin_error "YAML.from_string parse error: %s" err
+
+    let parse_yaml_unsafe ys =
+      try Some (Yaml.of_string_exn ys |> lua_of_json)
+      with Invalid_argument err ->
+        let () = Logs.warn @@ fun m -> m "YAML.from_string_unsafe failed to parse the YAML string, returning nil: %s" err in
+        let () = Logs.debug @@ fun m -> m "YAML string was:\n %s" ys in
+        None
+
     (* For the Base64 module. *)
 
     let base64_decode s =
@@ -624,6 +637,11 @@ struct
       "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_json_unsafe;
       "to_string", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json);
       "pretty_print", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json ~minify:false);
+    ] g;
+
+    C.register_module "YAML" [
+      "from_string", V.efunc (V.string **->> V.value) parse_yaml;
+      "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_yaml_unsafe;
     ] g;
 
     C.register_module "TOML" [
