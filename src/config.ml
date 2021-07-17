@@ -377,8 +377,7 @@ let inject_default path default config =
   let value = find_opt config (fun x -> x) path in
   match value with
   | Some _ -> config
-  | None -> let () = Logs.debug @@ fun m -> m "Injecting default at %s" (String.concat "." path) in
-     update config path (Some default)
+  | None -> update config path (Some default)
 
 let inject_defaults settings config =
   let inject_default_settings settings config =
@@ -417,5 +416,4 @@ let inject_defaults settings config =
       inject_default ["index"; "force_indexing_path_regex"] (array [])
   in
   let res = inject_default_settings settings config |> inject_default_index_settings settings in
-  let () = Logs.debug @@ fun m -> m	"Date fmts: %s"	(find res get_array ["index"; "date_formats"] |> List.map get_string |> String.concat " ") in
   res

@@ -64,15 +64,9 @@ let page_included settings options site_dir page_file =
   else match options.pages, options.sections, options.regexes with
   | [], [], [] -> true
   | _, _, _ ->
-    let should_run =
-      (List.exists (regex_matches page_file) options.regexes) ||
-      (List.exists (page_matches site_dir page_file) options.pages) ||
-      (List.exists (section_matches ~include_subsections:options.include_subsections settings site_dir page_file) options.sections)
-    in
-    let () =
-      if not should_run then
-      Logs.debug @@ fun m -> m "Page %s does not match any page/section/regex options" page_file
-    in should_run
+    (List.exists (regex_matches page_file) options.regexes) ||
+    (List.exists (page_matches site_dir page_file) options.pages) ||
+    (List.exists (section_matches ~include_subsections:options.include_subsections settings site_dir page_file) options.sections)
 
 let is_default opts =
   (* The include_subsections option only makes sense when section/exclude_section is also set.

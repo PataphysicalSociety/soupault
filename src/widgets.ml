@@ -49,7 +49,6 @@ let rec _load_widgets settings config plugins ws hash =
   match ws with
   | [] -> ()
   | w :: ws' ->
-    let () = Logs.debug @@ fun m -> m "Loading configuration from [widgets.%s]" w in
     let widget_config = get_widget_config config w in
     let name = Config.find_string_opt ["widget"] widget_config in
     let fail msg = Printf.ksprintf failwith "Error in [widgets.%s]: %s" w msg in
@@ -171,15 +170,15 @@ let get_widgets settings config plugins index_deps =
 let widget_should_run settings name widget build_profiles site_dir page_file =
   let disabled = Config.find_bool_or ~default:false ["disabled"] widget.config in
   if disabled then
-    let () = Logs.debug @@ fun m -> m "Widget %s is disabled in the configuration" name in false
+    let () = Logs.debug @@ fun m -> m "Widget \"%s\" is disabled in the configuration" name in false
   else
   let options = Config.get_path_options widget.config in
   let profile = Config.find_string_opt ["profile"] widget.config in
   if not (Utils.profile_matches profile build_profiles) then
-    let () = Logs.debug @@ fun m -> m "Widget %s is not enabled in the current build profile" name in false
+    let () = Logs.debug @@ fun m -> m "Widget \"%s\" is not enabled in the current build profile" name in false
   else begin
     if Path_options.page_included settings options site_dir page_file then true
     else
-      let () = Logs.debug @@ fun m -> m "Page %s is excluded by page/section/regex options, not running the widget" page_file in
+      let () = Logs.debug @@ fun m -> m "Widget \"%s\" will not run: page %s is excluded by its page/section/regex options" name page_file in
       false
   end
