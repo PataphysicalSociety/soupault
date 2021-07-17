@@ -27,7 +27,7 @@ let set_title _ config soup =
   let () =
     if force then
     begin
-      (* lambdasoup always inserts a <head> in the whole document parsing mode,
+      (* NB: lambdasoup always inserts a <head> in the whole document parsing mode,
           so a page is guaranteed to have one,
           unsafe unwrapping is fine *)
       let head = Soup.select_one "head" soup |> Option.get in
@@ -36,10 +36,10 @@ let set_title _ config soup =
     end
   in
   (* Now to setting the title *)
-  let title_node = Soup.select_one "title" soup in
+  let title_node = Soup.select_one "head title" soup in
   match title_node with
   | None ->
-    let () = Logs.debug @@ fun m -> m "Page has no <title> node, assuming you don't want to set it" in
+    let () = Logs.debug @@ fun m -> m "Page does not have a  <title> element, assuming you don't want to set it" in
     Ok ()
   | Some title_node ->
     if (not (Html_utils.is_empty title_node)) && keep then Ok () else
