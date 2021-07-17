@@ -437,6 +437,8 @@ struct
         V.Table.of_list |> V.table.embed
       | `Null -> V.unit.embed ()
 
+    (* For the JSON module. *)
+
     let parse_json js =
       try Ezjsonm.from_string js |> lua_of_json
       with
@@ -446,7 +448,7 @@ struct
     let parse_json_unsafe js =
       try Some (parse_json js)
       with Plugin_error err ->
-        let () = Logs.warn @@ fun m -> m "JSON.parse_json_unsafe failed to parse JSON, returning nil: %s" err in
+        let () = Logs.warn @@ fun m -> m "JSON.from_string_unsafe failed to parse JSON, returning nil: %s" err in
         let () = Logs.debug @@ fun m -> m "JSON string was:\n %s" js in
         None
 
@@ -456,6 +458,26 @@ struct
       | `O _ as j -> Ezjsonm.to_string ~minify:minify j
       | `A _ as j -> Ezjsonm.to_string ~minify:minify j
       | _ as je -> Utils.string_of_json_primitive je
+
+    (* For the TOML module. *)
+    let parse_toml ts =
+      let res = Otoml.Parser.from_string_result ts in
+      match res with
+      | Ok t -> t |> Utils.toml_to_json |> lua_of_json
+      | Error err -> Printf.ksprintf plugin_error "TOML.from_string parse error: %s" err
+
+    let parse_toml_unsafe ts =
+      let res = Otoml.Parser.from_string_result ts in
+      match res with
+      | Ok t ->
+        let l = t |> Utils.toml_to_json |> lua_of_json in
+        Some l
+      | Error err ->
+        let () = Logs.warn @@ fun m -> m "TOML.from_string_unsafe failed to parse the TOML string, returning nil: %s" err in
+        let () = Logs.debug @@ fun m -> m "TOML string was:\n %s" ts in
+        None
+
+    (* For the Base64 module. *)
 
     let base64_decode s =
       try Some (Base64.decode_exn s)
@@ -602,6 +624,11 @@ struct
       "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_json_unsafe;
       "to_string", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json);
       "pretty_print", V.efunc (V.value **->> V.string) (fun v -> value_of_lua v |> print_json ~minify:false);
+    ] g;
+
+    C.register_module "TOML" [
+      "from_string", V.efunc (V.string **->> V.value) parse_toml;
+      "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_toml_unsafe;
     ] g;
 
     C.register_module "Date" [
