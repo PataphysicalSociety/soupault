@@ -13,28 +13,46 @@ Soupault is an HTML manipulation tool. It can be any of:
 
 or all of them at the same time.
 
-It builds on the idea that HTML is a machine-readable format.
+Soupault works with the HTML element tree of the page, so it can do many thing that traditionally could be done with client-side JS:
+inject new HTML into existing complete pages, create a table of contents that preserves the `id` elements of HTML headings and more.
 
-Client-side JavaScript has always been used to manipulate pages in-browser.
-For manipulating pages on disk, people traditionally used template processors.
-Soupault can parse an HTML page into an element tree, manipulate elements, and save the result to disk.
+It also doesn't use front matter and extracts metadata from HTML instead, using a CSS3 selector to metadata field mapping,
+so even hand-written static pages can be indexed rather than treated as assets. For example:
 
-Web scrapers have been used for extracting data from someone else's pages. Microformats have been used
-to let other people know what to extract.
-For their own pages, people usually used "front matter".
-Soupault allows you to define your own "microformats" on the fly. For example, automatically use
-the first `<h1>`, or `<h1 id="title">` for the page `<title>`. You can define your own fields
-based on CSS selectors and export the index to JSON, then make a HTML page with a blog archive
-or an RSS/Atom/JSONFeed from it.
+```toml
+[index.fields.title]
+  # Try to find <h1 id="post-title"> if it exists,
+  # else use the first <h1> 
+  selector = ["h1#post-title", "h1"]
 
-Static site generators have been either easily extensible but written in interpreted languages
-or shipped as static binaries but self-contained.
-Soupault is an easy to install static binary, but it embeds a Lua interpreter that has access to
-the page element tree. Much like the DOM API for JS, but for Lua.
+[index.fields.excerpt]
+  selector = ["p#post-excerpt", "p"]
 
-It's also friendly to existing websites. Clean URLs are optional. Assembling pages from a template
-and a body is also optional: if you page has an `<html>` element, it's excluded from the assembly stage.
-You can disable "templating", or mix unique and templated pages.
+[index.fields.date]
+  selector = ["time#post-date", "time"]
+  extract_attribute = "datetime"
+  fallback_to_content = true
+```
+
+Extracted metadata can then be rendered and injected into pages:
+
+```toml
+[index.views.blog]
+  # Insert rendered data into the element that matches "#blog-index" CSS selector.
+  index_selector = "#blog-index"
+  index_item_template = """
+    <h2><a href="{{url}}">{{title}}</a></h2>
+    <p><strong>Last update:</strong> {{date}}.</p>
+    <p>{{excerpt}}</p>
+    <a href="{{url}}">Read more</a>
+  """
+```
+
+Soupault is...
+
+* Eternal: it comes as a statically-linked binary with no dependencies.
+* Extensible: you can bring your own [page preprocessors](https://soupault.app/reference-manual/#page-preprocessors) (e.g. Markdown to HTML convertors), pipe HTML elements through [external programs](https://soupault.app/reference-manual/#preprocess-element-widget), and load [Lua plugins](https://soupault.app/plugins/).
+* Flexible: most options are configurable and most built-in features can be reimplemented as Lua plugins.
 
 Soupault is named after the French dadaist and surrealist writer Philippe Soupault
 because it's based on the [lambdasoup](http://aantron.github.io/lambdasoup/) library.
