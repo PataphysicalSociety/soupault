@@ -610,9 +610,14 @@ struct
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
        "run_program_get_exit_code", V.efunc (V.string **->> V.int) (Sys_wrappers.run_program_get_exit_code);
+       (* Operations on native file paths. *)
        "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
        "basename", V.efunc (V.string **->> V.string) FilePath.basename;
        "dirname", V.efunc (V.string **->> V.string) FilePath.dirname;
+       (* Operations on UNIX/URL paths. *)
+       "join_path_unix", V.efunc (V.string **-> V.string **->> V.string) FilePath.UnixPath.concat;
+       "basename_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.basename;
+       "dirname_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.dirname;
        "get_extension", V.efunc (V.string **->> V.string) Utils.get_extension;
        "get_extensions", V.efunc (V.string **->> V.list V.string) Utils.get_extensions;
        "has_extension", V.efunc (V.string **-> V.string **->> V.bool) (fun f e -> Utils.has_extension e f);
