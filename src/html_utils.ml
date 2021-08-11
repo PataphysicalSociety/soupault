@@ -86,6 +86,22 @@ let select_all selectors soup =
         aux ss soup acc
   in aux selectors soup []
 
+(* Checks if element matches a specific selector. *)
+let matches_selector selector elem =
+  let s = Soup.create_soup () in
+  let () = Soup.append_root s elem in
+  match Soup.select_one selector s with
+  | Some _ -> true
+  | _ -> false
+
+(* Checks if element matches any of given selectors. *)
+let rec matches_any_of selectors elem =
+  match selectors with
+  | [] -> false
+  | s :: ss ->
+    if matches_selector s elem then true
+    else matches_any_of ss elem
+
 (** Creates a soup with child nodes of an element ripped out of their context *)
 let child_nodes e =
   (* XXX: Rendering and re-parsing seems to be the only way to
