@@ -22,6 +22,7 @@ type toc_settings = {
   strip_tags: bool;
   valid_html: bool;
   min_headings: int;
+  ignore_heading_selectors: string list;
 }
 
 let make_counter seed =
@@ -153,6 +154,8 @@ let toc _ config soup =
     "use_heading_text"; "use_heading_slug";
     "soft_slug"; "slug_regex"; "slug_replacement_string";
     "slug_force_lowercase";
+    (* Exclude headings that match specific selectors *)
+    "ignore_heading_selectors"
   ]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
@@ -184,6 +187,7 @@ let toc _ config soup =
     strip_tags = Config.find_bool_or ~default:false ["strip_tags"] config;
     valid_html = Config.find_bool_or ~default:false ["valid_html"] config;
     min_headings = Config.find_integer_or ~default:0 ["min_headings"] config;
+    ignore_heading_selectors = Config.find_strings_or ~default:[] ["ignore_heading_selectors"] config;
   } in
   let selector = Config.find_string_result "Missing required option \"selector\"" ["selector"] config in
   let action = Config.find_string_or ~default:"append_child" ["action"] config in
@@ -200,6 +204,7 @@ let toc _ config soup =
       begin
         let counter = make_counter 0 in
         let headings = Html_utils.find_headings soup in
+        let headings = List.filter (fun e -> not @@ Html_utils.matches_any_of settings.ignore_heading_selectors e) headings in
         if ((List.length headings) < settings.min_headings) then Ok () else
         let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
         let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
