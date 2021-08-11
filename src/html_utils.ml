@@ -89,6 +89,8 @@ let select_all selectors soup =
 (* Checks if element matches a specific selector. *)
 let matches_selector selector elem =
   let s = Soup.create_soup () in
+  (* Make a full clone of the element node. *)
+  let elem = Soup.to_string elem |> Soup.parse in
   let () = Soup.append_root s elem in
   match Soup.select_one selector s with
   | Some _ -> true
