@@ -263,7 +263,7 @@ let default_settings = {
   pretty_print_html = true;
 }
 
-let version = (3, 0, 0, None)
+let version = (3, 1, 0, Some "dev")
 
 let version_to_string v =
   let major, minor, patch, suffix = v in
