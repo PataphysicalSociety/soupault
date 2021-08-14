@@ -23,7 +23,7 @@ let list_section_files settings path =
 
 let split_pages settings ps =
   let find_index = fun p -> (FP.basename p |> FP.chop_extension) = settings.index_page in
-  let index_page = CCList.find_opt find_index ps in
+  let index_page = List.find_opt find_index ps in
   match index_page with
   | None -> ps, []
   | Some p ->

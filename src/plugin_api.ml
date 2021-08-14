@@ -406,7 +406,7 @@ struct
          such tables by hand, hopefully, aren't surprised.
        *)
       let keys = Utils.assoc_keys ts in
-      if CCList.for_all V.int.is keys then
+      if List.for_all V.int.is keys then
         (* It's an int-indexed table -- a "list".
            However, Hashtbl.to_seq doesn't know about its intended order,
            so we need to sort it by keys ourselves.
@@ -679,7 +679,7 @@ struct
       "is_table", V.efunc (V.value **->> V.bool) V.table.is;
       "is_list", V.efunc (V.value **->> V.bool) (fun t -> if not (V.table.is t) then false else
                            t |> V.table.project |> V.Luahash.to_seq |> List.of_seq |>
-                                Utils.assoc_keys |> CCList.for_all V.int.is);
+                                Utils.assoc_keys |> List.for_all V.int.is);
       "is_nil", V.efunc (V.value **->> V.bool) V.unit.is;
     ] g;
   end (* M *)
