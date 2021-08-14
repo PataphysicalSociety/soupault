@@ -364,6 +364,9 @@ struct
       let html = HtmlV.makemap V.userdata V.projection
     end (* Map *)
 
+    (* For ordered iteration. *)
+    let get_hash_keys h = V.Luahash.fold (fun k _ acc -> k :: acc) h [] |> List.sort_uniq compare
+
     let get_headings_tree soup =
       match soup with
       | None -> []
@@ -666,6 +669,10 @@ struct
       "get_key_default", V.efunc (V.table **-> V.value **-> V.value **->> V.value) (fun t k d -> V.Luahash.find_opt t k |> Option.value ~default:d);
       "iter", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit) V.Luahash.iter;
       "iter_values", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit) (fun f t -> V.Luahash.iter (fun _ v -> f v) t);
+      "iter_ordered", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit)
+        (fun f h -> List.iter (fun k -> f k (V.Luahash.find h k)) @@ get_hash_keys h);
+      "iter_values_ordered", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit)
+        (fun f h -> List.iter (fun k -> f (V.Luahash.find h k)) @@ get_hash_keys h);
       "apply", V.efunc ((V.func (V.value **-> V.value **->> V.option V.value)) **-> V.table **->> V.unit) V.Luahash.filter_map_inplace;
       "fold", V.efunc ((V.func (V.value **-> V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value) V.Luahash.fold;
       "fold_values", V.efunc ((V.func (V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value)
