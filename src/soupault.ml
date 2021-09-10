@@ -110,7 +110,7 @@ let load_html settings file =
     match preprocessor with
     | None -> Ok (Soup.read_file file |> Soup.parse)
     | Some prep ->
-      let prep_cmd = Printf.sprintf "%s %s" prep file in
+      let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote file) in
       let () = Logs.info @@ fun m -> m "Calling preprocessor %s on page %s" prep file in
       (Process_utils.get_program_output prep_cmd) >>= (fun h -> Ok (Soup.parse h))
   with Sys_error e -> Error e
