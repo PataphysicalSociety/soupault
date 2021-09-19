@@ -23,10 +23,14 @@ let default_page = "
 "
 
 (* This part contains the default settings and it's used in more than one place in the code *)
-let default_config = "
+let default_config = Printf.sprintf "
 # To learn about configuring soupault, visit https://www.soupault.app/reference-manual
 
 [settings]
+  # Soupalt version that the config was written/generated for
+  # Trying to process this config with an older version will result in an error message
+  soupault_version = \"%s\"
+
   # Stop on page processing errors?
   strict = true
 
@@ -105,6 +109,8 @@ let default_config = "
   plugin_discovery = true
   plugin_dirs = [\"plugins\"]
 "
+
+Defaults.version_string
 
 (* This part contains example settings for a simple website,
    to give the user an idea what kind of functionality is available. *)
