@@ -479,6 +479,25 @@ let dump_index_json settings index =
   | Some f ->
     try Ok (Soup.write_file f @@ Autoindex.json_string_of_entries index)
     with Sys_error e -> Error e
+
+let check_version settings =
+  match settings.soupault_version with
+  | None -> ()
+  | Some v ->
+    try
+      let res = Utils.require_version v in
+      if res then () else begin
+        Printf.printf "According to settings.soupault_version, this configuration file is for soupault %s\n" v;
+        Printf.printf "Running soupault version is %s, older than required\n" Defaults.version_string;
+        Printf.printf "To proceed, upgrade soupault to at least %s, or (at your own risk) \
+          remove the soupault_version option from your configuration\n" v;
+        exit 1
+      end
+    with Failure msg -> begin
+      Printf.printf "Could not configuration compatibility with running soupault version: %s\n" msg;
+      print_endline "Check your settings.soupault_version option\n";
+      exit 1
+    end
   
 let main () =
   (* Parse the arguments to see if we have any real work to do, or it's --version or similar.
@@ -505,6 +524,7 @@ let main () =
     exit 0
   | DoActualWork | ShowEffectiveConfig ->
     let* config, widgets, settings = initialize () in
+    let () = check_version settings in
     if action = ShowEffectiveConfig then (Otoml.Printer.to_channel stdout config; exit 0) else
     let () = setup_logging settings.verbose settings.debug in
     let* () = make_build_dir settings.build_dir in

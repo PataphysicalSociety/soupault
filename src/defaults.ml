@@ -170,6 +170,8 @@ type settings = {
   force : bool;
 
   pretty_print_html : bool;
+
+  soupault_version : string option;
 }
 
 type index_entry = {
@@ -261,6 +263,8 @@ let default_settings = {
 
   force = true;
   pretty_print_html = true;
+
+  soupault_version = None;
 }
 
 let version = (3, 1, 0, None)

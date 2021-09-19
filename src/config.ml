@@ -309,7 +309,8 @@ let valid_settings = [
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery";
-  "force"; "pretty_print_html"
+  "force"; "pretty_print_html";
+  "soupault_version";
 ]
 
 let _update_settings settings config =
@@ -347,6 +348,8 @@ let _update_settings settings config =
 
        force = find_bool_or ~default:settings.force ["force"] st;
        pretty_print_html = find_bool_or ~default:settings.pretty_print_html ["pretty_print_html"] st;
+
+       soupault_version = find_string_opt ["soupault_version"] st;
 
        preprocessors = _get_preprocessors config
      }
