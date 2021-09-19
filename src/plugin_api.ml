@@ -78,28 +78,14 @@ module Sys_wrappers = struct
 end
 
 module Plugin_version = struct
-  let version_of_string vstr =
-    try Ok (Scanf.sscanf vstr "%u.%u.%u" (fun v1 v2 v3 -> (v1, v2, v3, None)))
-    with _ -> try Ok (Scanf.sscanf vstr "%u.%u" (fun v1 v2 -> (v1, v2, 0, None)))
-    with _ -> try Ok (Scanf.sscanf vstr "%u" (fun v1 -> (v1, 0, 0, None)))
-    with _ -> Error (Printf.sprintf "Could not parse version string \"%s\"" vstr)
-
-  let compare_versions (l1, l2, l3, _) (r1, r2, r3, _) =
-    match compare l1 r1, compare l2 r2, compare l3 r3 with
-    | 0, 0, res -> res
-    | 0, res, _ -> res
-    | res, _, _ -> res
-
   let require_version vstr =
-    let current_version = Defaults.version in
-    let required_version = version_of_string vstr in
-    match required_version with
-    | Ok rv ->
-      if (compare_versions current_version rv) >= 0 then ()
-      else let msg = Printf.sprintf "Plugin requires soupault %s or newer, current version is %s"
-        (Defaults.version_to_string rv) (Defaults.version_string)
-      in raise (Plugin_error msg)
-    | Error msg -> raise (Plugin_error msg)
+    try
+     let res = Utils.require_version vstr in
+     if res then () else
+     let msg = Printf.sprintf "Plugin requires soupault %s or newer, current version is %s" vstr Defaults.version_string in
+     raise (Plugin_error msg)
+    with Failure msg ->
+      raise @@ Plugin_error (Printf.sprintf "Plugin.require_version failed: %s" msg)
 end
 
 module Html = struct
