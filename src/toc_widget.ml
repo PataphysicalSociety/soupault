@@ -204,7 +204,7 @@ let toc _ config soup =
       begin
         let counter = make_counter 0 in
         let headings = Html_utils.find_headings soup in
-        let headings = List.filter (fun e -> not @@ Html_utils.matches_any_of settings.ignore_heading_selectors e) headings in
+        let headings = List.filter (fun e -> not @@ Html_utils.matches_any_of settings.ignore_heading_selectors soup e) headings in
         if ((List.length headings) < settings.min_headings) then Ok () else
         let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
         let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
