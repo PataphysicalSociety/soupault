@@ -13,7 +13,7 @@ Soupault is an HTML manipulation tool. It can be any of:
 
 or all of them at the same time.
 
-Soupault works with the HTML element tree of the page, so it can do many thing that traditionally could be done with client-side JS:
+Soupault works with the HTML element tree of the page, so it can do many things that traditionally could be done with client-side JS:
 inject new HTML into existing complete pages, create a table of contents that preserves the `id` elements of HTML headings and more.
 
 It also doesn't use front matter and extracts metadata from HTML instead, using a CSS3 selector to metadata field mapping,
@@ -63,20 +63,20 @@ For support and discussion, write a message to the [mailing list](https://lists.
 
 # Installation
 
-Pre-built binaries are available for Linux, Windows, and mac OS. You can download them from https://files.baturin.org/software/soupault
+Pre-built binaries are available for Linux, Windows, and macOS. You can download them from https://files.baturin.org/software/soupault
 and from Github releases (https://github.com/dmbaturin/soupault/releases).
 
 You can verify release archive integrity using this signify/minisign key: `RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy`.
 
 You can also install stable release versions from [OPAM](https://opam.ocaml.org):
 
-```
+```sh
 opam install soupault
 ```
 
 Finally, you can build the latest development version with:
 
-```
+```sh
 opam pin add git+https://github.com/dmbaturin/soupault
 ```
 
