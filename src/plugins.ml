@@ -17,7 +17,8 @@ let list_plugins config =
   | Some ps' -> ps'
 
 let make_plugin_function lua_source settings config name =
-  Plugin_api.run_plugin settings config name lua_source
+  let plugin_env_ref = Plugin_api.make_plugin_env () in
+  Plugin_api.run_plugin settings config name lua_source plugin_env_ref
 
 let rec _load_plugins settings ps config hash =
   match ps with

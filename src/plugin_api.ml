@@ -729,13 +729,17 @@ let rec lua_of_toml v =
   | TomlLocalDateTime s -> I.Value.string.embed s
   | TomlOffsetDateTime s -> I.Value.string.embed s
 
-let run_plugin settings soupault_config filename lua_code env widget_config soup =
+let make_plugin_env () = ref (I.Value.Table.of_list [] |> I.Value.table.embed)
+
+let run_plugin settings soupault_config filename lua_code plugin_env_ref env widget_config soup =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
+  let plugin_env = !plugin_env_ref in
   try
     let state = I.mk () in
     let () =
+      (* Set up the built-in plugin environment *)
       I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state;
       I.register_globals ["nav_path", lua_str_list.embed env.nav_path] state;
       I.register_globals ["page_file", lua_str.embed env.page_file] state;
@@ -748,6 +752,8 @@ let run_plugin settings soupault_config filename lua_code env widget_config soup
       I.register_globals ["force", I.Value.bool.embed settings.force] state;
       I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
       I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+      (* Restore the persistent data from previous plugin runs *)
+      I.register_globals ["persistent_data", plugin_env] state
     in
     let _ = I.dostring ~file:filename state lua_code in
     Ok ()
