@@ -126,6 +126,11 @@ module Html = struct
     | ElementNode n -> Soup.coerce n
     | SoupNode n -> Soup.coerce n
 
+  let to_soup n =
+    match n with
+    | SoupNode n -> n
+    | _ -> raise (Plugin_error "Expected an HTML document but found an element or a text node")
+
   let select soup selector =
     let* soup = soup in
     let* elems =
@@ -152,6 +157,16 @@ module Html = struct
   let select_all_of soup selectors =
     let* soup = soup in
     try to_general soup |> Html_utils.select_all selectors |> List.map (fun x -> ElementNode x) |> return
+    with Utils.Soupault_error msg ->
+      raise (Plugin_error msg)
+
+  let matches_selector soup elem selector =
+    try Soup.matches_selector (to_soup soup) selector (to_element elem)
+    with Utils.Soupault_error msg ->
+      raise (Plugin_error msg)
+
+  let matches_any_of_selectors soup elem selectors =
+    try Html_utils.matches_any_of selectors (to_soup soup) (to_element elem)
     with Utils.Soupault_error msg ->
       raise (Plugin_error msg)
 
@@ -525,6 +540,8 @@ struct
         "select_one", V.efunc (V.option Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
         "select_any_of", V.efunc (V.option Map.html **-> V.list V.string **->> V.option Map.html) Html.select_any_of;
         "select_all_of", V.efunc (V.option Map.html **-> V.list V.string **->> V.option (V.list Map.html)) Html.select_all_of;
+        "matches_selector", V.efunc (Map.html **-> Map.html **-> V.string **->> V.bool) Html.matches_selector;
+        "matches_any_of_selectors", V.efunc (Map.html **-> Map.html **-> V.list V.string **->> V.bool) Html.matches_any_of_selectors;
         "parent", V.efunc (V.option Map.html **->> (V.option Map.html)) Html.parent;
         "children", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.children;
         "descendants", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.descendants;
