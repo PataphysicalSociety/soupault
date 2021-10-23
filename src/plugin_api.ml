@@ -777,6 +777,7 @@ let run_plugin settings soupault_config filename lua_code plugin_env_ref env wid
   with
   | Failure msg -> Error (Printf.sprintf "Lua code execution failed:\n%s" msg)
   | Plugin_error msg -> Error msg
+  | Luascanner.Scan msg -> Error (Printf.sprintf "Lua syntax error: %s" msg)
   | Plugin_exit msgo ->
     begin
       match msgo with
