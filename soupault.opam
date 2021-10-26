@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "soupault"
-version: "3.2.0"
+version: "3.3.0-dev"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
 A website generator that works with page element tree rather than text
@@ -42,7 +42,7 @@ depends: [
   "re" {>= "1.9.0"}
   "ezjsonm" {>= "1.2.0"}
   "yaml" {>= "2.0.0"}
-  "containers" {>= "3.4"}
+  "containers" {>= "3.6"}
   "odate" {>= "0.6"}
   "spelll" {>= "0.3"}
   "base64" {>= "3.0.0"}
