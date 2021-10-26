@@ -170,7 +170,7 @@ let wrap ?(selector=None) wrapper content =
     if Soup.is_element wrapper then begin
       let we_opt = Soup.element wrapper in
       (* This error should never occur, but we are still unsafely unwrapping an option... *)
-      let we = CCOpt.get_exn_or "Soup.element returned None for an element node. Please report a bug." we_opt in
+      let we = CCOption.get_exn_or "Soup.element returned None for an element node. Please report a bug." we_opt in
       Ok we
     end
     (* If we are given a parsed snippet, then we have to look inside it and search for elements. *)
