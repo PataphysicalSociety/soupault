@@ -86,11 +86,9 @@ let find_string_result ?(strict=false) err path config =
   find_opt config (get_string ~strict:strict) path |> Option.to_result ~none:err
 
 let find_strings ?(force=true) path config =
-  let res = find config (get_array ~strict:(not force)) path in
-  List.map get_string res
+  find config (get_array ~strict:(not force) get_string) path
 let find_strings_opt ?(force=true) path config =
-  let res = find_opt config (get_array ~strict:(not force)) path in
-  Option.map (List.map get_string) res
+  find_opt config (get_array ~strict:(not force) get_string) path
 let find_strings_or ?(force=true) ~default:default path config =
   try find_strings ~force:force path config
   with Key_error _ -> default
