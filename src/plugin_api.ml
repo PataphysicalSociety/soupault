@@ -640,6 +640,7 @@ struct
          (fun s l -> try Text.sub s 0 l with Invalid_argument _ -> s);
        "truncate_ascii", V.efunc (V.string **-> V.int **->> V.string)
          (fun s l -> try String.sub s 0 l with Invalid_argument _ -> s);
+       "slugify_soft", V.efunc (V.string **->> V.string) (fun s -> Utils.regex_replace s "\\s+" "-");
        "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify;
        "join", V.efunc (V.string **-> V.list V.string **->> V.string) String.concat;
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
