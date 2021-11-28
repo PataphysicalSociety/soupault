@@ -18,5 +18,6 @@
    yaml
    jingoo
    base64
+   text
    tsort
    lua-ml))
