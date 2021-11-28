@@ -634,6 +634,8 @@ struct
 
      C.register_module "String" [
        "trim", V.efunc (V.string **->> V.string) String.trim;
+       "length", V.efunc (V.string **->> V.int) Text.length;
+       "length_ascii", V.efunc (V.string **->> V.int) String.length;
        "truncate", V.efunc (V.string **-> V.int **->> V.string)
          (fun s l -> try Text.sub s 0 l with Invalid_argument _ -> s);
        "truncate_ascii", V.efunc (V.string **-> V.int **->> V.string)
