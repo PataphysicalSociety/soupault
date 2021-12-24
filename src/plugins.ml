@@ -1,3 +1,5 @@
+module OH = Otoml.Helpers
+
 let (>>=) = Option.bind
 
 (* Plugin config loading *)
@@ -26,7 +28,7 @@ let rec _load_plugins settings ps config hash =
   | p :: ps' ->
     let plugin_cfg = get_plugin_config config p in
     let () = Config.check_options ["file"] plugin_cfg "a plugin config" in
-    let file = Config.find_string_opt ["file"] plugin_cfg in
+    let file = OH.find_string_opt plugin_cfg ["file"] in
     begin
       match file with
       | None ->

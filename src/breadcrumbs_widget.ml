@@ -33,9 +33,9 @@ let breadcrumbs env config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
   let () = Config.check_options valid_options config "widget \"breadcrumbs\"" in
-  let min_depth = Config.find_integer_or ~default:1 ["min_depth"] config in
-  let selector = Config.find_string_result "Missing required option \"selector\"" ["selector"] config in
-  let action = Config.find_string_or ~default:"append_child" ["action"] config in
+  let min_depth = Config.find_integer_or ~default:1 config ["min_depth"] in
+  let selector = Config.find_string_result config ["selector"] in
+  let action = Config.find_string_or ~default:"append_child" config ["action"] in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -49,12 +49,12 @@ let breadcrumbs env config soup =
       | Some container ->
         let path_length = List.length env.nav_path in
         if path_length < min_depth then Ok () else
-        let bc_tmpl_str = Config.find_string_or ~default:"<a href=\"{{url}}\">{{name}}</a>" ["breadcrumb_template"] config in
+        let bc_tmpl_str = Config.find_string_or ~default:"<a href=\"{{url}}\">{{name}}</a>" config ["breadcrumb_template"] in
         let* _  = check_breadcrumb_template bc_tmpl_str in
         let bc_tmpl = Template.of_string bc_tmpl_str in
-        let prepend = Config.find_string_or ~default:"" ["prepend"] config in
-        let append = Config.find_string_or ~default:"" ["append"] config in
-        let between = Config.find_string_or ~default:"" ["between"] config in
+        let prepend = Config.find_string_or ~default:"" config ["prepend"] in
+        let append = Config.find_string_or ~default:"" config ["append"] in
+        let between = Config.find_string_or ~default:"" config ["between"] in
         let breadcrumbs = make_breadcrumbs env.nav_path bc_tmpl prepend append between in
         Ok (Html_utils.insert_element action container breadcrumbs)
     end

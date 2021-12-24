@@ -1,3 +1,5 @@
+module OH = Otoml.Helpers
+
 include Soupault_common
 
 (** The table of contents widget *)
@@ -159,38 +161,38 @@ let toc _ config soup =
   ]
   in
   let () = Config.check_options valid_options config "widget \"toc\"" in
-  let max_level = Config.find_integer_or ~default:6 ["max_level"] config in
+  let max_level = Config.find_integer_or ~default:6 config ["max_level"] in
   let settings = {
-    min_level = Config.find_integer_or ~default:1 ["min_level"] config;
+    min_level = Config.find_integer_or ~default:1 config ["min_level"];
     max_level = max_level;
     max_heading_link_level =
-      (let lvl = Config.find_integer_or ~default:max_level ["max_heading_link_level"] config in
+      (let lvl = Config.find_integer_or ~default:max_level config ["max_heading_link_level"] in
       if lvl < max_level then begin
         let () = Logs.warn @@ fun m -> m "max_heading_level cannot be lower than max_level, forcing to max_level" in
         max_level
       end
       else lvl)
     ;
-    toc_class = Config.find_string_opt ["toc_list_class"] config;
-    toc_class_levels = Config.find_bool_or ~default:false ["toc_class_levels"] config;
-    numbered_list = Config.find_bool_or ~default:false ["numbered_list"] config;
-    link_here = Config.find_bool_or ~default:false ["heading_links"] config;
-    link_here_text = Config.find_string_or ~default:"#" ["heading_link_text"] config;
-    link_here_class = Config.find_string_opt ["heading_link_class"] config;
-    link_here_append = Config.find_bool_or ~default:false ["heading_links_append"] config;
-    use_text = Config.find_bool_or ~default:false ["use_heading_text"] config;
-    use_slugs = Config.find_bool_or ~default:false ["use_heading_slug"] config;
-    soft_slug = Config.find_bool_or ~default:false ["soft_slug"] config;
-    slug_regex = Config.find_string_opt ["slug_regex"] config;
-    slug_replacement = Config.find_string_opt ["slug_replacement_string"] config;
-    slug_force_lowercase = Config.find_bool_or ~default:true ["slug_force_lowercase"] config;
-    strip_tags = Config.find_bool_or ~default:false ["strip_tags"] config;
-    valid_html = Config.find_bool_or ~default:false ["valid_html"] config;
-    min_headings = Config.find_integer_or ~default:0 ["min_headings"] config;
-    ignore_heading_selectors = Config.find_strings_or ~default:[] ["ignore_heading_selectors"] config;
+    toc_class = OH.find_string_opt config ["toc_list_class"];
+    toc_class_levels = Config.find_bool_or ~default:false config ["toc_class_levels"];
+    numbered_list = Config.find_bool_or ~default:false config ["numbered_list"];
+    link_here = Config.find_bool_or ~default:false config ["heading_links"];
+    link_here_text = Config.find_string_or ~default:"#" config ["heading_link_text"];
+    link_here_class = OH.find_string_opt config ["heading_link_class"];
+    link_here_append = Config.find_bool_or ~default:false config ["heading_links_append"];
+    use_text = Config.find_bool_or ~default:false config ["use_heading_text"];
+    use_slugs = Config.find_bool_or ~default:false config ["use_heading_slug"];
+    soft_slug = Config.find_bool_or ~default:false config ["soft_slug"];
+    slug_regex = OH.find_string_opt config ["slug_regex"];
+    slug_replacement = OH.find_string_opt config ["slug_replacement_string"];
+    slug_force_lowercase = Config.find_bool_or ~default:true config ["slug_force_lowercase"];
+    strip_tags = Config.find_bool_or ~default:false config ["strip_tags"];
+    valid_html = Config.find_bool_or ~default:false config ["valid_html"];
+    min_headings = Config.find_integer_or ~default:0 config ["min_headings"];
+    ignore_heading_selectors = Config.find_strings_or ~default:[] config ["ignore_heading_selectors"];
   } in
-  let selector = Config.find_string_result "Missing required option \"selector\"" ["selector"] config in
-  let action = Config.find_string_or ~default:"append_child" ["action"] config in
+  let selector = Config.find_string_result config ["selector"] in
+  let action = Config.find_string_or ~default:"append_child" config ["action"] in
   match selector with
   | Error _ as e -> e
   | Ok selector ->

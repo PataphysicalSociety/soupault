@@ -1,3 +1,5 @@
+module OH = Otoml.Helpers
+
 open Defaults
 
 type 'a widget = {
@@ -50,7 +52,7 @@ let rec _load_widgets settings config plugins ws hash =
   | [] -> ()
   | w :: ws' ->
     let widget_config = get_widget_config config w in
-    let name = Config.find_string_opt ["widget"] widget_config in
+    let name = OH.find_string_opt widget_config ["widget"] in
     let fail msg = Printf.ksprintf failwith "Error in [widgets.%s]: %s" w msg in
     begin
       match name with
@@ -97,7 +99,7 @@ let get_widget_order hash =
     let bad_deps = List.map format_bad_dep ds |> String.concat "\n" in
     Printf.sprintf "Found dependencies on non-existent widgets\n%s" bad_deps
   in
-  let dep_graph = CCHashtbl.map_list (fun k v -> (k, Config.find_strings_or ~default:[] ["after"] v.config)) hash in
+  let dep_graph = CCHashtbl.map_list (fun k v -> (k, Config.find_strings_or ~default:[] v.config ["after"])) hash in
   let bad_deps = Tsort.find_nonexistent_nodes dep_graph in
   if bad_deps <> [] then Error (format_bad_deps bad_deps) else
   let res = Tsort.sort dep_graph in
@@ -168,12 +170,12 @@ let get_widgets settings config plugins index_deps =
     If none of those options are present, widget always runs.
  *)
 let widget_should_run settings name widget build_profiles site_dir page_file =
-  let disabled = Config.find_bool_or ~default:false ["disabled"] widget.config in
+  let disabled = Config.find_bool_or ~default:false widget.config ["disabled"] in
   if disabled then
     let () = Logs.debug @@ fun m -> m "Widget \"%s\" is disabled in the configuration" name in false
   else
   let options = Config.get_path_options widget.config in
-  let profile = Config.find_string_opt ["profile"] widget.config in
+  let profile = OH.find_string_opt widget.config ["profile"] in
   if not (Utils.profile_matches profile build_profiles) then
     let () = Logs.debug @@ fun m -> m "Widget \"%s\" is not enabled in the current build profile" name in false
   else begin

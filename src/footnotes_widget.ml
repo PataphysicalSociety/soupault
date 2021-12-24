@@ -1,5 +1,7 @@
 (* Footnotes *)
 
+module OH = Otoml.Helpers
+
 let (let*) = Stdlib.Result.bind
 
 (** Makes a unique id for a footnote element--
@@ -107,15 +109,15 @@ let footnotes _ config soup =
     ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class";
      "back_links"; "back_link_id_append"; "link_id_prepend"; "action"] in
   let () = Config.check_options valid_options config "widget \"footnotes\"" in
-  let* selector = Config.find_string_result "Missing required option \"selector\"" ["selector"] config in
-  let action = Config.find_string_or ~default:"append_child" ["action"] config in
-  let note_selector = Config.find_strings_or ~default:[".footnote"] ["footnote_selector"] config in
-  let* ref_tmpl = Config.find_string_or ~default:"<sup></sup>" ["ref_template"] config |> Html_utils.check_template "*" in
-  let* note_tmpl = Config.find_string_or ~default:"<p></p>" ["footnote_template"] config |> Html_utils.check_template "*" in
-  let fn_link_class = Config.find_string_opt ["footnote_link_class"] config in
-  let back_links = Config.find_bool_or ~default:true ["back_links"] config in
-  let back_link_append = Config.find_string_or ~default:"-ref" ["back_link_id_append"] config in
-  let link_prepend = Config.find_string_or ~default:"" ["link_id_prepend"] config in
+  let* selector = Config.find_string_result config ["selector"] in
+  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let note_selector = Config.find_strings_or ~default:[".footnote"] config ["footnote_selector"] in
+  let* ref_tmpl = Config.find_string_or ~default:"<sup></sup>" config ["ref_template"] |> Html_utils.check_template "*" in
+  let* note_tmpl = Config.find_string_or ~default:"<p></p>" config ["footnote_template"] |> Html_utils.check_template "*" in
+  let fn_link_class = OH.find_string_opt config ["footnote_link_class"] in
+  let back_links = Config.find_bool_or ~default:true config ["back_links"] in
+  let back_link_append = Config.find_string_or ~default:"-ref" config ["back_link_id_append"] in
+  let link_prepend = Config.find_string_or ~default:"" config ["link_id_prepend"] in
   let container = Soup.select_one selector soup in
   match container with
   | None ->

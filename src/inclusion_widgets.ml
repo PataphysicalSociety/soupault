@@ -15,9 +15,9 @@ let insert_html _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"insert_html\"" in
   let selector = get_selectors config in
-  let action = Config.find_string_or ~default:"append_child" ["action"] config in
-  let html_body_context = Config.find_bool_or ~default:true ["html_context_body"] config in
-  let parse_content = Config.find_bool_or ~default:true ["parse"] config in
+  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
+  let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -27,7 +27,7 @@ let insert_html _ config soup =
       | None ->
         let () = no_container_action selector in Ok ()
       | Some container ->
-        let* html_str = Config.find_string_result "Missing required option \"html\"" ["html"] config in
+        let* html_str = Config.find_string_result config ["html"] in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context html_str in
         Ok (Html_utils.insert_element action container content)
     end
@@ -38,9 +38,9 @@ let include_file _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"include\"" in
   let selector = get_selectors config in
-  let action = Config.find_string_or ~default:"append_child" ["action"] config in
-  let html_body_context = Config.find_bool_or ~default:true ["html_context_body"] config in
-  let parse_content = Config.find_bool_or ~default:true ["parse"] config in
+  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
+  let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -50,7 +50,7 @@ let include_file _ config soup =
       | None ->
         let () = no_container_action selector in Ok ()
       | Some container ->
-        let* file = Config.find_string_result "Missing required option \"file\"" ["file"] config in
+        let* file = Config.find_string_result config ["file"] in
         let* content = Utils.get_file_content file in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
         Ok (Html_utils.insert_element action container content)
@@ -70,9 +70,9 @@ let include_program_output env config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"exec\"" in
   let selector = get_selectors config in
-  let action = Config.find_string_or ~default:"append_child" ["action"] config in
-  let html_body_context = Config.find_bool_or ~default:true ["html_context_body"] config in
-  let parse_content = Config.find_bool_or ~default:true ["parse"] config in
+  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
+  let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
@@ -83,7 +83,7 @@ let include_program_output env config soup =
         let () = no_container_action selector in Ok ()
       | Some container ->
         let env_array = make_program_env env in
-        let* cmd = Config.find_string_result "Missing required option \"command\"" ["command"] config in
+        let* cmd = Config.find_string_result config ["command"] in
         let* content = Process_utils.get_program_output ~env:env_array ~debug:env.settings.debug cmd in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
         Ok (Html_utils.insert_element action container content)
@@ -117,13 +117,11 @@ let preprocess_element env config soup =
   (* Retrieve configuration options *)
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"preprocess_element\"" in
-  let action = Config.find_string_or ~default:"replace_content" ["action"] config in
-  let parse = Config.find_bool_or ~default:true ["parse"] config in
-  let html_body_context = Config.find_bool_or ~default:true ["html_context_body"] config in
-  let* selectors =
-    Config.find_strings_opt ["selector"] config |> Option.to_result ~none:"Missing required option \"selector\""
-  in
-  let* command = Config.find_string_result "Missing required option \"command\"" ["command"] config in
+  let action = Config.find_string_or ~default:"replace_content" config ["action"] in
+  let parse = Config.find_bool_or ~default:true config ["parse"]  in
+  let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
+  let* selectors = Config.find_strings_result config ["selector"] in
+  let* command = Config.find_string_result config ["command"] in
   let nodes = Html_utils.select_all selectors soup in
   try
     Ok (List.iter (run_command command action parse html_body_context) nodes)
