@@ -2,7 +2,7 @@
  (name soupault)
  (public_name soupault)
  ; Uncomment for a static build, note that it requires a +musl+static+flambda compiler variant to work
-; (flags (-ccopt -static))
+ ;(flags (-ccopt -static))
  (libraries
    lambdasoup
    otoml
@@ -18,6 +18,6 @@
    yaml
    jingoo
    base64
-   text
+   camomile
    tsort
    lua-ml))
