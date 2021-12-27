@@ -233,7 +233,7 @@ let _get_index_views index_table =
       try
         let v = get_view k views in
         get_views ks views (v :: acc)
-      with Config_error e | Type_error e ->
+      with Config_error e | Key_error e | Type_error e ->
         Printf.ksprintf config_error "Misconfigured index view \"%s\": %s" k e
     end
   in
