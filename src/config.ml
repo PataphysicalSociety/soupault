@@ -138,6 +138,8 @@ let _get_preprocessors config =
 
 let get_index_queries index_table =
   let get_query k it =
+    let () = Otoml.Printer.to_channel stdout it in
+    let () = print_endline k in
     let selectors = find_strings_or ~default:[] it [k; "selector"] in
     let default_value = OH.find_string_opt it [k; "default"] in
     let extract_attribute = OH.find_string_opt it [k; "extract_attribute"] in

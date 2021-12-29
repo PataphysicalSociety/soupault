@@ -318,7 +318,7 @@ let process_page page_file nav_path index widgets config settings =
     if (not settings.index) || (page_name <> settings.index_page) ||
        settings.index_only  || (index = [])
     then Ok ()
-    else let () = Logs.info @@ fun m -> m "Inserting section index" in
+    else let () = Logs.info @@ fun m -> m "Inserting section index into page %s" page_file in
     Autoindex.insert_indices settings page_file html index
   in
   let before_index, after_index, widget_hash = widgets in
@@ -460,7 +460,7 @@ let initialize () =
   let () =
     begin
       if not settings.generator_mode then
-        Logs.info @@ fun m -> m "Running in HTML processor mode, not using the page template";
+        Logs.info @@ fun m -> m "Running in HTML processor mode, not using page templates";
       if settings.index_only && not (settings.index && (settings.dump_json <> None)) then
         Logs.warn @@ fun m -> m "--index-only is useless without index=true and dump_json options in the config!";
       if settings.build_dir = "" then
@@ -488,14 +488,14 @@ let check_version settings =
       let res = Utils.require_version v in
       if res then () else begin
         Printf.printf "According to settings.soupault_version, this configuration file is for soupault %s\n" v;
-        Printf.printf "Running soupault version is %s, older than required\n" Defaults.version_string;
+        Printf.printf "You are running soupault version %s, older than required\n" Defaults.version_string;
         Printf.printf "To proceed, upgrade soupault to at least %s, or (at your own risk) \
           remove the soupault_version option from your configuration\n" v;
         exit 1
       end
     with Failure msg -> begin
-      Printf.printf "Could not configuration compatibility with running soupault version: %s\n" msg;
-      print_endline "Check your settings.soupault_version option\n";
+      Printf.printf "Could not check configuration compatibility with running soupault version: %s\n" msg;
+      print_endline "Maybe your settings.soupault_version option is malformed?\n";
       exit 1
     end
   

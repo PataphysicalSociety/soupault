@@ -92,7 +92,7 @@ let compare_entries settings l r =
     | Some _ -> v
     | None ->
       if settings.index_sort_strict then Printf.ksprintf soupault_error
-        "Cannot sort entries using sort_by=\"%s\", the following entry is missing that field:\n%s"
+        "Cannot sort entries using sort_by=\"%s\", the following entry does not have that field:\n%s"
         (Option.get settings.index_sort_by)
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
@@ -200,8 +200,8 @@ let insert_index settings page_file soup index view =
   let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
-    let () = Logs.debug @@ fun m -> m "Page doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
-      view.index_selector view.index_view_name
+    let () = Logs.debug @@ fun m -> m "Page \"%s\" doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
+      page_file view.index_selector view.index_view_name
     in Ok ()
   | Some ic ->
     begin
