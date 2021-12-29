@@ -337,8 +337,11 @@ let process_page page_file nav_path index widgets config settings =
   Ok index_entry
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
-let _process_page index widgets config settings (page_file, nav_path) =
-    let res = process_page page_file nav_path index widgets config settings in
+let process_page index widgets config settings (page_file, nav_path) =
+    let res =
+      try process_page page_file nav_path index widgets config settings
+      with Soupault_error msg -> Error msg
+    in
     match res with
       Ok _ as res -> res
     | Error msg ->
@@ -537,7 +540,7 @@ let main () =
     (* Process normal pages and collect index data from them *)
     let* index = Utils.fold_left
       (fun acc p ->
-         let ie = _process_page [] widgets config settings p in
+         let ie = process_page [] widgets config settings p in
          match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
       []
       page_files
@@ -545,7 +548,7 @@ let main () =
     (* Now process the index pages, using previously collected index data.
        This will produce no new index data so we ignore the non-error results. *)
     let* index = Autoindex.sort_entries settings index in
-    let* () = Utils.iter (_process_page index widgets config settings) index_files in
+    let* () = Utils.iter (process_page index widgets config settings) index_files in
     let* () = dump_index_json settings index in
     Ok ()
 
