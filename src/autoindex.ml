@@ -16,7 +16,7 @@ let json_of_string_opt s =
   | None -> `Null
   | Some s -> `String s
 
-let rec get_custom_fields strip_tags fields soup =
+let rec get_fields strip_tags fields soup =
   let get_content f elem =
     match f.extract_attribute with
     | None -> string_of_elem strip_tags elem
@@ -43,14 +43,14 @@ let rec get_custom_fields strip_tags fields soup =
   | [] -> []
   | f :: fs ->
     let field = (f.field_name, get_field f soup) in
-    field :: (get_custom_fields strip_tags fs soup)
+    field :: (get_fields strip_tags fs soup)
 
 let get_entry settings env soup =
   {
     index_entry_url = env.page_url;
     index_entry_page_file = env.page_file;
     index_entry_nav_path = env.nav_path;
-    fields = get_custom_fields settings.index_strip_tags settings.index_fields soup
+    fields = get_fields settings.index_strip_tags settings.index_fields soup
   }
 
 let json_of_entry e =
