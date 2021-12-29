@@ -9,6 +9,7 @@ type index_field = {
   default_field_value : string option;
   extract_attribute : string option;
   fallback_to_content : bool; (* If extract_attribute cannot find the attribute *)
+  required_field : bool;
 }
 
 type index_processor =

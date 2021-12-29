@@ -35,7 +35,10 @@ let rec get_fields strip_tags fields soup =
       let (>>=) = Option.bind in
       let e = Html_utils.select_any_of f.field_selectors soup >>= get_content f in
       match e, f.default_field_value with
-      | None, None -> `Null
+      | None, None ->
+        if f.required_field then soupault_error @@
+          Printf.sprintf "required index field \"%s\" is missing" f.field_name
+        else `Null
       | None, Some v -> `String v
       | Some e, _ -> `String e
   in

@@ -145,6 +145,7 @@ let get_index_queries index_table =
     let extract_attribute = OH.find_string_opt it [k; "extract_attribute"] in
     let content_fallback = find_bool_or ~default:false it [k; "fallback_to_content"] in
     let select_all = find_bool_or ~default:false it [k; "select_all"] in
+    let required = find_bool_or ~default:false it [k; "required"] in
     let () =
       if (Option.is_some default_value) && select_all then
       Logs.warn @@ fun m -> m "default is ignored when select_all is true"
@@ -153,9 +154,13 @@ let get_index_queries index_table =
     | [] -> config_error "selector option is required and must be a string or a list of strings"
     | _ ->
       {
-        field_name = k; field_selectors = selectors;
-        select_all = select_all; default_field_value = default_value;
-        extract_attribute = extract_attribute; fallback_to_content = content_fallback;
+        field_name = k;
+        field_selectors = selectors;
+        select_all = select_all;
+        default_field_value = default_value;
+        extract_attribute = extract_attribute;
+        fallback_to_content = content_fallback;
+        required_field = required;
       })
   in
   let rec get_queries qt ks acc =
