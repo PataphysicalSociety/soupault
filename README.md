@@ -84,5 +84,3 @@ opam pin add git+https://github.com/dmbaturin/soupault
 
 Bug reports and patches are always welcome. Feature requests and new features are also welcome,
 but please consider discussing them with the maintainer first.
-
-You can submit patches either as Github pull requests or send them to the Sourcehut mailing list.
