@@ -27,13 +27,20 @@ let rec _load_plugins settings ps config hash =
   | [] -> Ok ()
   | p :: ps' ->
     let plugin_cfg = get_plugin_config config p in
-    let () = Config.check_options ["file"] plugin_cfg "a plugin config" in
+    let () = Config.check_options ["file"; "source"] plugin_cfg "a plugin config" in
     let file = OH.find_string_opt plugin_cfg ["file"] in
+    let source = OH.find_string_opt plugin_cfg ["source"] in
     begin
-      match file with
-      | None ->
-        Error (Printf.sprintf "In plugin %s: missing required option \"file\"" p)
-      | Some file ->
+      match file, source with
+      | None, None ->
+        Error (Printf.sprintf "In plugin %s: either \"file\" or \"source\" option is required" p)
+      | Some _, Some _ ->
+        Error (Printf.sprintf "In plugin %s: \"file\" and \"source\" options are mutually exclusive" p)
+      | None, Some source ->
+        let file = Printf.sprintf "inline Lua plugin source %s" p in
+        Hashtbl.add hash p (make_plugin_function source settings config file);
+        _load_plugins settings ps' config hash
+      | Some file, None ->
         try
           let lua_source = Soup.read_file file in
           Hashtbl.add hash p (make_plugin_function lua_source settings config file);
