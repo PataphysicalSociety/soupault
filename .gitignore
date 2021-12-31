@@ -8,16 +8,8 @@
 *.cmxs
 *.cmxa
 
-# ocamlbuild working directory
+# dune workspace directory
 _build/
-
-# ocamlbuild targets
-*.byte
-*.native
-
-# oasis generated files
-setup.data
-setup.log
 
 # Merlin configuring file for Vim and Emacs
 .merlin
