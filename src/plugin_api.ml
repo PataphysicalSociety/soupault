@@ -768,6 +768,7 @@ let run_plugin settings soupault_config filename lua_code plugin_env_ref env wid
       I.register_globals ["page_file", lua_str.embed env.page_file] state;
       I.register_globals ["page_url", lua_str.embed env.page_url] state;
       I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
+      I.register_globals ["target_file", lua_str.embed env.target_file] state;
       I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
       I.register_globals ["config", lua_of_toml widget_config] state;
       I.register_globals ["widget_config", lua_of_toml widget_config] state;

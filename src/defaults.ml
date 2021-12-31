@@ -187,6 +187,7 @@ type env = {
   page_file : string;
   page_url : string;
   target_dir : string;
+  target_file : string;
   site_index : index_entry list;
   settings : settings;
 }

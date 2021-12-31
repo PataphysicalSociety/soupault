@@ -305,6 +305,7 @@ let process_page page_file nav_path index widgets config settings =
     page_url = page_url;
     page_file = page_file;
     target_dir = target_dir;
+    target_file = target_file;
     site_index = index;
     settings = settings;
   }
