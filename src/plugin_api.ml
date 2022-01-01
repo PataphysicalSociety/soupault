@@ -754,31 +754,8 @@ let rec lua_of_toml v =
 
 let make_plugin_env () = ref (I.Value.Table.of_list [] |> I.Value.table.embed)
 
-let run_plugin settings soupault_config filename lua_code plugin_env_ref env widget_config soup =
-  let open Defaults in
-  let lua_str_list = I.Value.list I.Value.string in
-  let lua_str = I.Value.string in
-  let plugin_env = !plugin_env_ref in
+let run_lua filename state lua_code =
   try
-    let state = I.mk () in
-    let () =
-      (* Set up the built-in plugin environment *)
-      I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state;
-      I.register_globals ["nav_path", lua_str_list.embed env.nav_path] state;
-      I.register_globals ["page_file", lua_str.embed env.page_file] state;
-      I.register_globals ["page_url", lua_str.embed env.page_url] state;
-      I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
-      I.register_globals ["target_file", lua_str.embed env.target_file] state;
-      I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
-      I.register_globals ["config", lua_of_toml widget_config] state;
-      I.register_globals ["widget_config", lua_of_toml widget_config] state;
-      I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
-      I.register_globals ["force", I.Value.bool.embed settings.force] state;
-      I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
-      I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
-      (* Restore the persistent data from previous plugin runs *)
-      I.register_globals ["persistent_data", plugin_env] state
-    in
     let _ = I.dostring ~file:filename state lua_code in
     Ok ()
   with
@@ -791,3 +768,29 @@ let run_plugin settings soupault_config filename lua_code plugin_env_ref env wid
       | Some msg -> let () = Logs.info @@ fun m -> m "Plugin exited with message: %s" msg in Ok ()
       | None -> Ok ()
     end
+
+let run_plugin settings soupault_config filename lua_code plugin_env_ref env widget_config soup =
+  let open Defaults in
+  let lua_str_list = I.Value.list I.Value.string in
+  let lua_str = I.Value.string in
+  let plugin_env = !plugin_env_ref in
+  let state = I.mk () in
+  let () =
+    (* Set up the built-in plugin environment *)
+    I.register_globals ["page", lua_of_soup (Html.SoupNode soup)] state;
+    I.register_globals ["nav_path", lua_str_list.embed env.nav_path] state;
+    I.register_globals ["page_file", lua_str.embed env.page_file] state;
+    I.register_globals ["page_url", lua_str.embed env.page_url] state;
+    I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
+    I.register_globals ["target_file", lua_str.embed env.target_file] state;
+    I.register_globals ["site_index", lua_of_json (Autoindex.json_of_entries env.site_index)] state;
+    I.register_globals ["config", lua_of_toml widget_config] state;
+    I.register_globals ["widget_config", lua_of_toml widget_config] state;
+    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
+    I.register_globals ["force", I.Value.bool.embed settings.force] state;
+    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
+    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+    (* Restore the persistent data from previous plugin runs *)
+    I.register_globals ["persistent_data", plugin_env] state
+  in
+  run_lua filename state lua_code
