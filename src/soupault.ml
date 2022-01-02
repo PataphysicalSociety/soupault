@@ -115,53 +115,56 @@ let load_html settings file =
       (Process_utils.get_program_output prep_cmd) >>= (fun h -> Ok (Soup.parse h))
   with Sys_error e -> Error e
 
-let save_html settings soup file =
+let render_html settings soup =
   let print_html = if settings.pretty_print_html then Soup.pretty_print else Soup.to_string in
+  if settings.keep_doctype then
+    begin
+      let html_str = print_html soup in
+      (* If we are given an empty page, then adding doctype makes no sense, we just return an empty string. *)
+      if String.length html_str = 0 then "" else
+      let has_doctype =
+        (<>) 0 (Re.matches (Re.Perl.compile_pat ~opts:[`Caseless] "^(<!DOCTYPE[^>]*>)") html_str |> List.length)
+      in
+      (* Can the page be an invalid, incomplete HTML? Of course it can,
+         but if the user chose to force a doctype, it's their responsibilty.
+       *)
+      if not has_doctype then
+        let doctype = settings.doctype |> String.trim in
+        doctype ^ html_str
+      else html_str
+    end
+  else
+    begin
+      (* If we are to discard the original doctype and completely replace it,
+         we need to remove the original one.
+
+         XXX: As of lambdasoup 0.7.2, there's no way to delete the doctype "element"
+         (which isn't actually an element anyway),
+         so we extract the <html> from the document tree,
+         and prepend a doctype to it.
+         That is, if the document even has <html> to begin with--see below. *)
+      let doctype = settings.doctype |> String.trim in
+      let html = Soup.select_one "html" soup in
+      match html with
+      | Some html ->
+        let html_str = print_html html in
+        doctype ^ html_str
+      | None ->
+        (* This may happen if a page (in postprocessor mode)
+           or a page template (in generator mode)
+           is incomplete.
+           At the moment soupault doesn't prohibit invalid HTML,
+           so we need to handle this case.
+         *)
+        let () = Logs.warn @@ fun m -> m "Page has no <HTML> element, not setting doctype" in
+        print_html soup
+    end
+
+let save_html page_source file =
   try
     let chan = open_out file in
-    if settings.keep_doctype then
-      begin
-        let html_str = print_html soup in
-        if String.length html_str = 0 then () else
-        let has_doctype =
-          (<>) 0 (Re.matches (Re.Perl.compile_pat ~opts:[`Caseless] "^(<!DOCTYPE[^>]*>)") html_str |> List.length)
-        in
-        let () =
-          (* Can the page be an invalid, incomplete HTML? Of course it can,
-             but if the user chose to force a doctype, it's their responsibilty.
-           *)
-          if not has_doctype then settings.doctype |> String.trim |> Printf.fprintf chan "%s\n"
-        in
-        Soup.write_channel chan html_str
-      end
-    else
-      begin
-        (* If we are to discard the original doctype and completely replace it,
-           we need to remove the original one.
-
-           As of lambdasoup 0.7.2, there's no way to delete the doctype "element"
-           (which isn't actually an element anyway),
-           so we extract the <html> from the document tree,
-           and prepend a doctype to it.
-           That is, if the document even has <html> to begin with--see below. *)
-        let doctype = settings.doctype |> String.trim in
-        let html = Soup.select_one "html" soup in
-        match html with
-        | Some html ->
-          Printf.fprintf chan "%s\n" doctype;
-          print_html html |> Soup.write_channel chan
-        | None ->
-          (* This may happen if a page (in postprocessor mode)
-             or a page template (in generator mode)
-             is incomplete.
-             At the moment soupault doesn't prohibit invalid HTML,
-             so we need to handle this case.
-           *)
-          Logs.warn @@ fun m -> m "Page has no <HTML> element, not setting doctype";
-          print_html soup |> Soup.write_channel chan
-      end;
-   close_out chan;
-   Ok ()
+    let () = Soup.write_channel chan page_source in
+    Ok ()
   with Sys_error e -> Error e
 
 let include_content action selector html content =
@@ -334,7 +337,8 @@ let process_page page_file nav_path index widgets config settings =
   if settings.index_only then Ok index_entry else
   let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in
-  let* () = save_html settings html target_file in
+  let html_str = render_html settings html in
+  let* () = save_html html_str target_file in
   Ok index_entry
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
