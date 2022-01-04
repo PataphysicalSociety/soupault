@@ -23,31 +23,17 @@ let make_plugin_function lua_source settings config name =
   Plugin_api.run_plugin settings config name lua_source plugin_env_ref
 
 let rec _load_plugins settings ps config hash =
+  let (let*) = Stdlib.Result.bind in
   match ps with
   | [] -> Ok ()
   | p :: ps' ->
     let plugin_cfg = get_plugin_config config p in
     let () = Config.check_options ["file"; "source"] plugin_cfg "a plugin config" in
-    let file = OH.find_string_opt plugin_cfg ["file"] in
-    let source = OH.find_string_opt plugin_cfg ["source"] in
-    begin
-      match file, source with
-      | None, None ->
-        Error (Printf.sprintf "In plugin %s: either \"file\" or \"source\" option is required" p)
-      | Some _, Some _ ->
-        Error (Printf.sprintf "In plugin %s: \"file\" and \"source\" options are mutually exclusive" p)
-      | None, Some source ->
-        let file = Printf.sprintf "inline Lua plugin source %s" p in
-        Hashtbl.add hash p (make_plugin_function source settings config file);
-        _load_plugins settings ps' config hash
-      | Some file, None ->
-        try
-          let lua_source = Soup.read_file file in
-          Hashtbl.add hash p (make_plugin_function lua_source settings config file);
-          _load_plugins settings ps' config hash
-        with Sys_error msg ->
-          Error (Printf.sprintf "Could not read plugin file %s: %s" file msg)
-    end
+    let default_filename = Printf.sprintf "<inline Lua source for plugin %s>" p in
+    let ident = Printf.sprintf "plugin %s" p in
+    let* (file_name, source) = Utils.load_plugin_code plugin_cfg default_filename ident in
+    let () =  Hashtbl.add hash p (make_plugin_function source settings config file_name) in
+    _load_plugins settings ps' config hash
 
 let get_plugins settings config =
   let (let*) = Stdlib.Result.bind in

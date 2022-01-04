@@ -249,3 +249,21 @@ let require_version vstr =
     (compare_versions current_version required_version) >= 0
   | Error msg -> failwith msg
 
+(* Plugin/hook code loading *)
+let load_plugin_code plugin_config default_filename ident =
+  let file = Otoml.Helpers.find_string_opt plugin_config ["file"] in
+  let source = Otoml.Helpers.find_string_opt plugin_config ["source"] in
+  match file, source with
+  | None, None ->
+    Error (Printf.sprintf "In %s: either \"file\" or \"source\" option is required" ident)
+  | Some _, Some _ ->
+    Error (Printf.sprintf "In %s: \"file\" and \"source\" options are mutually exclusive" ident)
+  | None, Some source ->
+    Ok (default_filename, source)
+  | Some file, None ->
+    try
+      let source = Soup.read_file file in
+      Ok (file, source)
+     with Sys_error msg ->
+       Error (Printf.sprintf "Could not read file %s: %s" file msg)
+
