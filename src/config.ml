@@ -368,21 +368,23 @@ let _update_settings settings config =
        preprocessors = _get_preprocessors config
      }
 
-let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"; "custom_options"]
+let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"; "hooks"; "custom_options"]
 
-let update_settings_unsafe settings config =
+let check_subsections config valid_tables table_name =
   let bad_section_msg tbl _ suggestion =
-    (* Yay, duplicate code! *)
     let suggestion_msg =
       (match suggestion with
       | None -> ""
       | Some s -> Printf.sprintf "Did you mean [%s]?" s)
     in Printf.sprintf "[%s] is not a valid config section. %s" tbl suggestion_msg
   in
-  match config with
+  check_options ~fmt:bad_section_msg valid_tables config (Printf.sprintf "table \"%s\"" table_name)
+
+let update_settings_unsafe settings config =
+ match config with
   | None -> settings
   | Some config ->
-    let () = check_options ~fmt:bad_section_msg valid_tables config "table \"settings\"" in
+    let () = check_subsections config valid_tables "settings" in
     let settings = _update_settings settings config in
     _get_index_settings settings config
 

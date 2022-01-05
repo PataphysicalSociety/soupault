@@ -278,6 +278,16 @@ let make_page_file_name settings page_file target_dir =
     else FP.add_extension (FP.chop_extension page_file) settings.default_extension
   in target_dir +/ page_file
 
+let save_html settings soupault_config hooks env page_source =
+  let save_hook = Hashtbl.find_opt hooks "save" in
+  match save_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if Hooks.hook_should_run settings hook_config "save" env.target_file then
+      Hooks.run_save_hook settings soupault_config hook_config file_name source_code env page_source
+    else Utils.write_file env.target_file page_source
+  | None ->
+    Utils.write_file env.target_file page_source
+
 (** Processes a page:
 
     1. Adjusts the path to account for index vs non-index page difference
@@ -289,7 +299,7 @@ let make_page_file_name settings page_file target_dir =
     5. Inserts the index section into the page if it's an index page
     6. Saves the processed page to file
   *)
-let process_page page_file nav_path index widgets config settings =
+let process_page page_file nav_path index widgets hooks config settings =
   let page_name = FP.basename page_file |> FP.chop_extension in
   let target_dir = make_page_dir_name settings (Utils.concat_path nav_path) page_name |> FP.concat settings.build_dir in
   let target_file = make_page_file_name settings page_file target_dir in
@@ -331,13 +341,13 @@ let process_page page_file nav_path index widgets config settings =
   let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in
   let html_str = render_html settings html in
-  let* () = Utils.write_file target_file html_str in
+  let* () = save_html settings config hooks env html_str in
   Ok index_entry
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
-let process_page index widgets config settings (page_file, nav_path) =
+let process_page index widgets hooks config settings (page_file, nav_path) =
     let res =
-      try process_page page_file nav_path index widgets config settings
+      try process_page page_file nav_path index widgets hooks config settings
       with Soupault_error msg -> Error msg
     in
     match res with
@@ -453,6 +463,7 @@ let initialize () =
   let config = Config.inject_defaults settings config in
   let* plugins = Plugins.get_plugins settings (Some config) in
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
+  let hooks = Hooks.load_hooks config in
   let* default_template_str =
     if settings.generator_mode then Utils.get_file_content settings.default_template
     else Ok ""
@@ -472,7 +483,7 @@ let initialize () =
     end
   in
   if settings.site_dir = "" then (Error "site_dir must be a directory path, not an empty string")
-  else (Ok (config, widgets, settings))
+  else (Ok (config, widgets, hooks, settings))
 
 let dump_index_json settings index =
   match settings.dump_json with
@@ -524,7 +535,7 @@ let main () =
     let () = Project_init.init Defaults.default_settings in
     exit 0
   | DoActualWork | ShowEffectiveConfig ->
-    let* config, widgets, settings = initialize () in
+    let* config, widgets, hooks, settings = initialize () in
     let () = check_version settings in
     if action = ShowEffectiveConfig then (Otoml.Printer.to_channel stdout config; exit 0) else
     let () = setup_logging settings.verbose settings.debug in
@@ -538,7 +549,7 @@ let main () =
     (* Process normal pages and collect index data from them *)
     let* index = Utils.fold_left
       (fun acc p ->
-         let ie = process_page [] widgets config settings p in
+         let ie = process_page [] widgets hooks config settings p in
          match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
       []
       page_files
@@ -546,7 +557,7 @@ let main () =
     (* Now process the index pages, using previously collected index data.
        This will produce no new index data so we ignore the non-error results. *)
     let* index = Autoindex.sort_entries settings index in
-    let* () = Utils.iter (process_page index widgets config settings) index_files in
+    let* () = Utils.iter (process_page index widgets hooks config settings) index_files in
     let* () = dump_index_json settings index in
     Ok ()
 
