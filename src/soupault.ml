@@ -160,13 +160,6 @@ let render_html settings soup =
         print_html soup
     end
 
-let save_html page_source file =
-  try
-    let chan = open_out file in
-    let () = Soup.write_channel chan page_source in
-    Ok ()
-  with Sys_error e -> Error e
-
 let include_content action selector html content =
   let element = Soup.select_one selector html in
   match element with
@@ -338,7 +331,7 @@ let process_page page_file nav_path index widgets config settings =
   let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in
   let html_str = render_html settings html in
-  let* () = save_html html_str target_file in
+  let* () = Utils.write_file target_file html_str in
   Ok index_entry
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)

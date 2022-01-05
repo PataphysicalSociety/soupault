@@ -1,8 +1,17 @@
 include Soupault_common
 
+(* IO helpers *)
+
 (** Reads a file and return its content *)
 let get_file_content file =
   try Ok (Soup.read_file file)
+  with Sys_error msg -> Error msg
+
+let write_file file content =
+  try
+    let chan = open_out file in
+    let () = Soup.write_channel chan content in
+    Ok ()
   with Sys_error msg -> Error msg
 
 (* Result wrapper for FileUtil.cp *)
