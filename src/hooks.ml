@@ -39,7 +39,7 @@ let check_hook_tables config =
   let hooks_table = Config.find_table_opt ["hooks"] config in
   match hooks_table with
   | None -> ()
-  | Some tbl -> Config.check_subsections tbl hook_types "hooks"
+  | Some tbl -> Config.check_subsections ~parent_path:["hooks"] tbl hook_types "hooks"
 
 let load_hook hook_config ident =
   let default_filename = Printf.sprintf "<inline Lua source for hook \"%s\">" ident in
@@ -49,7 +49,7 @@ let load_hook hook_config ident =
   | Ok (file_name, source_code) -> (file_name, source_code)
   | Error msg -> Config.config_error msg
 
-let load_hooks config =
+let _load_hooks config =
   let () = check_hook_tables config in
   let hooks_hash = Hashtbl.create 1024 in
   (* Load the save hook *)
@@ -61,3 +61,7 @@ let load_hooks config =
       let (file_name, source) = load_hook shc "save" in
       Hashtbl.add hooks_hash "save" (file_name, source, shc)
   in hooks_hash
+
+let get_hooks config =
+  try Ok (_load_hooks config)
+  with Config.Config_error msg -> Error msg

@@ -463,7 +463,7 @@ let initialize () =
   let config = Config.inject_defaults settings config in
   let* plugins = Plugins.get_plugins settings (Some config) in
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
-  let hooks = Hooks.load_hooks config in
+  let* hooks = Hooks.get_hooks config in
   let* default_template_str =
     if settings.generator_mode then Utils.get_file_content settings.default_template
     else Ok ""

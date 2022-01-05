@@ -370,13 +370,15 @@ let _update_settings settings config =
 
 let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"; "hooks"; "custom_options"]
 
-let check_subsections config valid_tables table_name =
+let check_subsections ?(parent_path=[]) config valid_tables table_name =
   let bad_section_msg tbl _ suggestion =
     let suggestion_msg =
       (match suggestion with
       | None -> ""
-      | Some s -> Printf.sprintf "Did you mean [%s]?" s)
-    in Printf.sprintf "[%s] is not a valid config section. %s" tbl suggestion_msg
+      | Some s -> Printf.sprintf "Did you mean \"%s\"?" s)
+    in
+    let path = List.append parent_path [tbl] |> Otoml.string_of_path in
+    Printf.sprintf "[%s] is not a valid config section. %s" path suggestion_msg
   in
   check_options ~fmt:bad_section_msg valid_tables config (Printf.sprintf "table \"%s\"" table_name)
 
