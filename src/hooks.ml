@@ -49,18 +49,19 @@ let load_hook hook_config ident =
   | Ok (file_name, source_code) -> (file_name, source_code)
   | Error msg -> Config.config_error msg
 
+let get_hook config hooks_hash ident =
+  let save_hook_config = Config.find_table_opt ["hooks"; ident] config in
+  match save_hook_config with
+  | None -> ()
+  | Some shc ->
+    let (file_name, source) = load_hook shc ident in
+    Hashtbl.add hooks_hash ident (file_name, source, shc)
+
 let _load_hooks config =
   let () = check_hook_tables config in
   let hooks_hash = Hashtbl.create 1024 in
-  (* Load the save hook *)
-  let () =
-    let save_hook_config = Config.find_table_opt ["hooks"; "save"] config in
-    match save_hook_config with
-    | None -> ()
-    | Some shc ->
-      let (file_name, source) = load_hook shc "save" in
-      Hashtbl.add hooks_hash "save" (file_name, source, shc)
-  in hooks_hash
+  let () = List.iter (get_hook config hooks_hash) hook_types in
+  hooks_hash
 
 let get_hooks config =
   try Ok (_load_hooks config)
