@@ -103,17 +103,31 @@ let make_page_dir_name settings target_dir page_name =
   if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
   else target_dir +/ page_name
 
-let load_html settings file =
-  let ext = Utils.get_extension file in
-  let preprocessor = List.assoc_opt ext settings.preprocessors in
-  try
+let load_html settings soupault_config hooks page_file =
+  let load_file preprocessor page_file =
+    try
     match preprocessor with
-    | None -> Ok (Soup.read_file file |> Soup.parse)
+    | None -> Ok (Soup.read_file page_file)
     | Some prep ->
-      let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote file) in
-      let () = Logs.info @@ fun m -> m "Calling preprocessor \"%s\" on page %s" (String.escaped prep) file in
-      (Process_utils.get_program_output prep_cmd) >>= (fun h -> Ok (Soup.parse h))
-  with Sys_error e -> Error e
+      let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote page_file) in
+      let () = Logs.info @@ fun m -> m "Calling preprocessor \"%s\" on page %s" (String.escaped prep) page_file in
+      Process_utils.get_program_output prep_cmd
+    with Sys_error e -> Error e
+  in
+  let ext = Utils.get_extension page_file in
+  let preprocessor = List.assoc_opt ext settings.preprocessors in
+  let* page_source = load_file preprocessor page_file in
+  let pre_parse_hook = Hashtbl.find_opt hooks "pre-parse" in
+  let* page_source =
+    match pre_parse_hook with
+    | Some (file_name, source_code, hook_config) ->
+      if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
+        Hooks.run_pre_parse_hook settings soupault_config hook_config file_name source_code page_source
+      else Ok page_source
+    | None -> Ok page_source
+  in
+  (* As of lambdasoup 0.7.2, Soup.parse never fails, only returns empty element trees. *)
+  Ok (Soup.parse page_source)
 
 let render_html settings soup =
   let print_html = if settings.pretty_print_html then Soup.pretty_print else Soup.to_string in
@@ -317,7 +331,7 @@ let process_page page_file nav_path index widgets hooks config settings =
   }
   in
   let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
-  let* content = load_html settings page_file in
+  let* content = load_html settings config hooks page_file in
   let* html = make_page settings page_file content in
   (* Section index injection always happens before any widgets have run *)
   let* () =
