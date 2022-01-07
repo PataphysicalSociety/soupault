@@ -296,7 +296,7 @@ let save_html settings soupault_config hooks env page_source =
   let save_hook = Hashtbl.find_opt hooks "save" in
   match save_hook with
   | Some (file_name, source_code, hook_config) ->
-    if Hooks.hook_should_run settings hook_config "save" env.target_file then
+    if Hooks.hook_should_run settings hook_config "save" env.page_file then
       Hooks.run_save_hook settings soupault_config hook_config file_name source_code env page_source
     else Utils.write_file env.target_file page_source
   | None ->
@@ -309,7 +309,7 @@ let extract_metadata settings soupault_config hooks env html =
   let post_index_hook = Hashtbl.find_opt hooks "post-index" in
   match post_index_hook with
   | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "post-index" env.target_file) then (Ok (Some entry)) else
+    if not (Hooks.hook_should_run settings hook_config "post-index" env.page_file) then (Ok (Some entry)) else
     (* Let the post-index hook update the fields *)
     let* index_fields =
       Hooks.run_post_index_hook settings soupault_config hook_config file_name source_code env html entry.fields
