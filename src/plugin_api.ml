@@ -752,6 +752,59 @@ let rec lua_of_toml v =
   | TomlLocalDateTime s -> I.Value.string.embed s
   | TomlOffsetDateTime s -> I.Value.string.embed s
 
+(* If you are wondering if fhis is a duplicate of the value_of_lua function found inside the MakeLib module,
+   then yes, effectively it is.
+   The problem is that MakeLib functions are not visible outside that module,
+   but we can't define a function when we don't have a Value module,
+   so we've got this.
+   Luckily, this code is very rarely modified, so duplication isn't a terribly big problem. 
+ *)
+let json_of_lua v =
+  let module V = I.Value in
+  let rec project_lua_value v =
+    if V.int.is v then `Float (V.int.project v |> float_of_int)
+    (* float is a supertype of int, so int "is" a float, and order of checks is important *)
+    else if V.float.is v then `Float (V.float.project v)
+    else if V.string.is v then `String (V.string.project v)
+    else if V.table.is v then project_lua_table v
+    else if V.unit.is v then `Null
+    (* Everything in Lua has a truth value, so V.bool.is appears to never fail *)
+    else if V.bool.is v then `Bool (V.bool.project v)
+    (* Not sure if this actually can happen *)
+    else raise (Plugin_error "Unimplemented projection")
+  and project_lua_table t =
+    let ts = t |> V.table.project |> V.Luahash.to_seq |> List.of_seq in
+    (* In Lua, everything is a table. There are no arrays/lists, only int-indexed tables.
+       However, many things, like nav_path, are logically lists. They are lists before we pass them to Lua,
+       and it would be nice to have them come back as lists.
+
+       This is why we apply a funny heuristic here: if all keys are integers, we ignore the keys
+       and produce a list. This way embedding OCaml lists is reversible, and users who create
+       such tables by hand, hopefully, aren't surprised.
+     *)
+    let keys = Utils.assoc_keys ts in
+    if List.for_all V.int.is keys then
+      (* It's an int-indexed table -- a "list".
+         However, Hashtbl.to_seq doesn't know about its intended order,
+         so we need to sort it by keys ourselves.
+       *)
+      let ts = List.sort (fun (k, _) (k', _) -> compare k k') ts in
+      `A (Utils.assoc_values ts |> List.map project_lua_value)
+    else
+       (* Just a normal table, or perhaps a messed-up list... *)
+      `O (List.map (fun (k, v) -> (string_of_lua k, project_lua_value v)) ts)
+  and string_of_lua v =
+    let v' = project_lua_value v in
+    match v' with
+    | `Float f -> string_of_float f
+    | `String s -> s
+    | _ -> raise
+      (Plugin_error (Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
+        (V.to_string v)))
+  in
+  try Ok (project_lua_value v)
+  with Plugin_error msg -> Error msg
+
 let make_plugin_env () = ref (I.Value.Table.of_list [] |> I.Value.table.embed)
 
 let run_lua filename state lua_code =
