@@ -74,7 +74,9 @@ let compare_entries settings l r =
   let (>>=) = Option.bind in
   let string_of_field j =
     try Some (Otoml.get_string ~strict:false j)
-    with Otoml.Type_error _ -> None
+    with Otoml.Type_error msg ->
+      let () = Logs.info @@ fun m -> m "Failed to convert a value to string: %s" msg in
+      None
   in
   let get_sort_key_field entry =
     settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>= (fun s -> Some (Utils.toml_of_json s)) >>=
@@ -119,10 +121,11 @@ let compare_entries settings l r =
       let r_date = r_key >>= Utils.parse_date settings.index_date_input_formats |> handle_malformed_field "a date" r_key r in
       compare_values ODate.Unix.compare l_date r_date
     | Numeric ->
-      let l_num = l_key >>= (fun s -> Some (int_of_string_opt s)) |> handle_malformed_field "an integer" l_key l in
-      let r_num = r_key >>= (fun s -> Some (int_of_string_opt s)) |> handle_malformed_field "an integer" r_key r in
-      compare l_num r_num
-    | Lexicographic -> compare l_key r_key
+      (* Numbers coming from Lua are always floats because it doesn't have an integer/float distinction. *)
+      let l_num = l_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "an number" l_key l in
+      let r_num = r_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "an number" r_key r in
+      compare_values compare l_num r_num
+    | Lexicographic -> compare_values compare l_key r_key
   in
   if settings.index_sort_descending then (~- result) else result
 
