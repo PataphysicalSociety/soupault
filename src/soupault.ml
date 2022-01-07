@@ -302,6 +302,21 @@ let save_html settings soupault_config hooks env page_source =
   | None ->
     Utils.write_file env.target_file page_source
 
+let extract_metadata settings soupault_config hooks env html =
+  (* Metadata is only extracted from non-index pages *)
+  if not (Autoindex.index_extraction_should_run settings env.page_file) then (Ok None) else
+  let entry = Autoindex.get_entry settings env html in
+  let post_index_hook = Hashtbl.find_opt hooks "post-index" in
+  match post_index_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if not (Hooks.hook_should_run settings hook_config "post-index" env.target_file) then (Ok (Some entry)) else
+    (* Let the post-index hook update the fields *)
+    let* index_fields =
+      Hooks.run_post_index_hook settings soupault_config hook_config file_name source_code env html entry.fields
+    in
+    Ok (Some {entry with fields=index_fields})
+  | None -> Ok (Some entry)
+
 (** Processes a page:
 
     1. Adjusts the path to account for index vs non-index page difference
@@ -345,12 +360,7 @@ let process_page page_file nav_path index widgets hooks config settings =
   let before_index, after_index, widget_hash = widgets in
   let* () = process_widgets env settings before_index widget_hash config html in
   (* Index extraction *)
-  let index_entry =
-    (* Metadata is only extracted from non-index pages *)
-    if (Autoindex.index_extraction_should_run settings page_file)
-    then Some (Autoindex.get_entry settings env html)
-    else None
-  in
+  let* index_entry = extract_metadata settings config hooks env html in
   if settings.index_only then Ok index_entry else
   let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in

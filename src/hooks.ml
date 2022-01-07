@@ -2,7 +2,7 @@ module I = Plugin_api.I
 
 let lua_of_toml = Plugin_api.lua_of_toml
 
-let hook_types = ["pre-parse"; "save"]
+let hook_types = ["pre-parse"; "post-index"; "save"]
 
 let hook_should_run settings hook_config hook_type page_file =
   let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
@@ -53,6 +53,36 @@ let run_pre_parse_hook settings soupault_config hook_config file_name lua_code p
   let res = I.getglobal state (I.Value.string.embed "page_source") in
   if I.Value.string.is res then Ok (I.Value.string.project res)
   else Error "pre-parse hook has not assigned a string to the page_source variable"
+
+let run_post_index_hook settings soupault_config hook_config file_name lua_code env soup fields =
+  let assoc_of_json j =
+    match j with
+    | `O kvs -> kvs
+    | _ -> failwith "post-index hook got a JSON value that isn't an object, please report a bug"
+  in
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let state = I.mk () in
+   let () =
+    (* Set up the post-index hook environment *)
+    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["page_file", lua_str.embed env.page_file] state;
+    I.register_globals ["index_fields", Plugin_api.lua_of_json (`O fields)] state;
+    I.register_globals ["config", lua_of_toml hook_config] state;
+    I.register_globals ["hook_config", lua_of_toml hook_config] state;
+    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
+    I.register_globals ["force", I.Value.bool.embed settings.force] state;
+    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
+    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+  in
+  let (let*) = Result.bind in
+  let* () = Plugin_api.run_lua file_name state lua_code in
+  let index_fields = I.getglobal state (I.Value.string.embed "index_fields") in
+  if not (I.Value.table.is index_fields) then
+    Error "post-index hook has not assigned a table to the index_fields variable"
+  else
+    let* fields = Plugin_api.json_of_lua index_fields in
+    Ok (assoc_of_json fields)
 
 let check_hook_tables config =
   let hooks_table = Config.find_table_opt ["hooks"] config in
