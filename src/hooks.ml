@@ -2,7 +2,7 @@ module I = Plugin_api.I
 
 let lua_of_toml = Plugin_api.lua_of_toml
 
-let hook_types = ["pre-parse"; "post-index"; "save"]
+let hook_types = ["pre-parse"; "pre-process"; "post-index"; "save"]
 
 let hook_should_run settings hook_config hook_type page_file =
   let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
@@ -83,6 +83,29 @@ let run_post_index_hook settings soupault_config hook_config file_name lua_code 
   else
     let* fields = Plugin_api.json_of_lua index_fields in
     Ok (assoc_of_json fields)
+
+let run_pre_process_hook settings soupault_config hook_config file_name lua_code page_file target_dir target_file soup =
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let state = I.mk () in
+   let () =
+    (* Set up the post-index hook environment *)
+    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["page_file", lua_str.embed page_file] state;
+    I.register_globals ["target_file", lua_str.embed target_file] state;
+    I.register_globals ["target_dir", lua_str.embed target_dir] state;
+    I.register_globals ["config", lua_of_toml hook_config] state;
+    I.register_globals ["hook_config", lua_of_toml hook_config] state;
+    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
+    I.register_globals ["force", I.Value.bool.embed settings.force] state;
+    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
+    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+  in
+  let (let*) = Result.bind in
+  let* () = Plugin_api.run_lua file_name state lua_code in
+  let* target_file = Plugin_api.get_global state "target_file" I.Value.string in
+  let* target_dir = Plugin_api.get_global state "target_dir" I.Value.string in
+  Ok (target_dir, target_file, soup)
 
 let check_hook_tables config =
   let hooks_table = Config.find_table_opt ["hooks"] config in

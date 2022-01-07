@@ -257,15 +257,15 @@ let fix_nav_path settings path page_name =
   if page_name = settings.index_page then Utils.drop_tail path
   else path
 
-let make_page_url settings nav_path orig_path page_file =
-  let page_file_name = FP.basename page_file in
-  let page =
-    if settings.clean_urls then page_file_name |> FP.chop_extension
-    else page_file_name
+let make_page_url settings nav_path orig_path target_dir page_file =
+  let orig_page_file_name = FP.basename page_file in
+  let target_page =
+    if settings.clean_urls then target_dir |> FP.basename
+    else orig_page_file_name
   in
   let path =
-    if ((FP.chop_extension page_file_name) = settings.index_page) then orig_path
-    else (List.append nav_path [page])
+    if ((FP.chop_extension orig_page_file_name) = settings.index_page) then orig_path
+    else (List.append nav_path [target_page])
   in
   (* URL path should be absolute *)
   String.concat "/" path |> Printf.sprintf "/%s"
@@ -317,6 +317,16 @@ let extract_metadata settings soupault_config hooks env html =
     Ok (Some {entry with fields=index_fields})
   | None -> Ok (Some entry)
 
+let run_pre_process_hook settings config hooks page_file target_dir target_file content =
+  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
+  match pre_process_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
+    then Ok (target_dir, target_file, content)
+    else Hooks.run_pre_process_hook
+      settings config hook_config file_name source_code page_file target_dir target_file content
+  | None -> Ok (target_dir, target_file, content)
+
 (** Processes a page:
 
     1. Adjusts the path to account for index vs non-index page difference
@@ -329,12 +339,17 @@ let extract_metadata settings soupault_config hooks env html =
     6. Saves the processed page to file
   *)
 let process_page page_file nav_path index widgets hooks config settings =
+  let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
+  let* content = load_html settings config hooks page_file in
   let page_name = FP.basename page_file |> FP.chop_extension in
-  let target_dir = make_page_dir_name settings (Utils.concat_path nav_path) page_name |> FP.concat settings.build_dir in
-  let target_file = make_page_file_name settings page_file target_dir in
   let orig_path = nav_path in
   let nav_path = fix_nav_path settings nav_path page_name in
-  let page_url = make_page_url settings nav_path orig_path page_file in
+  let target_dir = make_page_dir_name settings (Utils.concat_path nav_path) page_name |> FP.concat settings.build_dir in
+  let target_file = make_page_file_name settings page_file target_dir in
+  let* (target_dir, target_file, content) =
+    run_pre_process_hook settings config hooks page_file target_dir target_file content
+  in
+  let page_url = make_page_url settings nav_path orig_path target_dir page_file in
   let env = {
     nav_path = nav_path;
     page_url = page_url;
@@ -345,8 +360,7 @@ let process_page page_file nav_path index widgets hooks config settings =
     settings = settings;
   }
   in
-  let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
-  let* content = load_html settings config hooks page_file in
+  let () = Logs.info @@ fun m -> m "Target dir %s" page_url in
   let* html = make_page settings page_file content in
   (* Section index injection always happens before any widgets have run *)
   let* () =
