@@ -620,6 +620,8 @@ let main () =
            and process it to generate the website.
          *)
         let all_files = List.append page_files index_files in
+        (* Disable metadata extraction to avoid doing useless work. *)
+        let settings = {settings with no_index_extraction=true} in
         let* () = Utils.iter (process_page index widgets hooks config settings) all_files in
         let* () = dump_index_json settings index in
         Ok ()
@@ -632,8 +634,8 @@ let main () =
         (* Process normal pages and collect index data from them *)
         let* index = process_page_files widgets hooks config settings page_files in
         let* index = Autoindex.sort_entries settings index in
-        (* Now process the index pages, using previously collected index data.
-        This will produce no new index data so we ignore all non-error results. *)
+        (* Now process the index pages, using previously collected index data. *)
+        let settings = {settings with no_index_extraction=true} in
         let* () = Utils.iter (process_page index widgets hooks config settings) index_files in
         let* () = dump_index_json settings index in
         Ok ()

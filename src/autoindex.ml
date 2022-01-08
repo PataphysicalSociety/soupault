@@ -223,7 +223,9 @@ let insert_indices settings page_file soup index =
   Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings page_file soup index) settings.index_views
 
 let index_extraction_should_run settings page_file =
-  let page_name = FilePath.basename page_file |> FilePath.chop_extension in
+  (* If this option is true, this is a second pass and we don't need to extract anything
+     since the complete website metadata is already available from the first pass. *)
+  if settings.no_index_extraction then false else
   (* If indexing is disabled in the config, it definitely should not run. *)
   if not settings.index then false else
   (* ...as well as if indexing is disabled by build profile settings. *)
@@ -235,6 +237,7 @@ let index_extraction_should_run settings page_file =
      hand-made "clean URLs", otherwise they usually don't contain any content other than pointers
      to other pages.
    *)
+  let page_name = FilePath.basename page_file |> FilePath.chop_extension in
   if (page_name = settings.index_page) then false else
   (* A normal, non-index page may still be excluded from indexing. *)
   if not (Path_options.page_included settings settings.index_path_options settings.site_dir page_file) then
