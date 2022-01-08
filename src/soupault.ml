@@ -553,6 +553,14 @@ let check_version settings =
       print_endline "Maybe your settings.soupault_version option is malformed?\n";
       exit 1
     end
+
+let process_page_files widgets hooks config settings page_files =
+  Utils.fold_left
+    (fun acc p ->
+      let ie = process_page [] widgets hooks config settings p in
+       match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
+    []
+    page_files
   
 let main () =
   (* Parse the arguments to see if we have any real work to do, or it's --version or similar.
@@ -589,20 +597,47 @@ let main () =
       then Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files
       else Ok ()
     in
-    (* Process normal pages and collect index data from them *)
-    let* index = Utils.fold_left
-      (fun acc p ->
-         let ie = process_page [] widgets hooks config settings p in
-         match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
-      []
-      page_files
-    in
-    (* Now process the index pages, using previously collected index data.
-       This will produce no new index data so we ignore the non-error results. *)
-    let* index = Autoindex.sort_entries settings index in
-    let* () = Utils.iter (process_page index widgets hooks config settings) index_files in
-    let* () = dump_index_json settings index in
-    Ok ()
+    (* A bit of code duplication ahead, for now at least...
+
+       The procedure for a run with [index.index_first=true] and without is slightly different.
+       The purpose of [index_first=true] is to make the entire site metadata available to _all_ pages.
+       Obviously, it can only be done by doing certain amount of work twice:
+       at the very least, reading all pages, running widgets that aren't in [index.extract_after_widgets],
+       and extracting fields.
+     *)
+    if settings.index_first then
+      (* The user wants the complete site metadata available to widgets/plugins on every page. *)
+      begin
+        (* Do just enough work to have all site metadata produced and extracted.
+           [index_only=true] prevents [process_page] from rendering pages and writing them to disk,
+           and also often (though not always) reduces the number of widgets that will run on each page.
+         *)
+        let* index = process_page_files widgets hooks config {settings with index_only=true} page_files in
+        let* index = Autoindex.sort_entries settings index in
+        (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
+           content pages and section index pages should be treated the same.
+           So we merge the lists of content and index pages back into one list
+           and process it to generate the website.
+         *)
+        let all_files = List.append page_files index_files in
+        let* () = Utils.iter (process_page index widgets hooks config settings) all_files in
+        let* () = dump_index_json settings index in
+        Ok ()
+      end
+    else
+      (* The user only wants site metadata available to section index pages
+         and doesn't want the performance penalty of processing anything twice.
+       *)
+      begin
+        (* Process normal pages and collect index data from them *)
+        let* index = process_page_files widgets hooks config settings page_files in
+        let* index = Autoindex.sort_entries settings index in
+        (* Now process the index pages, using previously collected index data.
+        This will produce no new index data so we ignore all non-error results. *)
+        let* () = Utils.iter (process_page index widgets hooks config settings) index_files in
+        let* () = dump_index_json settings index in
+        Ok ()
+      end
 
 let () =
   let res = main () in

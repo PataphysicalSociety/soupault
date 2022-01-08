@@ -124,6 +124,12 @@ type settings = {
   (* Only extract the site index, don't generate any pages *)
   index_only : bool;
 
+  (* Extract site index data from all pages
+     and then process all pages again to make index data available
+     to plugins.
+   *)
+  index_first : bool;
+
   (* Enable site metadata extraction. *)
   index : bool;
 
@@ -242,6 +248,7 @@ let default_settings = {
 
   index = false;
   index_only = false;
+  index_first = false;
   dump_json = None;
   ignore_template_errors = false;
   index_extract_after_widgets = [];
