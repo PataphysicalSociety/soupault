@@ -28,7 +28,7 @@ let rec _load_plugins settings ps config hash =
   | [] -> Ok ()
   | p :: ps' ->
     let plugin_cfg = get_plugin_config config p in
-    let () = Config.check_options ["file"; "source"] plugin_cfg "a plugin config" in
+    let () = Config.check_options ["file"; "lua_source"] plugin_cfg "a plugin config" in
     let default_filename = Printf.sprintf "<inline Lua source for plugin %s>" p in
     let ident = Printf.sprintf "plugin %s" p in
     let* (file_name, source) = Utils.load_plugin_code plugin_cfg default_filename ident in

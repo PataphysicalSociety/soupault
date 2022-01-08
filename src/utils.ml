@@ -261,12 +261,12 @@ let require_version vstr =
 (* Plugin/hook code loading *)
 let load_plugin_code plugin_config default_filename ident =
   let file = Otoml.Helpers.find_string_opt plugin_config ["file"] in
-  let source = Otoml.Helpers.find_string_opt plugin_config ["source"] in
+  let source = Otoml.Helpers.find_string_opt plugin_config ["lua_source"] in
   match file, source with
   | None, None ->
-    Error (Printf.sprintf "In %s: either \"file\" or \"source\" option is required" ident)
+    Error (Printf.sprintf "In %s: either \"file\" or \"lua_source\" option is required" ident)
   | Some _, Some _ ->
-    Error (Printf.sprintf "In %s: \"file\" and \"source\" options are mutually exclusive" ident)
+    Error (Printf.sprintf "In %s: \"file\" and \"lua_source\" options are mutually exclusive" ident)
   | None, Some source ->
     Ok (default_filename, source)
   | Some file, None ->
