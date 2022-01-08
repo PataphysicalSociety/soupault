@@ -122,6 +122,7 @@ let load_html settings soupault_config hooks page_file =
     match pre_parse_hook with
     | Some (file_name, source_code, hook_config) ->
       if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
+        let () = Logs.info @@ fun m -> m "Running the \"pre-parse\" hook on page %s" page_file in
         Hooks.run_pre_parse_hook settings soupault_config hook_config file_name source_code page_source
       else Ok page_source
     | None -> Ok page_source
@@ -297,6 +298,7 @@ let save_html settings soupault_config hooks env page_source =
   match save_hook with
   | Some (file_name, source_code, hook_config) ->
     if Hooks.hook_should_run settings hook_config "save" env.page_file then
+      let () = Logs.info @@ fun m -> m "Running the \"save\" hook on page %s" env.page_file in
       Hooks.run_save_hook settings soupault_config hook_config file_name source_code env page_source
     else Utils.write_file env.target_file page_source
   | None ->
@@ -312,6 +314,7 @@ let extract_metadata settings soupault_config hooks env html =
     if not (Hooks.hook_should_run settings hook_config "post-index" env.page_file) then (Ok (Some entry)) else
     (* Let the post-index hook update the fields *)
     let* index_fields =
+      let () = Logs.info @@ fun m -> m "Running the \"post-index\" hook on page %s" env.page_file in
       Hooks.run_post_index_hook settings soupault_config hook_config file_name source_code env html entry.fields
     in
     Ok (Some {entry with fields=index_fields})
@@ -323,8 +326,10 @@ let run_pre_process_hook settings config hooks page_file target_dir target_file 
   | Some (file_name, source_code, hook_config) ->
     if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
     then Ok (target_dir, target_file, content)
-    else Hooks.run_pre_process_hook
-      settings config hook_config file_name source_code page_file target_dir target_file content
+    else
+      let () = Logs.info @@ fun m -> m "Running the \"pre-process\" hook on page %s" page_file in
+      Hooks.run_pre_process_hook
+        settings config hook_config file_name source_code page_file target_dir target_file content
   | None -> Ok (target_dir, target_file, content)
 
 (** Processes a page:
