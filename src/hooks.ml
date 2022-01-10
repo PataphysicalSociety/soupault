@@ -2,7 +2,7 @@ module I = Plugin_api.I
 
 let lua_of_toml = Plugin_api.lua_of_toml
 
-let hook_types = ["pre-parse"; "pre-process"; "post-index"; "save"]
+let hook_types = ["pre-parse"; "pre-process"; "post-index"; "render"; "save"]
 
 let hook_should_run settings hook_config hook_type page_file =
   let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
@@ -15,6 +15,29 @@ let hook_should_run settings hook_config hook_type page_file =
     let () = Logs.debug @@ fun m -> m "%s hook is not used: page %s is excluded by its page/section/regex options"
       hook_type page_file
     in false
+
+let run_render_hook settings soupault_config hook_config file_name lua_code env soup =
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let state = I.mk () in
+   let () =
+    (* Set up the hook environment *)
+    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["site_index", Plugin_api.lua_of_json (Autoindex.json_of_entries env.site_index)] state;
+    I.register_globals ["target_file", lua_str.embed env.target_file] state;
+    I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
+    I.register_globals ["config", lua_of_toml hook_config] state;
+    I.register_globals ["hook_config", lua_of_toml hook_config] state;
+    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
+    I.register_globals ["force", I.Value.bool.embed settings.force] state;
+    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
+    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+  in
+  let (let*) = Result.bind in
+  let* () = Plugin_api.run_lua file_name state lua_code in
+  let res = I.getglobal state (I.Value.string.embed "page_source") in
+  if I.Value.string.is res then Ok (I.Value.string.project res)
+  else Error "render hook has not assigned a string to the page_source variable"
 
 let run_save_hook settings soupault_config hook_config file_name lua_code env page_source =
   let open Defaults in

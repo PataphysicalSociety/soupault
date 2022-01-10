@@ -130,7 +130,20 @@ let load_html settings soupault_config hooks page_file =
   (* As of lambdasoup 0.7.2, Soup.parse never fails, only returns empty element trees. *)
   Ok (Soup.parse page_source)
 
-let render_html settings soup =
+let run_render_hook settings config hooks env soup =
+  let hook = Hashtbl.find_opt hooks "render" in
+  match hook with
+  | Some (file_name, source_code, hook_config) ->
+    if not (Hooks.hook_should_run settings hook_config "render" env.page_file)
+    then Ok None
+    else
+      let () = Logs.info @@ fun m -> m "Running the \"render\" hook on page %s" env.page_file in
+      let* page_source = Hooks.run_render_hook
+        settings config hook_config file_name source_code env soup
+      in Ok (Some page_source)
+  | None -> Ok None
+
+let render_html_builtin settings soup =
   let print_html = if settings.pretty_print_html then Soup.pretty_print else Soup.to_string in
   if settings.keep_doctype then
     begin
@@ -174,6 +187,13 @@ let render_html settings soup =
         let () = Logs.warn @@ fun m -> m "Page has no <HTML> element, not setting doctype" in
         print_html soup
     end
+
+let render_html settings config hooks env soup =
+  let res = run_render_hook settings config hooks env soup in
+  match res with
+  | Ok (Some page_source) -> Ok page_source
+  | Ok None -> Ok (render_html_builtin settings soup)
+  | Error _ as e -> e
 
 let include_content action selector html content =
   let element = Soup.select_one selector html in
@@ -383,7 +403,7 @@ let process_page page_file nav_path index widgets hooks config settings =
   if settings.index_only then Ok index_entry else
   let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in
-  let html_str = render_html settings html in
+  let* html_str = render_html settings config hooks env html in
   let* () = save_html settings config hooks env html_str in
   Ok index_entry
 
