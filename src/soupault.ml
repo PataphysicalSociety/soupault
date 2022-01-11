@@ -363,7 +363,7 @@ let run_pre_process_hook settings config hooks page_file target_dir target_file 
     5. Inserts the index section into the page if it's an index page
     6. Saves the processed page to file
   *)
-let process_page page_file nav_path index widgets hooks config settings =
+let process_page page_file nav_path index index_hash widgets hooks config settings =
   let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
   let* content = load_html settings config hooks page_file in
   let page_name = FP.basename page_file |> FP.chop_extension in
@@ -382,6 +382,7 @@ let process_page page_file nav_path index widgets hooks config settings =
     target_dir = target_dir;
     target_file = target_file;
     site_index = index;
+    site_index_hash = index_hash;
     settings = settings;
   }
   in
@@ -408,9 +409,9 @@ let process_page page_file nav_path index widgets hooks config settings =
   Ok index_entry
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
-let process_page index widgets hooks config settings (page_file, nav_path) =
+let process_page index index_hash widgets hooks config settings (page_file, nav_path) =
     let res =
-      try process_page page_file nav_path index widgets hooks config settings
+      try process_page page_file nav_path index index_hash widgets hooks config settings
       with Soupault_error msg -> Error msg
     in
     match res with
@@ -574,10 +575,10 @@ let check_version settings =
       exit 1
     end
 
-let process_page_files widgets hooks config settings page_files =
+let process_page_files index_hash widgets hooks config settings page_files =
   Utils.fold_left
     (fun acc p ->
-      let ie = process_page [] widgets hooks config settings p in
+      let ie = process_page [] index_hash widgets hooks config settings p in
        match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
     []
     page_files
@@ -626,15 +627,24 @@ let main () =
        and extracting fields.
      *)
     if settings.index_first then
+      (* Creates a random-access version of the site index from a list of entries. *)
+      let import_index_hash hash entries =
+        List.iter (fun e -> Hashtbl.add hash e.index_entry_page_file e) entries 
+      in
       (* The user wants the complete site metadata available to widgets/plugins on every page. *)
       begin
+        (* Make a random-access hash table version of the index to provide an index entry to widgets and
+           hooks for the page being processed. *)
+        let index_hash = Hashtbl.create 1024 in
         (* Do just enough work to have all site metadata produced and extracted.
            [index_only=true] prevents [process_page] from rendering pages and writing them to disk,
            and also often (though not always) reduces the number of widgets that will run on each page.
          *)
-        let* index = process_page_files widgets hooks config {settings with index_only=true} page_files in
+        let* index = process_page_files index_hash widgets hooks config {settings with index_only=true} page_files in
+        (* Make a sorted list of entries for index processors to render on section index pages. *)
         let* index = Autoindex.sort_entries settings index in
-        (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
+        let () = import_index_hash index_hash index in
+       (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
            content pages and section index pages should be treated the same.
            So we merge the lists of content and index pages back into one list
            and process it to generate the website.
@@ -642,7 +652,7 @@ let main () =
         let all_files = List.append page_files index_files in
         (* Disable metadata extraction to avoid doing useless work. *)
         let settings = {settings with no_index_extraction=true} in
-        let* () = Utils.iter (process_page index widgets hooks config settings) all_files in
+        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) all_files in
         let* () = dump_index_json settings index in
         Ok ()
       end
@@ -651,12 +661,20 @@ let main () =
          and doesn't want the performance penalty of processing anything twice.
        *)
       begin
-        (* Process normal pages and collect index data from them *)
-        let* index = process_page_files widgets hooks config settings page_files in
+        (* Since in the [index_first=false] mode non-index pages have no access to the site-wide index data,
+           we simply give the [process_page] function an empty hash.
+         *)
+        let index_hash = Hashtbl.create 1 in
+        (* Process normal pages and collect index data from them.
+           The [process_page_files] function is not using the [index_hash] argument,
+           it's only needed to keep its underlying [process_page] call well-typed,
+           so we can safely give it an empty hash.
+         *)
+        let* index = process_page_files index_hash widgets hooks config settings page_files in
         let* index = Autoindex.sort_entries settings index in
         (* Now process the index pages, using previously collected index data. *)
         let settings = {settings with no_index_extraction=true} in
-        let* () = Utils.iter (process_page index widgets hooks config settings) index_files in
+        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) index_files in
         let* () = dump_index_json settings index in
         Ok ()
       end

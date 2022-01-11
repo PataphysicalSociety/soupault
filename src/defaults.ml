@@ -204,6 +204,7 @@ type env = {
   target_dir : string;
   target_file : string;
   site_index : index_entry list;
+  site_index_hash : (string, index_entry) Hashtbl.t;
   settings : settings;
 }
 

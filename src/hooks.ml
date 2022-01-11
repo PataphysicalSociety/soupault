@@ -20,10 +20,20 @@ let run_render_hook settings soupault_config hook_config file_name lua_code env 
   let open Defaults in
   let lua_str = I.Value.string in
   let state = I.mk () in
-   let () =
+  (* Get the index entry for the current page from the index hash *)
+  let index_entry_json =
+    begin
+      let index_entry = Hashtbl.find_opt env.site_index_hash env.page_file in
+      match index_entry with
+      | None -> `Null
+      | Some ie -> Autoindex.json_of_entry ie
+    end
+  in
+  let () =
     (* Set up the hook environment *)
     I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
     I.register_globals ["site_index", Plugin_api.lua_of_json (Autoindex.json_of_entries env.site_index)] state;
+    I.register_globals ["index_entry", Plugin_api.lua_of_json index_entry_json] state;
     I.register_globals ["target_file", lua_str.embed env.target_file] state;
     I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
     I.register_globals ["config", lua_of_toml hook_config] state;
