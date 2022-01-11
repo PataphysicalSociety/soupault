@@ -536,6 +536,8 @@ struct
       C.register_module "HTML" [
         "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
         "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
+        "to_string", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.to_string);
+        "pretty_print", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.pretty_print);
         "select", V.efunc (V.option Map.html **-> V.string **->> V.option (V.list Map.html)) Html.select;
         "select_one", V.efunc (V.option Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
         "select_any_of", V.efunc (V.option Map.html **-> V.list V.string **->> V.option Map.html) Html.select_any_of;
