@@ -535,6 +535,7 @@ struct
     let init g = 
       C.register_module "HTML" [
         "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
+        "create_document", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
         "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
         "to_string", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.to_string);
         "pretty_print", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.pretty_print);
