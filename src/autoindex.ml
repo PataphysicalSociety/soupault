@@ -56,14 +56,7 @@ let get_entry settings env soup =
     fields = get_fields settings.index_strip_tags settings.index_fields soup
   }
 
-let json_of_entry e =
-  let fields = [
-    ("url", `String e.index_entry_url);
-    ("page_file", `String e.index_entry_page_file);
-    ("nav_path", `A (List.map (fun x -> `String x) e.index_entry_nav_path))
-  ] in
-  let fields = List.append fields e.fields in
-  `O fields
+let json_of_entry = Utils.json_of_index_entry
 
 (** Compares entries by their dates according to these rules:
     1. Entries without known dates are equal
@@ -133,8 +126,7 @@ let sort_entries settings es =
   try Ok (List.sort (compare_entries settings) es)
   with Soupault_error msg -> Error msg
 
-let json_of_entries es =
-  `A (List.map json_of_entry es)
+let json_of_entries = Utils.json_of_index_entries
 
 let json_string_of_entries ?(minify=false) es =
   json_of_entries es |> Ezjsonm.to_string ~minify:minify
@@ -202,25 +194,38 @@ let view_includes_page settings page_file view entry =
   else
     Path_options.page_included settings view.index_view_path_options settings.site_dir entry.index_entry_page_file
 
-let insert_index settings page_file soup index view =
+let insert_index env soupault_config soup view =
   let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
     let () = Logs.debug @@ fun m -> m "Page \"%s\" doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
-      page_file view.index_selector view.index_view_name
-    in Ok ()
+      env.page_file view.index_selector view.index_view_name
+    in Ok []
   | Some ic ->
     begin
-      let () = Logs.info @@ fun m -> m "Rendering index view \"%s\" on page %s" view.index_view_name page_file in
-      let index = List.filter (view_includes_page settings page_file view) index in
+      let () = Logs.info @@ fun m -> m "Rendering index view \"%s\" on page %s" view.index_view_name env.page_file in
+      let (let*) = Result.bind in
+      let index = List.filter (view_includes_page env.settings env.page_file view) env.site_index in
       match view.index_processor with
-      | Defaults.IndexItemTemplate tmpl -> render_index tmpl settings ic index
-      | Defaults.IndexTemplate tmpl -> render_index ~item_template:false tmpl settings ic index
-      | Defaults.ExternalIndexer cmd -> run_index_processor cmd ic index
+      | Defaults.IndexItemTemplate tmpl ->
+        let* () = render_index tmpl env.settings ic index in Ok []
+      | Defaults.IndexTemplate tmpl ->
+        let* () = render_index ~item_template:false tmpl env.settings ic index in Ok []
+      | Defaults.ExternalIndexer cmd ->
+        let* () = run_index_processor cmd ic index in Ok []
+      | Defaults.LuaIndexer (file_name, lua_code) ->
+        let index_view_config = Otoml.find soupault_config Otoml.get_table ["index"; "views"; view.index_view_name] |> Otoml.table in
+        Hooks.run_lua_index_processor soupault_config index_view_config file_name lua_code env soup
     end
 
-let insert_indices settings page_file soup index =
-  Utils.iter ~ignore_errors:(not settings.strict) (insert_index settings page_file soup index) settings.index_views
+let insert_indices env soupault_config soup =
+  let (let*) = Result.bind in
+  let insert_index_get_pages env soupault_config soup acc view =
+    let* pages = insert_index env soupault_config soup view in
+    Ok (List.append pages acc)
+  in
+  Utils.fold_left ~ignore_errors:(not env.settings.strict)
+    (insert_index_get_pages env soupault_config soup) [] env.settings.index_views
 
 let index_extraction_should_run settings page_file =
   (* If this option is true, this is a second pass and we don't need to extract anything

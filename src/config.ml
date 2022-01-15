@@ -187,7 +187,8 @@ let valid_index_options = [
 
 let valid_index_view_options = [
   "index_item_template"; "index_template"; "index_processor";
-  "index_selector"; "include_subsections"
+  "index_selector"; "include_subsections"; "custom_options";
+  "file"; "lua_source";
 ] @ valid_path_options
 
 let _get_index_view st view_name =
@@ -203,21 +204,28 @@ let _get_index_view st view_name =
         in default_index_processor
     end
   in
-  let _get_index_processor st =
+  let _get_index_processor name st =
     let item_template = OH.find_string_opt ~strict:true st ["index_item_template"] in
     let index_template = OH.find_string_opt ~strict:true st ["index_template"] in
     let script = OH.find_string_opt ~strict:true st ["index_processor"] in
-    match item_template, index_template, script with
-    | Some item_template, None, None -> _get_template item_template
-    | None, Some index_template, None -> _get_template ~item_template:false index_template
-    | None, None, Some script -> ExternalIndexer script
-    | None, None, None ->
-      let () = Logs.warn @@ fun m -> m "Index view \"%s\" does not have index_item_template, index_template, or index_processor option, using default template" view_name
+    let lua_processor =
+      Utils.load_plugin_code st (Printf.sprintf "<inline Lua code from index view \"%s\">" name) "index processor"
+    in
+    match item_template, index_template, script, lua_processor with
+    | _, _, Some _, Ok _ ->
+      config_error "options index_processor and file/lua_source are mutually exclusive, please pick only one"
+    | _, _, _, Ok (file_name, lua_code) -> LuaIndexer (file_name, lua_code)
+    | Some item_template, None, None, Error _ -> _get_template item_template
+    | None, Some index_template, None, Error _ -> _get_template ~item_template:false index_template
+    | None, None, Some script, Error _ -> ExternalIndexer script
+    | None, None, None, Error _ ->
+      let () = Logs.warn @@ fun m -> m "Index view \"%s\" does not have index_item_template, index_template, index_processor,\
+         or file/lua_source options, using default template" view_name
       in default_index_processor
     | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
   in
   let selector = OH.find_string st ["index_selector"] in
-  let index_processor = _get_index_processor st in
+  let index_processor = _get_index_processor view_name st in
   {
     index_view_name = view_name;
     index_selector = selector;

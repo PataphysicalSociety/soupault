@@ -1,4 +1,5 @@
 include Soupault_common
+open Defaults
 
 (* IO helpers *)
 
@@ -227,6 +228,18 @@ let rec toml_to_json t =
   | TomlOffsetDateTime s -> `String s
   | TomlArray xs | TomlTableArray xs -> `A (List.map toml_to_json xs)
   | TomlTable os | TomlInlineTable os -> `O (List.map (fun (k, v) -> (k, toml_to_json v)) os)
+
+let json_of_index_entry e =
+  let fields = [
+    ("url", `String e.index_entry_url);
+    ("page_file", `String e.index_entry_page_file);
+    ("nav_path", `A (List.map (fun x -> `String x) e.index_entry_nav_path))
+  ] in
+  let fields = List.append fields e.fields in
+  `O fields
+
+let json_of_index_entries es =
+  `A (List.map json_of_index_entry es)
 
 (* Version comparison *)
 

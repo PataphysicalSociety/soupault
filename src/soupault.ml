@@ -352,6 +352,20 @@ let run_pre_process_hook settings config hooks page_file target_dir target_file 
         settings config hook_config file_name source_code page_file target_dir target_file content
   | None -> Ok (target_dir, target_file, content)
 
+(* Check if index insertion should be done and log the reason if not *)
+let index_insertion_should_run settings index page_name =
+  let aux settings page_name =
+    if not settings.index then Some "indexing is disabled in the configuration" else
+    if settings.index_only then Some "running in the index-only mode" else
+    if (page_name <> settings.index_page) then Some (Printf.sprintf "page name does not match %s" settings.index_page) else
+    if index = [] then Some "index is empty" else None
+  in
+  match (aux settings page_name) with
+  | None -> true
+  | Some msg ->
+    let () = Logs.debug @@ fun m -> m "Not inserting index data: %s" msg in
+    false
+
 (** Processes a page:
 
     1. Adjusts the path to account for index vs non-index page difference
@@ -398,24 +412,22 @@ let process_page page_data index index_hash widgets hooks config settings =
   let () = Logs.info @@ fun m -> m "Target dir %s" page_url in
   let* html = make_page settings page_file content in
   (* Section index injection always happens before any widgets have run *)
-  let* () =
+  let* new_pages =
     (* Section index is inserted only in index pages *)
-    if (not settings.index) || (page_name <> settings.index_page) ||
-       settings.index_only  || (index = [])
-    then Ok ()
+    if not (index_insertion_should_run settings index page_name) then Ok []
     else let () = Logs.info @@ fun m -> m "Inserting section index into page %s" page_file in
-    Autoindex.insert_indices settings page_file html index
+    Autoindex.insert_indices env config html
   in
   let before_index, after_index, widget_hash = widgets in
   let* () = process_widgets env settings before_index widget_hash config html in
   (* Index extraction *)
   let* index_entry = extract_metadata settings config hooks env html in
-  if settings.index_only then Ok index_entry else
+  if settings.index_only then Ok (index_entry, new_pages) else
   let* () = process_widgets env settings after_index widget_hash config html in
   let* () = mkdir target_dir in
   let* html_str = render_html settings config hooks env html in
   let* () = save_html settings config hooks env html_str in
-  Ok index_entry
+  Ok (index_entry, new_pages)
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
 let process_page index index_hash widgets hooks config settings page_data =
@@ -429,7 +441,7 @@ let process_page index index_hash widgets hooks config settings page_data =
     let msg = Printf.sprintf "Could not process page %s: %s" page_data.page_file_path msg in
     if settings.strict then Error msg else 
     let () = Logs.warn @@ fun m -> m "%s" msg in
-    Ok None
+    Ok (None, [])
 
 (* Option parsing and initialization *)
 
@@ -584,14 +596,25 @@ let check_version settings =
       exit 1
     end
 
-let process_page_files index_hash widgets hooks config settings page_files =
+let process_page_files index_hash widgets hooks config settings files =
   Utils.fold_left
     (fun acc p ->
       let ie = process_page [] index_hash widgets hooks config settings p in
-       match ie with Ok None -> Ok acc | Ok (Some ie') -> Ok (ie' :: acc) | Error _ as err -> err)
+       match ie with Ok (None, _) -> Ok acc | Ok (Some ie', _) -> Ok (ie' :: acc) | Error _ as err -> err)
     []
-    page_files
-  
+    files
+
+let process_index_files index index_hash widgets hooks config settings files =
+  Utils.fold_left
+    (fun acc p ->
+      let ie = process_page index index_hash widgets hooks config settings p in
+       match ie with
+       | Ok (_, []) -> Ok acc
+       | Ok (_, new_pages) -> Ok (List.append new_pages acc)
+       | Error _ as err -> err)
+    []
+    files
+
 let main () =
   (* Parse the arguments to see if we have any real work to do, or it's --version or similar.
      If it's an action that doesn't rely on the config, we don't even need to read the config file.
@@ -659,9 +682,20 @@ let main () =
            and process it to generate the website.
          *)
         let all_files = List.append page_files index_files in
-        (* Disable metadata extraction to avoid doing useless work. *)
+        (* Disable metadata extraction to avoid doing useless work, then process all pages.
+           In practice, only index pages may produce new pages, but for simplicity we merge the lists
+           because there's no harm in trying to collect generated pages from non-index pages,
+           they will simply return empty lists.
+         *)
         let settings = {settings with no_index_extraction=true} in
-        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) all_files in
+        let* new_pages = process_index_files index index_hash widgets hooks config settings all_files in
+        (* Now process "fake" pages generated by index processors.
+           Index processing must be disabled on them to prevent index processors from generating
+           new "fake" pages from generated pages and creating infinite loops.
+         *)
+        let settings = {settings with index=false} in
+        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) new_pages in
+        (* Finally, dump the index file, if requested. *)
         let* () = dump_index_json settings index in
         Ok ()
       end
@@ -681,9 +715,19 @@ let main () =
          *)
         let* index = process_page_files index_hash widgets hooks config settings page_files in
         let* index = Autoindex.sort_entries settings index in
-        (* Now process the index pages, using previously collected index data. *)
+        (* Now process the index pages, using previously collected index data.
+           That will not produce new index data because extraction will not run,
+           but index processors may generate new pages (e.g. pagination and taxonomies).
+         *)
         let settings = {settings with no_index_extraction=true} in
-        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) index_files in
+        let* new_pages = process_index_files index index_hash widgets hooks config settings index_files in
+        (* Now process "fake" pages generated by index processors.
+           Index processing must be disabled on them to prevent index processors from generating
+           new "fake" pages from generated pages and creating infinite loops.
+         *)
+        let settings = {settings with index=false} in
+        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) new_pages in
+        (* Finally, dump the index file, if requested. *)
         let* () = dump_index_json settings index in
         Ok ()
       end

@@ -1,4 +1,8 @@
+open Defaults
+
 module I = Plugin_api.I
+
+let (let*) = Result.bind
 
 let lua_of_toml = Plugin_api.lua_of_toml
 
@@ -26,13 +30,13 @@ let run_render_hook settings soupault_config hook_config file_name lua_code env 
       let index_entry = Hashtbl.find_opt env.site_index_hash env.page_file in
       match index_entry with
       | None -> `Null
-      | Some ie -> Autoindex.json_of_entry ie
+      | Some ie -> Utils.json_of_index_entry ie
     end
   in
   let () =
     (* Set up the hook environment *)
     I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
-    I.register_globals ["site_index", Plugin_api.lua_of_json (Autoindex.json_of_entries env.site_index)] state;
+    I.register_globals ["site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index)] state;
     I.register_globals ["index_entry", Plugin_api.lua_of_json index_entry_json] state;
     I.register_globals ["target_file", lua_str.embed env.target_file] state;
     I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
@@ -139,6 +143,47 @@ let run_pre_process_hook settings soupault_config hook_config file_name lua_code
   let* target_file = Plugin_api.get_global state "target_file" I.Value.string in
   let* target_dir = Plugin_api.get_global state "target_dir" I.Value.string in
   Ok (target_dir, target_file, soup)
+
+let run_lua_index_processor soupault_config index_view_config file_name lua_code env soup =
+  let page_from_lua p =
+    let page_json = match Plugin_api.json_of_lua p with Ok p -> p | Error msg -> failwith msg in
+    match page_json with
+    | `O [("page_file", `String page_file);
+          ("page_content", `String page_content)] ->
+       let nav_path = Utils.split_path (FilePath.dirname page_file) |> Utils.drop_head in
+       {page_file_path=page_file; page_content=(Some page_content); page_nav_path=nav_path}
+    | _ ->
+      failwith "generated page must be a table with fields \"page_file\" and \"page content\""
+  in
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let table_list = I.Value.list I.Value.table in
+  let state = I.mk () in
+  let () =
+    (* Set up the hook environment *)
+    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index)] state;
+    I.register_globals ["page_file", lua_str.embed env.page_file] state;
+    I.register_globals ["target_file", lua_str.embed env.target_file] state;
+    I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
+    I.register_globals ["config", lua_of_toml index_view_config] state;
+    I.register_globals ["index_view_config", lua_of_toml index_view_config] state;
+    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
+    I.register_globals ["force", I.Value.bool.embed env.settings.force] state;
+    I.register_globals ["build_dir", lua_str.embed env.settings.build_dir] state;
+    I.register_globals ["site_dir", lua_str.embed env.settings.site_dir] state;
+    (* Set the output variable `pages` to an empty list by default,
+       so that index processors that don't create pagination or taxonomies
+       don't have to set it at all.
+     *)
+    I.register_globals ["pages", table_list.embed []] state;
+  in
+  let (let*) = Result.bind in
+  let* () = Plugin_api.run_lua file_name state lua_code in
+  let res = I.getglobal state (I.Value.string.embed "pages") in
+  if not (table_list.is res) then Error "render hook has not assigned a list of tables to the pages variable" else
+  try Ok ((I.Value.list I.Value.value).project res |> List.map page_from_lua)
+  with Failure msg -> Error (Printf.sprintf "Index processor generated a page incorrectly: %s" msg)
 
 let check_hook_tables config =
   let hooks_table = Config.find_table_opt ["hooks"] config in

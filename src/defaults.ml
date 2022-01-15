@@ -22,6 +22,7 @@ type index_processor =
   | IndexTemplate of Template.t      (* Applied to the whole list of entries *)
   | IndexItemTemplate of Template.t  (* Applied to each entry separately *)
   | ExternalIndexer of string        (* External script, receives a JSON dump of the index *)
+  | LuaIndexer of (string * string)  (* Lua plugin: file name and Lua source code *)
 
 type path_options = {
   pages: string list;
