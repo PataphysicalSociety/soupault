@@ -61,8 +61,12 @@ let get_site_files settings =
     let section_page_files, section_asset_files = list_section_files settings path in
     let section_page_files, section_index_files = split_pages settings section_page_files in
     (* Attach the nav path to each file. Target dir and page URL are generated from it *)
-    let section_page_files = List.map (fun x -> (x, nav_path)) section_page_files in
-    let	section_index_files = List.map (fun x -> (x, nav_path)) section_index_files in
+    let section_page_files =
+      List.map (fun x -> ({page_file_path=x; page_content=None; page_nav_path=nav_path})) section_page_files
+    in
+    let	section_index_files =
+      List.map (fun x -> ({page_file_path=x; page_content=None; page_nav_path=nav_path})) section_index_files
+    in
     let asset_path = Utils.concat_path (settings.build_dir :: nav_path) in
     let section_asset_files = List.map (fun x -> (x, asset_path)) section_asset_files in
     (* Collect files from subdirs *)

@@ -363,9 +363,18 @@ let run_pre_process_hook settings config hooks page_file target_dir target_file 
     5. Inserts the index section into the page if it's an index page
     6. Saves the processed page to file
   *)
-let process_page page_file nav_path index index_hash widgets hooks config settings =
+let process_page page_data index index_hash widgets hooks config settings =
+  let (page_file, page_content, nav_path) = (page_data.page_file_path, page_data.page_content, page_data.page_nav_path) in
   let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
-  let* content = load_html settings config hooks page_file in
+  let* content =
+    match page_content with
+    | None ->
+      (* This is a real page that actually exists on disk. *)
+      load_html settings config hooks page_file
+    | Some content ->
+      (* This is a "fake" paginated index or taxonomy page created by an index processor. *)
+      Ok (Soup.parse content)
+  in
   let page_name = FP.basename page_file |> FP.chop_extension in
   let orig_path = nav_path in
   let nav_path = fix_nav_path settings nav_path page_name in
@@ -409,18 +418,18 @@ let process_page page_file nav_path index index_hash widgets hooks config settin
   Ok index_entry
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
-let process_page index index_hash widgets hooks config settings (page_file, nav_path) =
-    let res =
-      try process_page page_file nav_path index index_hash widgets hooks config settings
-      with Soupault_error msg -> Error msg
-    in
-    match res with
-      Ok _ as res -> res
-    | Error msg ->
-      let msg = Printf.sprintf "Could not process page %s: %s" page_file msg in
-      if settings.strict then Error msg else 
-      let () = Logs.warn @@ fun m -> m "%s" msg in
-      Ok None
+let process_page index index_hash widgets hooks config settings page_data =
+  let res =
+    try process_page page_data index index_hash widgets hooks config settings
+    with Soupault_error msg -> Error msg
+  in
+  match res with
+    Ok _ as res -> res
+  | Error msg ->
+    let msg = Printf.sprintf "Could not process page %s: %s" page_data.page_file_path msg in
+    if settings.strict then Error msg else 
+    let () = Logs.warn @@ fun m -> m "%s" msg in
+    Ok None
 
 (* Option parsing and initialization *)
 

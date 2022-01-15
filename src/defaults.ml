@@ -1,4 +1,10 @@
 
+type page_data = {
+  page_file_path : string;
+  page_content : string option;
+  page_nav_path : string list;
+}
+
 type sort_type = Calendar | Numeric | Lexicographic
 
 (** global settings that can be updated from config file or command line options *)
