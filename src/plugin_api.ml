@@ -368,6 +368,19 @@ struct
     (* For ordered iteration. *)
     let get_hash_keys h = V.Luahash.fold (fun k _ acc -> k :: acc) h [] |> List.sort_uniq compare
 
+    (* Take up to N keys from a hash and move them to a new hash *)
+    let hash_take hash limit =
+      let move_item old_hash new_hash key =
+        let item = V.Luahash.find old_hash key in
+        V.Luahash.add new_hash key item;
+        V.Luahash.remove old_hash key
+      in
+      let keys = get_hash_keys hash in
+      let head_keys = CCList.take limit keys in
+      let new_hash = V.Luahash.create 100 in
+      let () = List.iter (move_item hash new_hash) head_keys in
+      new_hash
+
     let get_headings_tree soup =
       match soup with
       | None -> []
@@ -689,6 +702,7 @@ struct
       "fold", V.efunc ((V.func (V.value **-> V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value) V.Luahash.fold;
       "fold_values", V.efunc ((V.func (V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value)
         (fun f t i -> V.Luahash.fold (fun _ v acc -> f v acc) t i);
+      "take", V.efunc (V.table **-> V.int **->> V.table) hash_take;
     ] g;
 
     C.register_module "Value" [
