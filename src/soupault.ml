@@ -393,7 +393,7 @@ let process_page page_data index index_hash widgets hooks config settings =
   let page_name = FP.basename page_file |> FP.chop_extension in
   let orig_path = nav_path in
   let nav_path = fix_nav_path settings nav_path page_name in
-  let target_dir = make_page_dir_name settings (Utils.concat_path nav_path) page_name |> FP.concat settings.build_dir in
+  let target_dir = make_page_dir_name settings (Utils.concat_path orig_path) page_name |> FP.concat settings.build_dir in
   let target_file = make_page_file_name settings page_file target_dir in
   let* (target_dir, target_file, content) =
     run_pre_process_hook settings config hooks page_file target_dir target_file content
@@ -410,7 +410,6 @@ let process_page page_data index index_hash widgets hooks config settings =
     settings = settings;
   }
   in
-  let () = Logs.info @@ fun m -> m "Target dir %s" page_url in
   let* html = make_page settings page_file content in
   (* Section index injection always happens before any widgets have run *)
   let* new_pages =
