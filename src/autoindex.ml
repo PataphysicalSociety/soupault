@@ -215,6 +215,8 @@ let insert_index env soupault_config soup view =
         let* () = run_index_processor cmd ic index in Ok []
       | Defaults.LuaIndexer (file_name, lua_code) ->
         let index_view_config = Otoml.find soupault_config Otoml.get_table ["index"; "views"; view.index_view_name] |> Otoml.table in
+        (* Give the Lua index processor a filtered index view rather than the original full version. *)
+        let env = {env with site_index=index} in
         Hooks.run_lua_index_processor soupault_config index_view_config file_name lua_code env soup
     end
 
