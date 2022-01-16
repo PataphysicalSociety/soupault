@@ -392,6 +392,14 @@ struct
       let key_chunks = CCList.chunks limit keys in
       List.fold_left (take_chunk hash) [] key_chunks |> List.rev
 
+    let hash_has_value hash value =
+      let exception Found in
+      try
+        V.Luahash.iter (fun _ v -> if v = value then raise Found) hash;
+        (* If we got this far, item was not found. *)
+        false
+      with Found -> true
+
     let get_headings_tree soup =
       match soup with
       | None -> []
@@ -702,6 +710,7 @@ struct
 
     C.register_module "Table" [
       "has_key", V.efunc (V.table **-> V.value **->> V.bool) (fun t k -> V.Luahash.find_opt t k |> Option.is_some);
+      "has_value", V.efunc (V.table **-> V.value **->> V.bool) hash_has_value;
       "get_key_default", V.efunc (V.table **-> V.value **-> V.value **->> V.value) (fun t k d -> V.Luahash.find_opt t k |> Option.value ~default:d);
       "iter", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit) V.Luahash.iter;
       "iter_values", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit) (fun f t -> V.Luahash.iter (fun _ v -> f v) t);
