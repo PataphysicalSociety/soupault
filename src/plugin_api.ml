@@ -719,6 +719,8 @@ struct
       "iter_values_ordered", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit)
         (fun f h -> List.iter (fun k -> f (V.Luahash.find h k)) @@ get_hash_keys h);
       "apply", V.efunc ((V.func (V.value **-> V.value **->> V.option V.value)) **-> V.table **->> V.unit) V.Luahash.filter_map_inplace;
+      "apply_to_values", V.efunc ((V.func (V.value **->> V.option V.value)) **-> V.table **->> V.unit)
+        (fun f h -> V.Luahash.filter_map_inplace (fun _ v -> f v) h);
       "fold", V.efunc ((V.func (V.value **-> V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value) V.Luahash.fold;
       "fold_values", V.efunc ((V.func (V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value)
         (fun f t i -> V.Luahash.fold (fun _ v acc -> f v acc) t i);
