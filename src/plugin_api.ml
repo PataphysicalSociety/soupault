@@ -400,6 +400,15 @@ struct
         false
       with Found -> true
 
+    let hash_find_values p h =
+      let add_matching_value h p acc k =
+        let item = V.Luahash.find h k in
+        if p item then item :: acc
+        else acc
+      in
+      let keys = get_hash_keys h in
+      List.fold_left (add_matching_value h p) [] keys |> List.rev
+
     let get_headings_tree soup =
       match soup with
       | None -> []
@@ -724,6 +733,7 @@ struct
       "fold", V.efunc ((V.func (V.value **-> V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value) V.Luahash.fold;
       "fold_values", V.efunc ((V.func (V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value)
         (fun f t i -> V.Luahash.fold (fun _ v acc -> f v acc) t i);
+      "find_values", V.efunc ((V.func (V.value **->> V.bool)) **-> V.table **->> V.list V.value) hash_find_values;
       "take", V.efunc (V.table **-> V.int **->> V.table) hash_take;
       "chunks", V.efunc (V.table **-> V.int **->> V.list V.table) hash_chunks;
       "keys", V.efunc (V.table **->> V.list V.value) get_hash_keys;
