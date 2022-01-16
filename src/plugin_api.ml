@@ -726,6 +726,7 @@ struct
         (fun f t i -> V.Luahash.fold (fun _ v acc -> f v acc) t i);
       "take", V.efunc (V.table **-> V.int **->> V.table) hash_take;
       "chunks", V.efunc (V.table **-> V.int **->> V.list V.table) hash_chunks;
+      "keys", V.efunc (V.table **->> V.list V.value) get_hash_keys;
     ] g;
 
     C.register_module "Value" [
