@@ -322,6 +322,7 @@ let save_html settings soupault_config hooks env page_source =
       Hooks.run_save_hook settings soupault_config hook_config file_name source_code env page_source
     else Utils.write_file env.target_file page_source
   | None ->
+    let () = Logs.info @@ fun m -> m "Writing generated page to %s" env.target_file in
     Utils.write_file env.target_file page_source
 
 let extract_metadata settings soupault_config hooks env html =
