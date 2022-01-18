@@ -213,8 +213,11 @@ let _get_index_view st view_name =
     | None, Some index_template, None, Error _ -> _get_template ~item_template:false index_template
     | None, None, Some script, Error _ -> ExternalIndexer script
     | None, None, None, Error _ ->
-      let () = Logs.warn @@ fun m -> m "Index view \"%s\" does not have index_item_template, index_template, index_processor,\
-         or file/lua_source options, using default template" view_name
+      let () =
+        Logs.warn @@ fun m -> m "Index view \"%s\" does not have index_item_template, index_template, index_processor,\
+          or file/lua_source options, using default template" view_name;
+        Logs.warn @@ fun m -> m "DEPRECATION: Default index item template functionality is deprecated and will be removed \
+          in future versions, please configure index_template or index_item_template explicitly."
       in default_index_processor
     | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
   in
