@@ -185,12 +185,6 @@ let valid_index_options = [
   "profile"
 ] @ valid_path_options
 
-let valid_index_view_options = [
-  "index_item_template"; "index_template"; "index_processor";
-  "index_selector"; "include_subsections"; "custom_options";
-  "file"; "lua_source";
-] @ valid_path_options
-
 let _get_index_view st view_name =
   let _get_template ?(item_template=true) tmpl =
     begin
@@ -236,7 +230,7 @@ let _get_index_view st view_name =
 let _get_index_views index_table =
   let get_view k views =
     let vt = find_table [k] views in
-    let () = check_options valid_index_view_options vt "an index view" in
+    (* No option validation, since index views allow passing arbitrary options to index processor plugins. *)
     _get_index_view vt k
   in
   let rec get_views ks views acc =
