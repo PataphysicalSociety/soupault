@@ -146,7 +146,6 @@ let render_index ?(item_template=true) template settings soup entries =
       if settings.debug then
       Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false entries)
     in
-    let entries = List.sort (compare_entries settings) entries in
     let entries =
       if item_template then List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
       else [Template.render template @@ ["entries", Template.jingoo_of_json (json_of_entries entries)] |> Soup.parse]
