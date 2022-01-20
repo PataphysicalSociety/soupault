@@ -657,6 +657,8 @@ struct
        "is_dir", V.efunc (V.string **->> V.bool) (fun s -> FileUtil.test FileUtil.Is_dir s);
        "delete_file", V.efunc (V.string **->> V.unit) Sys_wrappers.delete_file;
        "delete_recursive", V.efunc (V.string **->> V.unit) (fun s -> Sys_wrappers.delete_file ~r:true s);
+       "list_dir", V.efunc (V.string **->> V.list V.string) FileUtil.ls;
+       (* External program execution *)
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
        "run_program_get_exit_code", V.efunc (V.string **->> V.int) (Sys_wrappers.run_program_get_exit_code);
