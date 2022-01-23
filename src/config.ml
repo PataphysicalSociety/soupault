@@ -193,9 +193,8 @@ let _get_index_view st view_name =
         if item_template then IndexItemTemplate t
         else IndexTemplate t
       with _ ->
-        let () =
-          Logs.warn @@ fun m -> m "Failed to parse template \"%s\", using default (%s)" tmpl default_index_item_template
-        in default_index_processor
+        (* Jingoo does not provide meaningful parse error reporting as of 1.4.4. *)
+        config_error (Printf.sprintf "Failed to parse template:\n \"%s\"" tmpl)
     end
   in
   let _get_index_processor name st =
@@ -213,12 +212,8 @@ let _get_index_view st view_name =
     | None, Some index_template, None, Error _ -> _get_template ~item_template:false index_template
     | None, None, Some script, Error _ -> ExternalIndexer script
     | None, None, None, Error _ ->
-      let () =
-        Logs.warn @@ fun m -> m "Index view \"%s\" does not have index_item_template, index_template, index_processor,\
-          or file/lua_source options, using default template" view_name;
-        Logs.warn @@ fun m -> m "DEPRECATION: Default index item template functionality is deprecated and will be removed \
-          in future versions, please configure index_template or index_item_template explicitly."
-      in default_index_processor
+      config_error (Printf.sprintf "Index view \"%s\" does not have index_item_template, index_template, index_processor,\
+        or file/lua_source options. Please specify how you want that view to be rendered." view_name)
     | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
   in
   let selector = OH.find_string st ["index_selector"] in

@@ -225,10 +225,6 @@ let widgets_table = "widgets"
 let plugins_table = "plugins"
 let templates_table = "templates"
 
-let default_index_item_template = "<div> <a href=\"{{url}}\">{{title}}</a> </div>"
-
-let default_index_processor = IndexItemTemplate (Template.of_string default_index_item_template)
-
 let default_path_options = {
   pages = [];
   sections = [];
