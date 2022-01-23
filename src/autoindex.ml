@@ -115,8 +115,8 @@ let compare_entries settings l r =
       compare_values ODate.Unix.compare l_date r_date
     | Numeric ->
       (* Numbers coming from Lua are always floats because it doesn't have an integer/float distinction. *)
-      let l_num = l_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "an number" l_key l in
-      let r_num = r_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "an number" r_key r in
+      let l_num = l_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "a number" l_key l in
+      let r_num = r_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "a number" r_key r in
       compare_values compare l_num r_num
     | Lexicographic -> compare_values compare l_key r_key
   in
