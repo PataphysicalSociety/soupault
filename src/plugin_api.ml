@@ -234,6 +234,17 @@ module Html = struct
     | None -> ()
     | Some node -> to_element node |> Soup.remove_class class_name
 
+  let get_classes node =
+    match node with
+    | None -> raise (Plugin_error "HTML.get_classes was called on a nil value")
+    | Some node -> to_element node |> Soup.classes
+
+  let has_class node class_name =
+    match node with
+    | None -> raise (Plugin_error "HTML.has_class was called on a nil value")
+    | Some node ->
+      to_element node |> Soup.classes |> List.find_opt ((=) class_name) |> Option.is_some
+
   let do_with_node func node child =
     match node with
     | None -> ()
@@ -601,6 +612,8 @@ struct
         "clear_attributes", V.efunc (V.option Map.html **->> V.unit) Html.clear_attributes;
         "add_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.add_class;
         "remove_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.remove_class;
+        "get_classes", V.efunc (V.option Map.html **->> V.list V.string) Html.get_classes;
+        "has_class", V.efunc (V.option Map.html **-> V.string **->> V.bool) Html.has_class;
         "append_child", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.append_child);
         "prepend_child", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.prepend_child);
         "insert_before", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.insert_before);
