@@ -588,6 +588,8 @@ struct
       C.register_module "HTML" [
         "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
         "create_document", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
+        "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
+        "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
         "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
         "to_string", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.to_string);
         "pretty_print", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.pretty_print);
@@ -624,8 +626,6 @@ struct
         "delete_content", V.efunc (V.option Map.html **->> V.unit) Html.delete_content;
         "delete", V.efunc (V.option Map.html **->> V.unit) Html.delete;
         "delete_element", V.efunc (V.option Map.html **->> V.unit) Html.delete;
-        "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
-        "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
         "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
