@@ -80,9 +80,17 @@ let compare_entries settings l r =
       Some (Utils.string_of_json_primitive j)
   in
   let get_sort_key_field entry =
-    let* sort_by = settings.index_sort_by in
-    let* field = List.assoc_opt sort_by entry.fields in
-    string_of_field field
+    match settings.index_sort_by with
+    | None ->
+      (* If [index.sort_by] option is not set, sort entries by their URLs.
+         Unlike fields extracted from the page, URL is guaranteed to be present
+         and will provide a somewhat strange, but deterministic default order.
+       *)
+      Some entry.index_entry_url
+    | Some _ ->
+      let* sort_by = settings.index_sort_by in
+      let* field = List.assoc_opt sort_by entry.fields in
+      string_of_field field
   in
   let compare_values cmp_func l_val r_val =
     match l_val, r_val with
