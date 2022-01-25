@@ -65,15 +65,24 @@ let json_of_entry = Utils.json_of_index_entry
   *)
 let compare_entries settings l r =
   let (>>=) = Option.bind in
+  let (let*) = Option.bind in
   let string_of_field j =
-    try Some (Otoml.get_string ~strict:false j)
-    with Otoml.Type_error msg ->
-      let () = Logs.info @@ fun m -> m "Failed to convert a value to string: %s" msg in
+    match j with
+    | `O _ | `A _ ->
+      (* Normally shouldn't happen, just a safeguard to prevent internal logic errors
+         and poor handling of values returned by post-index hooks. *)
+      let () = Logs.info @@ fun m -> m "Field value is not a primitive: %s" (Ezjsonm.value_to_string j) in
       None
+    | _ ->
+      (* Do not use Ezjsonm.value_to_string here because it will quote all values,
+         e.g. [`Float 4.0] will become [""4.0""], not ["4.0"].
+         That will interfere with date and number parsing at the sorting stage. *)
+      Some (Utils.string_of_json_primitive j)
   in
   let get_sort_key_field entry =
-    settings.index_sort_by >>= (fun f -> List.assoc_opt f entry.fields) >>= (fun s -> Some (Utils.toml_of_json s)) >>=
-    string_of_field
+    let* sort_by = settings.index_sort_by in
+    let* field = List.assoc_opt sort_by entry.fields in
+    string_of_field field
   in
   let compare_values cmp_func l_val r_val =
     match l_val, r_val with
