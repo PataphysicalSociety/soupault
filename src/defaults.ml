@@ -41,6 +41,13 @@ type index_view = {
   index_view_path_options : path_options;
 }
 
+type index_entry = {
+  index_entry_url: string;
+  index_entry_page_file: string;
+  index_entry_nav_path: string list;
+  fields : (string * Ezjsonm.value) list;
+}
+
 type page_template = {
   template_name : string;
   template_data : string;
@@ -195,13 +202,6 @@ type settings = {
   pretty_print_html : bool;
 
   soupault_version : string option;
-}
-
-type index_entry = {
-  index_entry_url: string;
-  index_entry_page_file: string;
-  index_entry_nav_path: string list;
-  fields : (string * Ezjsonm.value) list;
 }
 
 type env = {
