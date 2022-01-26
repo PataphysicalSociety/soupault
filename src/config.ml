@@ -204,7 +204,7 @@ let get_sort_options toml =
       sort_by = sort_by;
       sort_type = Option.value ~default:"calendar" sort_type |> sort_type_from_string;
       sort_descending = Option.value ~default:true sort_descending;
-      sort_strict = Option.value ~default:true sort_strict
+      sort_strict = Option.value ~default:false sort_strict
     }
 
 let _get_index_view st view_name =
