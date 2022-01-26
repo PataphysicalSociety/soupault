@@ -259,7 +259,7 @@ let _get_index_settings settings config =
     let date_formats = find_strings_or ~default:settings.index_date_input_formats st ["date_formats"] in
     {settings with
        index = find_bool_or ~default:settings.index st ["index"];
-       index_first = find_bool_or ~default:settings.index_sort_strict st ["index_first"];
+       index_first = find_bool_or ~default:settings.index_first st ["index_first"];
        dump_json = OH.find_string_opt st ["dump_json"];
        ignore_template_errors = find_bool_or ~default:settings.ignore_template_errors st ["ignore_template_errors"];
        index_extract_after_widgets = find_strings_or ~default:[] st ["extract_after_widgets"];
