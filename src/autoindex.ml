@@ -63,7 +63,7 @@ let json_of_entry = Utils.json_of_index_entry
     2. Entries with a known date are newer than those without
     3. Of entries with known dates, ones with later dates are newer (who could guess!)
   *)
-let compare_entries settings l r =
+let compare_entries settings sort_options l r =
   let (>>=) = Option.bind in
   let (let*) = Option.bind in
   let string_of_field j =
@@ -80,7 +80,7 @@ let compare_entries settings l r =
       Some (Utils.string_of_json_primitive j)
   in
   let get_sort_key_field entry =
-    match settings.index_sort_by with
+    match sort_options.sort_by with
     | None ->
       (* If [index.sort_by] option is not set, sort entries by their URLs.
          Unlike fields extracted from the page, URL is guaranteed to be present
@@ -88,8 +88,8 @@ let compare_entries settings l r =
        *)
       Some entry.index_entry_url
     | Some _ ->
-      let* sort_by = settings.index_sort_by in
-      let* field = List.assoc_opt sort_by entry.fields in
+      let* sort_by_value = sort_options.sort_by in
+      let* field = List.assoc_opt sort_by_value entry.fields in
       string_of_field field
   in
   let compare_values cmp_func l_val r_val =
@@ -106,9 +106,9 @@ let compare_entries settings l r =
     match v with
     | Some _ -> v
     | None ->
-      if settings.index_sort_strict then Printf.ksprintf soupault_error
+      if sort_options.sort_strict then Printf.ksprintf soupault_error
         "Cannot sort entries using sort_by=\"%s\", the following entry does not have that field:\n%s"
-        (Option.get settings.index_sort_by)
+        (Option.get sort_options.sort_by)
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
   in
@@ -116,16 +116,16 @@ let compare_entries settings l r =
     match v with
     | Some _ -> v
     | None ->
-      if settings.index_sort_strict then Printf.ksprintf soupault_error
+      if sort_options.sort_strict then Printf.ksprintf soupault_error
         "Cannot sort entries using sort_by=\"%s\": value \"%s\" could not be parsed as %s. The offending entry is:\n%s"
-        (Option.get settings.index_sort_by) (Option.value ~default:"null" orig) type_name
+        (Option.get sort_options.sort_by) (Option.value ~default:"null" orig) type_name
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
   in
   let l_key = get_sort_key_field l |> handle_missing_field l in
   let r_key = get_sort_key_field r |> handle_missing_field r in
   let result =
-    match settings.index_sort_type with
+    match sort_options.sort_type with
     | Calendar ->
       let l_date = l_key >>= Utils.parse_date settings.index_date_input_formats |> handle_malformed_field "a date" l_key l in
       let r_date = r_key >>= Utils.parse_date settings.index_date_input_formats |> handle_malformed_field "a date" r_key r in
@@ -137,10 +137,10 @@ let compare_entries settings l r =
       compare_values compare l_num r_num
     | Lexicographic -> compare_values compare l_key r_key
   in
-  if settings.index_sort_descending then (~- result) else result
+  if sort_options.sort_descending then (~- result) else result
 
-let sort_entries settings es =
-  try Ok (List.sort (compare_entries settings) es)
+let sort_entries settings sort_options es =
+  try Ok (List.sort (compare_entries settings sort_options) es)
   with Soupault_error msg -> Error msg
 
 let json_of_entries = Utils.json_of_index_entries
@@ -210,8 +210,29 @@ let view_includes_page settings page_file view entry =
   else
     Path_options.page_included settings view.index_view_path_options settings.site_dir entry.index_entry_page_file
 
+(* Sort options "inheritance" *)
+let get_sort_options settings view =
+  let redefine l r =
+    if l <> r then r else l
+  in
+  match view.index_view_sort_options with
+  | None ->
+    (* If there are no configured sort options in a view,
+       use global options from the [index] table. *)
+       settings.index_sort_options
+  | Some view_sort_options ->
+    (* Else use options from the view if they are different from global options. *)
+    let l = settings.index_sort_options in
+    let r = view_sort_options in
+    {
+      sort_by = redefine l.sort_by r.sort_by;
+      sort_type = redefine l.sort_type r.sort_type;
+      sort_descending = redefine l.sort_descending r.sort_descending;
+      sort_strict = redefine l.sort_strict r.sort_strict;
+    }
+  
 let insert_index env soupault_config soup view =
-  let index_container = Soup.select_one view.index_selector soup in
+ let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
     let () = Logs.debug @@ fun m -> m "Page \"%s\" doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
@@ -222,6 +243,7 @@ let insert_index env soupault_config soup view =
       let () = Logs.info @@ fun m -> m "Rendering index view \"%s\" on page %s" view.index_view_name env.page_file in
       let (let*) = Result.bind in
       let index = List.filter (view_includes_page env.settings env.page_file view) env.site_index in
+      let* index = sort_entries env.settings (get_sort_options env.settings view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl ->
         let* () = render_index tmpl env.settings ic index in Ok []

@@ -34,11 +34,19 @@ type path_options = {
   include_subsections: bool;
 }
 
+type sort_options = {
+  sort_by : string option;
+  sort_type : sort_type;
+  sort_descending : bool;
+  sort_strict : bool;
+}
+
 type index_view = {
   index_view_name : string;
   index_selector : string;
   index_processor : index_processor;
   index_view_path_options : path_options;
+  index_view_sort_options : sort_options option;
 }
 
 type index_entry = {
@@ -185,11 +193,7 @@ type settings = {
   index_force : string list;
   index_leaf_file: string option;
 
-  (* Index field to sort by and sort order. *)
-  index_sort_by : string option;
-  index_sort_descending : bool;
-  index_sort_type : sort_type;
-  index_sort_strict : bool;
+  index_sort_options : sort_options;
 
   (* Page preprocessors convert other formats to HTML. *)
   preprocessors : (string * string) list;
@@ -235,6 +239,13 @@ let default_path_options = {
   include_subsections = false;
 }
 
+let default_sort_options = {
+  sort_by = None;
+  sort_type = Calendar;
+  sort_strict = false;
+  sort_descending = true;
+}
+
 let default_settings = {
   verbose = false;
   debug = false;
@@ -275,12 +286,10 @@ let default_settings = {
   index_path_options = default_path_options;
   index_profile = None;
   index_date_input_formats = ["%F"];
-  index_sort_by = None;
-  index_sort_type = Calendar;
-  index_sort_strict = false;
-  index_sort_descending = true;
   index_force = [];
   index_leaf_file = None;
+
+  index_sort_options = default_sort_options;
 
   preprocessors = [];
 

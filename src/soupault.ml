@@ -673,8 +673,6 @@ let main () =
            and also often (though not always) reduces the number of widgets that will run on each page.
          *)
         let* index = process_page_files index_hash widgets hooks config {settings with index_only=true} page_files in
-        (* Make a sorted list of entries for index processors to render on section index pages. *)
-        let* index = Autoindex.sort_entries settings index in
         let () = import_index_hash index_hash index in
        (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
            content pages and section index pages should be treated the same.
@@ -714,7 +712,6 @@ let main () =
            so we can safely give it an empty hash.
          *)
         let* index = process_page_files index_hash widgets hooks config settings page_files in
-        let* index = Autoindex.sort_entries settings index in
         (* Now process the index pages, using previously collected index data.
            That will not produce new index data because extraction will not run,
            but index processors may generate new pages (e.g. pagination and taxonomies).

@@ -185,6 +185,28 @@ let valid_index_options = [
   "profile"
 ] @ valid_path_options
 
+(* Retrieve sort options.
+   The tricky part is that we need to distinguish between two situations:
+   1. none of the options are set in a view, in that case we just use global settings
+   2. some or all options are set, possibly all options are explicitly set to their default values
+ *)
+let get_sort_options toml =
+  let sort_by = OH.find_string_opt toml ["sort_by"] in
+  let sort_type = OH.find_string_opt toml ["sort_type"] in
+  let sort_descending = OH.find_boolean_opt toml ["sort_descending"] in
+  let sort_strict = OH.find_boolean_opt toml ["strict_sort"] in
+  match sort_by, sort_type, sort_descending, sort_strict with
+  | None, None, None, None ->
+    (* XXX: If the number of options grows, make a helper that will check for presence of any options
+            from a given list to check if something is completely unconfigured. *)
+    None
+  | _ -> Some {
+      sort_by = sort_by;
+      sort_type = Option.value ~default:"calendar" sort_type |> sort_type_from_string;
+      sort_descending = Option.value ~default:true sort_descending;
+      sort_strict = Option.value ~default:true sort_strict
+    }
+
 let _get_index_view st view_name =
   let _get_template ?(item_template=true) tmpl =
     begin
@@ -222,7 +244,8 @@ let _get_index_view st view_name =
     index_view_name = view_name;
     index_selector = selector;
     index_processor = index_processor;
-    index_view_path_options = (get_path_options st)
+    index_view_path_options = (get_path_options st);
+    index_view_sort_options = get_sort_options st;
   }
 
 let _get_index_views index_table =
@@ -268,10 +291,7 @@ let _get_index_settings settings config =
        index_views = _get_index_views st;
        index_profile = OH.find_string_opt st ["profile"];
        index_path_options = get_path_options st;
-       index_sort_by = OH.find_string_opt st ["sort_by"];
-       index_sort_type = find_string_or ~default:"calendar" st ["sort_type"] |> sort_type_from_string;
-       index_sort_strict = find_bool_or ~default:settings.index_sort_strict st ["strict_sort"];
-       index_sort_descending = find_bool_or ~default:true st ["sort_descending"];
+       index_sort_options = get_sort_options st |> Option.value ~default:Defaults.default_sort_options;
        index_date_input_formats = date_formats;
        index_force = find_strings_or ~default:[] st ["force_indexing_path_regex"];
        index_leaf_file = OH.find_string_opt st ["leaf_file"];
@@ -430,9 +450,6 @@ let inject_defaults settings config =
       inject_default ["index"; "extract_after_widgets"] (array []) |>
       inject_default ["index"; "strip_tags"] (boolean settings.index_strip_tags) |>
       inject_default ["index"; "date_formats"] (array @@ List.map string settings.index_date_input_formats) |>
-      inject_default ["index"; "sort_type"] (string "calendar") |>
-      inject_default ["index"; "strict_sort"] (boolean settings.index_sort_strict) |>
-      inject_default ["index"; "sort_descending"] (boolean settings.index_sort_descending) |>
       inject_default ["index"; "force_indexing_path_regex"] (array [])
   in
   let res = inject_default_settings settings config |> inject_default_index_settings settings in
