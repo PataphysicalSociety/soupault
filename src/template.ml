@@ -21,5 +21,5 @@ let of_string s =
   with _ ->
     (* Jingoo incorrectly does not expose its parse error exception in the module interface,
        so we have to use a catch-all approach here for now. *)
-    let () = Logs.debug @@ fun m -> m "Invalid template string:\n%s" s in
+    let () = Logs.err @@ fun m -> m "Invalid template string:\n%s" s in
     raise (Soupault_error "Failed to parse template. Consult Jingoo documentation for a syntax reference.")
