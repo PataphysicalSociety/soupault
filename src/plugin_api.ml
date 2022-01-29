@@ -345,6 +345,11 @@ module Html = struct
     let* node = node in
     SoupNode (to_general node |> Html_utils.child_nodes) |> return
 
+  let unwrap node =
+    match node with
+    | None -> ()
+    | Some node -> to_element node |> Soup.unwrap
+
   let get_heading_level node =
     let* node = node in
     if not (is_element node) then None else
@@ -630,6 +635,7 @@ struct
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "inner_text", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
+        "unwrap", V.efunc (V.option Map.html **->> V.unit) Html.unwrap;
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
         "get_headings_tree", V.efunc (V.option Map.html **->> V.list V.value) get_headings_tree;
         "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
