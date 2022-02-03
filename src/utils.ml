@@ -12,6 +12,7 @@ let write_file file content =
   try
     let chan = open_out file in
     let () = Soup.write_channel chan content in
+    let () = close_out chan in
     Ok ()
   with Sys_error msg -> Error msg
 
