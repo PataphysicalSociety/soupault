@@ -75,6 +75,11 @@ module Sys_wrappers = struct
     try FileUtil.rm ~recurse:r [path]
     with Unix.Unix_error (e, _, _) ->
       Printf.ksprintf plugin_error "Could not delete file \"%s\": %s" path (Unix.error_message e)
+
+  let ls path =
+    try FileUtil.ls path
+    with Sys_error msg ->
+      Printf.ksprintf plugin_error "Failed to get directory contents if \"%s\": %s" path msg
 end
 
 module Plugin_version = struct
@@ -682,7 +687,7 @@ struct
        "is_dir", V.efunc (V.string **->> V.bool) (fun s -> FileUtil.test FileUtil.Is_dir s);
        "delete_file", V.efunc (V.string **->> V.unit) Sys_wrappers.delete_file;
        "delete_recursive", V.efunc (V.string **->> V.unit) (fun s -> Sys_wrappers.delete_file ~r:true s);
-       "list_dir", V.efunc (V.string **->> V.list V.string) FileUtil.ls;
+       "list_dir", V.efunc (V.string **->> V.list V.string) Sys_wrappers.ls;
        (* External program execution *)
        "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
