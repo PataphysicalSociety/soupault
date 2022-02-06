@@ -36,6 +36,7 @@ let run_render_hook settings soupault_config hook_config file_name lua_code env 
   let () =
     (* Set up the hook environment *)
     I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["page_url", lua_str.embed env.page_url] state;
     I.register_globals ["site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index)] state;
     I.register_globals ["index_entry", Plugin_api.lua_of_json index_entry_json] state;
     I.register_globals ["target_file", lua_str.embed env.target_file] state;
@@ -61,6 +62,7 @@ let run_save_hook settings soupault_config hook_config file_name lua_code env pa
     (* Set up the save hook environment *)
     I.register_globals ["page_source", lua_str.embed page_source] state;
     I.register_globals ["page_file", lua_str.embed env.page_file] state;
+    I.register_globals ["page_url", lua_str.embed env.page_url] state;
     I.register_globals ["target_file", lua_str.embed env.target_file] state;
     I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
     I.register_globals ["config", lua_of_toml hook_config] state;
@@ -103,6 +105,7 @@ let run_post_index_hook settings soupault_config hook_config file_name lua_code 
    let () =
     (* Set up the post-index hook environment *)
     I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["page_url", lua_str.embed env.page_url] state;
     I.register_globals ["page_file", lua_str.embed env.page_file] state;
     I.register_globals ["index_fields", Plugin_api.lua_of_json (`O fields)] state;
     I.register_globals ["config", lua_of_toml hook_config] state;
@@ -153,7 +156,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
        let nav_path = Utils.split_path (FilePath.dirname page_file) |> Utils.drop_head in
        {page_file_path=page_file; page_content=(Some page_content); page_nav_path=nav_path}
     | _ ->
-      failwith "generated page must be a table with fields \"page_file\" and \"page content\""
+      failwith "generated page must be a table with fields \"page_file\" (string) and \"page_content\" (string)"
   in
   let open Defaults in
   let lua_str = I.Value.string in
@@ -162,6 +165,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
   let () =
     (* Set up the hook environment *)
     I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["page_url", lua_str.embed env.page_url] state;
     I.register_globals ["site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index)] state;
     I.register_globals ["page_file", lua_str.embed env.page_file] state;
     I.register_globals ["target_file", lua_str.embed env.target_file] state;
