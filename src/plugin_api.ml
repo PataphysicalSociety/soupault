@@ -302,6 +302,11 @@ module Html = struct
     | SoupNode _ -> raise (Plugin_error "Cannot use replace_content with a document node")
     | GeneralNode _ as n -> Html_utils.replace_content (to_element n) child
 
+  let append_root node child =
+    let node = to_soup node in
+    let child = to_general child in
+    Soup.append_root node child
+
   let delete_content node =
     match node with
     | None -> ()
@@ -645,6 +650,7 @@ struct
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "inner_text", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
+        "append_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_root;
         "unwrap", V.efunc (V.option Map.html **->> V.unit) Html.unwrap;
         "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
