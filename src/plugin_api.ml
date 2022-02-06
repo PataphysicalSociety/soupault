@@ -355,6 +355,10 @@ module Html = struct
     let* node = node in
     SoupNode (to_general node |> Html_utils.child_nodes) |> return
 
+  let clone_page node =
+    let node = to_soup node in
+    SoupNode (Soup.to_string node |> Soup.parse)
+
   let unwrap node =
     match node with
     | None -> ()
@@ -648,6 +652,7 @@ struct
         "delete_element", V.efunc (V.option Map.html **->> V.unit) Html.delete;
         "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
+        "clone_page", V.efunc (Map.html **->> Map.html) Html.clone_page;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "inner_text", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "append_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_root;
