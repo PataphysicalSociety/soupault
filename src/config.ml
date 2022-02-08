@@ -34,7 +34,7 @@ let common_widget_options = [
   "widget";
   "path_regex"; "exclude_path_regex";
   "page"; "exclude_page";
-  "section"; "exclude_section";
+  "section"; "exclude_section"; "include_subsections";
   "profile";
   "after";
   "disabled"
