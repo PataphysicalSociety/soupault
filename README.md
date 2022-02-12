@@ -1,9 +1,9 @@
 soupault
 ========
 
-![Build](https://github.com/dmbaturin/soupault/actions/workflows/main.yml/badge.svg)
-![Lines of code](https://img.shields.io/tokei/lines/github/dmbaturin/soupault)
-![GitHub all releases](https://img.shields.io/github/downloads/dmbaturin/soupault/total)
+![Build](https://github.com/PataphysicalSociety/soupault/actions/workflows/main.yml/badge.svg)
+![Lines of code](https://img.shields.io/tokei/lines/github/PataphysicalSociety/soupault)
+![GitHub all releases](https://img.shields.io/github/downloads/PataphysicalSociety/soupault/total)
 
 Soupault is an HTML manipulation tool. It can be any of:
 
