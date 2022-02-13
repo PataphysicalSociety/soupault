@@ -36,6 +36,7 @@ let run_render_hook settings soupault_config hook_config file_name lua_code env 
   let () =
     (* Set up the hook environment *)
     I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
+    I.register_globals ["page_file", lua_str.embed env.page_file] state;
     I.register_globals ["page_url", lua_str.embed env.page_url] state;
     I.register_globals ["site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index)] state;
     I.register_globals ["index_entry", Plugin_api.lua_of_json index_entry_json] state;
@@ -76,13 +77,14 @@ let run_save_hook settings soupault_config hook_config file_name lua_code env pa
   let () = Logs.info @@ fun m -> m "Running the save hook on page %s" env.page_file in
   Plugin_api.run_lua file_name state lua_code
 
-let run_pre_parse_hook settings soupault_config hook_config file_name lua_code page_source =
+let run_pre_parse_hook settings soupault_config hook_config file_name lua_code page_file page_source =
   let open Defaults in
   let lua_str = I.Value.string in
   let state = I.mk () in
    let () =
     (* Set up the save hook environment *)
     I.register_globals ["page_source", lua_str.embed page_source] state;
+    I.register_globals ["page_file", lua_str.embed page_file] state;
     I.register_globals ["config", lua_of_toml hook_config] state;
     I.register_globals ["hook_config", lua_of_toml hook_config] state;
     I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
@@ -90,7 +92,7 @@ let run_pre_parse_hook settings soupault_config hook_config file_name lua_code p
     I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
   in
   let (let*) = Result.bind in
-  let () = Logs.info @@ fun m -> m "Running the pre-parse hook on page %s" file_name in
+  let () = Logs.info @@ fun m -> m "Running the pre-parse hook on page %s" page_file in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let res = I.getglobal state (I.Value.string.embed "page_source") in
   if I.Value.string.is res then Ok (I.Value.string.project res)

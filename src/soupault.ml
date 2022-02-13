@@ -123,7 +123,7 @@ let load_html settings soupault_config hooks page_file =
     | Some (file_name, source_code, hook_config) ->
       if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
         let () = Logs.info @@ fun m -> m "Running the \"pre-parse\" hook on page %s" page_file in
-        Hooks.run_pre_parse_hook settings soupault_config hook_config file_name source_code page_source
+        Hooks.run_pre_parse_hook settings soupault_config hook_config file_name source_code page_file page_source
       else Ok page_source
     | None -> Ok page_source
   in
