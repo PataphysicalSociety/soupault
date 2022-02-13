@@ -49,6 +49,7 @@ let run_render_hook settings soupault_config hook_config file_name lua_code env 
     I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
   in
   let (let*) = Result.bind in
+  let () = Logs.info @@ fun m -> m "Running the render hook on page %s" env.page_file in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let res = I.getglobal state (I.Value.string.embed "page_source") in
   if I.Value.string.is res then Ok (I.Value.string.project res)
@@ -72,6 +73,7 @@ let run_save_hook settings soupault_config hook_config file_name lua_code env pa
     I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
     I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
   in
+  let () = Logs.info @@ fun m -> m "Running the save hook on page %s" env.page_file in
   Plugin_api.run_lua file_name state lua_code
 
 let run_pre_parse_hook settings soupault_config hook_config file_name lua_code page_source =
@@ -88,6 +90,7 @@ let run_pre_parse_hook settings soupault_config hook_config file_name lua_code p
     I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
   in
   let (let*) = Result.bind in
+  let () = Logs.info @@ fun m -> m "Running the pre-parse hook on page %s" file_name in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let res = I.getglobal state (I.Value.string.embed "page_source") in
   if I.Value.string.is res then Ok (I.Value.string.project res)
@@ -116,6 +119,7 @@ let run_post_index_hook settings soupault_config hook_config file_name lua_code 
     I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
   in
   let (let*) = Result.bind in
+  let () = Logs.info @@ fun m -> m "Running the post-index hook on page %s" env.page_file in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let index_fields = I.getglobal state (I.Value.string.embed "index_fields") in
   if not (I.Value.table.is index_fields) then
@@ -142,6 +146,7 @@ let run_pre_process_hook settings soupault_config hook_config file_name lua_code
     I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
   in
   let (let*) = Result.bind in
+  let () = Logs.info @@ fun m -> m "Running the pre-process hook on page %s" page_file in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let* target_file = Plugin_api.get_global state "target_file" I.Value.string in
   let* target_dir = Plugin_api.get_global state "target_dir" I.Value.string in
@@ -183,6 +188,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
     I.register_globals ["pages", table_list.embed []] state;
   in
   let (let*) = Result.bind in
+  let () = Logs.info @@ fun m -> m "Running Lua index processor on page %s" env.page_file in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let res = I.getglobal state (I.Value.string.embed "pages") in
   if not (table_list.is res) then Error "Index processor has not assigned a list of tables to the pages variable" else
