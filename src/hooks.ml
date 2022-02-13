@@ -185,7 +185,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
   let (let*) = Result.bind in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let res = I.getglobal state (I.Value.string.embed "pages") in
-  if not (table_list.is res) then Error "render hook has not assigned a list of tables to the pages variable" else
+  if not (table_list.is res) then Error "Index processor has not assigned a list of tables to the pages variable" else
   try Ok ((I.Value.list I.Value.value).project res |> List.map page_from_lua)
   with Failure msg -> Error (Printf.sprintf "Index processor generated a page incorrectly: %s" msg)
 
