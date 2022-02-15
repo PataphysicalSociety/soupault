@@ -44,6 +44,7 @@ type sort_options = {
 type index_view = {
   index_view_name : string;
   index_selector : string;
+  index_action : string option;
   index_processor : index_processor;
   index_view_path_options : path_options;
   index_view_sort_options : sort_options option;

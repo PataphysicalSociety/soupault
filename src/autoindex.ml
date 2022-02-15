@@ -155,7 +155,7 @@ let jingoo_model_of_entry e =
   | _ -> failwith "json_of_entry returned something else than an object, which must not happen"
 
 (** Renders an index using built-in Mustache templates *)
-let render_index ?(item_template=true) template settings soup entries =
+let render_index ?(item_template=true) view template settings soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
   try
     let () =
@@ -167,7 +167,7 @@ let render_index ?(item_template=true) template settings soup entries =
       if item_template then List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
       else [Template.render template @@ ["entries", Template.jingoo_of_json (json_of_entries entries)] |> Soup.parse]
     in
-    let () = List.iter (Soup.append_child soup) entries in
+    let () = List.iter (Html_utils.insert_element view.index_action soup) entries in
     Ok ()
   with
   | Failure err ->
@@ -180,7 +180,7 @@ let render_index ?(item_template=true) template settings soup entries =
     (* Just in case something else happens *)
     Error ("Index template rendering failed for an undeterminable reason")
 
-let run_index_processor cmd ic index =
+let run_index_processor view cmd ic index =
   (* Minification is intentional, newline is used as end of input *)
   let json = json_string_of_entries ~minify:true index in
   let () = Logs.info @@ fun m -> m "Calling index processor %s" cmd in
@@ -188,7 +188,7 @@ let run_index_processor cmd ic index =
   begin
     match output with
     | Error _ as e -> e
-    | Ok output -> Ok (Soup.append_child ic (Soup.parse output))
+    | Ok output -> Ok (Html_utils.insert_element view.index_action ic (Soup.parse output))
   end
 
 let view_includes_page settings page_file view entry =
@@ -246,11 +246,11 @@ let insert_index env soupault_config soup view =
       let* index = sort_entries env.settings (get_sort_options env.settings view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl ->
-        let* () = render_index tmpl env.settings ic index in Ok []
+        let* () = render_index view tmpl env.settings ic index in Ok []
       | Defaults.IndexTemplate tmpl ->
-        let* () = render_index ~item_template:false tmpl env.settings ic index in Ok []
+        let* () = render_index ~item_template:false view tmpl env.settings ic index in Ok []
       | Defaults.ExternalIndexer cmd ->
-        let* () = run_index_processor cmd ic index in Ok []
+        let* () = run_index_processor view cmd ic index in Ok []
       | Defaults.LuaIndexer (file_name, lua_code) ->
         let index_view_config = Otoml.find soupault_config Otoml.get_table ["index"; "views"; view.index_view_name] |> Otoml.table in
         (* Give the Lua index processor a filtered index view rather than the original full version. *)
