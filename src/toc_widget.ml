@@ -192,7 +192,7 @@ let toc _ config soup =
     ignore_heading_selectors = Config.find_strings_or ~default:[] config ["ignore_heading_selectors"];
   } in
   let selector = Config.find_string_result config ["selector"] in
-  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let action = OH.find_string_opt config ["action"] in
   match selector with
   | Error _ as e -> e
   | Ok selector ->

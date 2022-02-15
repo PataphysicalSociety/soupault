@@ -198,7 +198,7 @@ let render_html settings config hooks env soup =
 let include_content action selector html content =
   let element = Soup.select_one selector html in
   match element with
-  | Some element -> Ok (Html_utils.insert_element action element content)
+  | Some element -> Ok (Html_utils.insert_element (Some action) element content)
   | None ->
     Error (Printf.sprintf "No element in the template matches selector \"%s\", nowhere to insert the content"
            selector)

@@ -15,7 +15,7 @@ let insert_html _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"insert_html\"" in
   let selector = get_selectors config in
-  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   match selector with
@@ -38,7 +38,7 @@ let include_file _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"include\"" in
   let selector = get_selectors config in
-  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   match selector with
@@ -70,7 +70,7 @@ let include_program_output env config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"exec\"" in
   let selector = get_selectors config in
-  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   match selector with
@@ -117,6 +117,7 @@ let preprocess_element env config soup =
   (* Retrieve configuration options *)
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config "widget \"preprocess_element\"" in
+  (* This widget replaces the original element with its preprocessed version by default. *)
   let action = Config.find_string_or ~default:"replace_content" config ["action"] in
   let parse = Config.find_bool_or ~default:true config ["parse"]  in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
@@ -124,5 +125,5 @@ let preprocess_element env config soup =
   let* command = Config.find_string_result config ["command"] in
   let nodes = Html_utils.select_all selectors soup in
   try
-    Ok (List.iter (run_command command action parse html_body_context) nodes)
+    Ok (List.iter (run_command command (Some action) parse html_body_context) nodes)
   with Failure e -> Error e

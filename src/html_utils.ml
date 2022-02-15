@@ -150,6 +150,7 @@ let insert_element action container content =
      ("replace_element", Soup.replace); ("replace_content", replace_content);
      ("ignore_output", fun _ _ -> ())]
   in
+  let action = Option.value ~default:"append_child" action in
   let action_fun = List.assoc_opt action actions in
   match action_fun with
   | Some f -> f container content

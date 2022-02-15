@@ -110,7 +110,7 @@ let footnotes _ config soup =
      "back_links"; "back_link_id_append"; "link_id_prepend"; "action"] in
   let () = Config.check_options valid_options config "widget \"footnotes\"" in
   let* selector = Config.find_string_result config ["selector"] in
-  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let action = OH.find_string_opt config ["action"] in
   let note_selector = Config.find_strings_or ~default:[".footnote"] config ["footnote_selector"] in
   let* ref_tmpl = Config.find_string_or ~default:"<sup></sup>" config ["ref_template"] |> Html_utils.check_template "*" in
   let* note_tmpl = Config.find_string_or ~default:"<p></p>" config ["footnote_template"] |> Html_utils.check_template "*" in

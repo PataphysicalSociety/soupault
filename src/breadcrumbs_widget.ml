@@ -35,7 +35,7 @@ let breadcrumbs env config soup =
   let () = Config.check_options valid_options config "widget \"breadcrumbs\"" in
   let min_depth = Config.find_integer_or ~default:1 config ["min_depth"] in
   let selector = Config.find_string_result config ["selector"] in
-  let action = Config.find_string_or ~default:"append_child" config ["action"] in
+  let action = Otoml.Helpers.find_string_opt config ["action"] in
   match selector with
   | Error _ as e -> e
   | Ok selector ->
