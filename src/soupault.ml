@@ -648,10 +648,10 @@ let main () =
     (* If settings.process_pages_first is set, extract those pages and move them to the head of the list.
        For an empty list it would return the original list, but it would require traversing that list twice,
        so it's better to avoid it unless it's actually required. *)
-    let page_files =
+    let* page_files =
       if settings.process_pages_first <> []
       then Site_dir.reorder_pages settings page_files
-      else page_files
+      else Ok page_files
     in
     let* () =
       if not settings.index_only

@@ -1,4 +1,5 @@
 open Defaults
+open Soupault_common
 
 module FP = FilePath
 module FU = FileUtil
@@ -78,8 +79,18 @@ let get_site_files settings =
       dirs
   in aux settings.site_dir []
 
+(* If settings.process_pages_first is set, move those pages to the head of the list.
+   If any of those don't exist, fail with an error to let the user know their config is inconsistent. *)
 let reorder_pages settings all_pages =
+  let page_exists pages path =
+    match List.find_opt (fun p -> p.page_file_path = path) pages with
+    | Some _ -> ()
+    | None -> soupault_error @@ Printf.sprintf {|Page "%s" from settings.process_pages_first does not exist!|} path
+  in
   let process_first = List.map (FilePath.concat settings.site_dir) settings.process_pages_first in
-  let pages_first = List.find_all (fun i -> Utils.in_list process_first i.page_file_path) all_pages in
-  let pages_rest = List.filter (fun i -> not @@ Utils.in_list process_first i.page_file_path) all_pages in
-  List.append pages_first pages_rest
+  try
+    let () = List.iter (page_exists all_pages) settings.process_pages_first in
+    let pages_first = List.find_all (fun i -> Utils.in_list process_first i.page_file_path) all_pages in
+    let pages_rest = List.filter (fun i -> not @@ Utils.in_list process_first i.page_file_path) all_pages in
+    Ok (List.append pages_first pages_rest)
+  with Soupault_error msg -> Error msg
