@@ -85,7 +85,9 @@ let reorder_pages settings all_pages =
   let page_exists pages path =
     match List.find_opt (fun p -> p.page_file_path = path) pages with
     | Some _ -> ()
-    | None -> soupault_error @@ Printf.sprintf {|Page "%s" from settings.process_pages_first does not exist!|} path
+    | None ->
+      soupault_error @@ Printf.sprintf
+        {|Page "%s" from settings.process_pages_first does not exist or is not a content page!|} path
   in
   let process_first = List.map (FilePath.concat settings.site_dir) settings.process_pages_first in
   try
