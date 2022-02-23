@@ -138,6 +138,9 @@ type settings = {
      but treats everything as a complete page. *)
   generator_mode : bool;
 
+  (* Content pages to process before everything else, if they exist. *)
+  process_pages_first : string list;
+
   (* Build "profiles" specified from the CLI with --profile
      E.g. "dev" or "production".
      Widgets can be restricted to specific profiles.
@@ -269,6 +272,7 @@ let default_settings = {
   keep_extensions = ["html"; "htm"];
   complete_page_selector = "html";
   generator_mode = true;
+  process_pages_first = [];
   build_profiles = [];
 
   index = false;

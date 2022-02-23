@@ -77,3 +77,9 @@ let get_site_files settings =
       (section_page_files, section_index_files, section_asset_files)
       dirs
   in aux settings.site_dir []
+
+let reorder_pages settings all_pages =
+  let process_first = List.map (FilePath.concat settings.site_dir) settings.process_pages_first in
+  let pages_first = List.find_all (fun i -> Utils.in_list process_first i.page_file_path) all_pages in
+  let pages_rest = List.filter (fun i -> not @@ Utils.in_list process_first i.page_file_path) all_pages in
+  List.append pages_first pages_rest
