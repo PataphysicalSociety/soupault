@@ -144,6 +144,17 @@ let run_render_hook settings config hooks env soup =
   | None -> Ok None
 
 let render_html_builtin settings soup =
+  let add_doctype settings html_str =
+    (* 32K is probably a sensible guesstimate of the average page size *)
+    let buf = Buffer.create (32 * 1024) in
+    let doctype = settings.doctype |> String.trim in
+    let () =
+      Buffer.add_string buf doctype;
+      Buffer.add_char buf '\n';
+      Buffer.add_string buf html_str
+    in
+    Buffer.contents buf
+  in
   let print_html = if settings.pretty_print_html then Soup.pretty_print else Soup.to_string in
   if settings.keep_doctype then
     begin
@@ -157,8 +168,7 @@ let render_html_builtin settings soup =
          but if the user chose to force a doctype, it's their responsibilty.
        *)
       if not has_doctype then
-        let doctype = settings.doctype |> String.trim in
-        doctype ^ "\n" ^ html_str
+        add_doctype settings html_str
       else html_str
     end
   else
@@ -171,12 +181,11 @@ let render_html_builtin settings soup =
          so we extract the <html> from the document tree,
          and prepend a doctype to it.
          That is, if the document even has <html> to begin with--see below. *)
-      let doctype = settings.doctype |> String.trim in
       let html = Soup.select_one "html" soup in
       match html with
       | Some html ->
         let html_str = print_html html in
-        doctype ^ "\n" ^ html_str
+        add_doctype settings html_str
       | None ->
         (* This may happen if a page (in postprocessor mode)
            or a page template (in generator mode)
