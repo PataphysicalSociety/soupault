@@ -158,7 +158,7 @@ let render_html_builtin settings soup =
        *)
       if not has_doctype then
         let doctype = settings.doctype |> String.trim in
-        doctype ^ html_str
+        doctype ^ "\n" ^ html_str
       else html_str
     end
   else
@@ -176,7 +176,7 @@ let render_html_builtin settings soup =
       match html with
       | Some html ->
         let html_str = print_html html in
-        doctype ^ html_str
+        doctype ^ "\n" ^ html_str
       | None ->
         (* This may happen if a page (in postprocessor mode)
            or a page template (in generator mode)
