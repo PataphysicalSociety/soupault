@@ -35,19 +35,21 @@ let run_render_hook settings soupault_config hook_config file_name lua_code env 
   in
   let () =
     (* Set up the hook environment *)
-    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
-    I.register_globals ["page_file", lua_str.embed env.page_file] state;
-    I.register_globals ["page_url", lua_str.embed env.page_url] state;
-    I.register_globals ["site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index)] state;
-    I.register_globals ["index_entry", Plugin_api.lua_of_json index_entry_json] state;
-    I.register_globals ["target_file", lua_str.embed env.target_file] state;
-    I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
-    I.register_globals ["config", lua_of_toml hook_config] state;
-    I.register_globals ["hook_config", lua_of_toml hook_config] state;
-    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
-    I.register_globals ["force", I.Value.bool.embed settings.force] state;
-    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
-    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+    I.register_globals [
+      "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
+      "page_file", lua_str.embed env.page_file;
+      "page_url", lua_str.embed env.page_url;
+      "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index);
+      "index_entry", Plugin_api.lua_of_json index_entry_json;
+      "target_file", lua_str.embed env.target_file;
+      "target_dir", lua_str.embed env.target_dir;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state;
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the render hook on page %s" env.page_file in
@@ -62,17 +64,19 @@ let run_save_hook settings soupault_config hook_config file_name lua_code env pa
   let state = I.mk () in
    let () =
     (* Set up the save hook environment *)
-    I.register_globals ["page_source", lua_str.embed page_source] state;
-    I.register_globals ["page_file", lua_str.embed env.page_file] state;
-    I.register_globals ["page_url", lua_str.embed env.page_url] state;
-    I.register_globals ["target_file", lua_str.embed env.target_file] state;
-    I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
-    I.register_globals ["config", lua_of_toml hook_config] state;
-    I.register_globals ["hook_config", lua_of_toml hook_config] state;
-    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
-    I.register_globals ["force", I.Value.bool.embed settings.force] state;
-    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
-    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+    I.register_globals [
+      "page_source", lua_str.embed page_source;
+      "page_file", lua_str.embed env.page_file;
+      "page_url", lua_str.embed env.page_url;
+      "target_file", lua_str.embed env.target_file;
+      "target_dir", lua_str.embed env.target_dir;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state;
   in
   let () = Logs.info @@ fun m -> m "Running the save hook on page %s" env.page_file in
   Plugin_api.run_lua file_name state lua_code
@@ -83,13 +87,15 @@ let run_pre_parse_hook settings soupault_config hook_config file_name lua_code p
   let state = I.mk () in
    let () =
     (* Set up the save hook environment *)
-    I.register_globals ["page_source", lua_str.embed page_source] state;
-    I.register_globals ["page_file", lua_str.embed page_file] state;
-    I.register_globals ["config", lua_of_toml hook_config] state;
-    I.register_globals ["hook_config", lua_of_toml hook_config] state;
-    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
-    I.register_globals ["force", I.Value.bool.embed settings.force] state;
-    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+    I.register_globals [
+      "page_source", lua_str.embed page_source;
+      "page_file", lua_str.embed page_file;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state;
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the pre-parse hook on page %s" page_file in
@@ -109,16 +115,18 @@ let run_post_index_hook settings soupault_config hook_config file_name lua_code 
   let state = I.mk () in
    let () =
     (* Set up the post-index hook environment *)
-    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
-    I.register_globals ["page_url", lua_str.embed env.page_url] state;
-    I.register_globals ["page_file", lua_str.embed env.page_file] state;
-    I.register_globals ["index_fields", Plugin_api.lua_of_json (`O fields)] state;
-    I.register_globals ["config", lua_of_toml hook_config] state;
-    I.register_globals ["hook_config", lua_of_toml hook_config] state;
-    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
-    I.register_globals ["force", I.Value.bool.embed settings.force] state;
-    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
-    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+    I.register_globals [
+      "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
+      "page_url", lua_str.embed env.page_url;
+      "page_file", lua_str.embed env.page_file;
+      "index_fields", Plugin_api.lua_of_json (`O fields);
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir;
+    ] state
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the post-index hook on page %s" env.page_file in
@@ -136,16 +144,18 @@ let run_pre_process_hook settings soupault_config hook_config file_name lua_code
   let state = I.mk () in
    let () =
     (* Set up the post-index hook environment *)
-    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
-    I.register_globals ["page_file", lua_str.embed page_file] state;
-    I.register_globals ["target_file", lua_str.embed target_file] state;
-    I.register_globals ["target_dir", lua_str.embed target_dir] state;
-    I.register_globals ["config", lua_of_toml hook_config] state;
-    I.register_globals ["hook_config", lua_of_toml hook_config] state;
-    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
-    I.register_globals ["force", I.Value.bool.embed settings.force] state;
-    I.register_globals ["build_dir", lua_str.embed settings.build_dir] state;
-    I.register_globals ["site_dir", lua_str.embed settings.site_dir] state;
+    I.register_globals [
+      "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
+      "page_file", lua_str.embed page_file;
+      "target_file", lua_str.embed target_file;
+      "target_dir", lua_str.embed target_dir;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state;
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the pre-process hook on page %s" page_file in
@@ -171,18 +181,20 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
   let state = I.mk () in
   let () =
     (* Set up the hook environment *)
-    I.register_globals ["page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup)] state;
-    I.register_globals ["page_url", lua_str.embed env.page_url] state;
-    I.register_globals ["site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index)] state;
-    I.register_globals ["page_file", lua_str.embed env.page_file] state;
-    I.register_globals ["target_file", lua_str.embed env.target_file] state;
-    I.register_globals ["target_dir", lua_str.embed env.target_dir] state;
-    I.register_globals ["config", lua_of_toml index_view_config] state;
-    I.register_globals ["index_view_config", lua_of_toml index_view_config] state;
-    I.register_globals ["soupault_config", lua_of_toml soupault_config] state;
-    I.register_globals ["force", I.Value.bool.embed env.settings.force] state;
-    I.register_globals ["build_dir", lua_str.embed env.settings.build_dir] state;
-    I.register_globals ["site_dir", lua_str.embed env.settings.site_dir] state;
+    I.register_globals [
+      "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
+      "page_url", lua_str.embed env.page_url;
+      "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index);
+      "page_file", lua_str.embed env.page_file;
+      "target_file", lua_str.embed env.target_file;
+      "target_dir", lua_str.embed env.target_dir;
+      "config", lua_of_toml index_view_config;
+      "index_view_config", lua_of_toml index_view_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed env.settings.force;
+      "build_dir", lua_str.embed env.settings.build_dir;
+      "site_dir", lua_str.embed env.settings.site_dir
+     ] state;
     (* Set the output variable `pages` to an empty list by default,
        so that index processors that don't create pagination or taxonomies
        don't have to set it at all.
