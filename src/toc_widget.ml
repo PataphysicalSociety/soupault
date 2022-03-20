@@ -53,7 +53,7 @@ let get_heading_id settings counter heading =
             ~sub:settings.slug_replacement
             t
           with _ ->
-            soupault_error @@ Printf.sprintf "Invalid regex in a slug_regex option: '%s'"
+            soupault_error @@ Printf.sprintf "Invalid regex in the slug_regex option: '%s'"
               (Option.value ~default:"" regex)
         else t
     end
