@@ -116,13 +116,26 @@ let level_matches settings h =
   let level = Html_utils.get_heading_level h in
   (level <= settings.max_level) && (level >= settings.min_level)
 
+let ignored_heading settings soup h =
+  let res = Html_utils.matches_any_of settings.ignore_heading_selectors soup h in
+  match res with
+  | true ->
+    let () = Logs.debug @@ fun m -> m "Heading %s is ignored due to ignore_selector settings" (Soup.to_string h) in
+    true
+  | false -> false
+
 let rec _make_toc settings depth counter parent tree =
   let heading = Rose_tree.(tree.value) in
   let children = Rose_tree.(tree.children) in
   let level = Html_utils.get_heading_level heading in
-  if level > settings.max_level then () else
-  if level < settings.min_level then List.iter (_make_toc settings depth counter parent) children else
-  let item = add_item settings heading parent in
+  if level > settings.max_level then
+    Logs.debug @@ fun m -> m "Heading %s is ignored because its level exceeds max_level (%d)"
+      (Soup.to_string heading) settings.max_level
+  else if level < settings.min_level then
+    Logs.debug @@ fun m -> m "Heading %s is ignored because its level is below min_level (%d), processings its sub-headings (if any)"
+      (Soup.to_string heading) settings.min_level;
+    List.iter (_make_toc settings depth counter parent) children
+  else let item = add_item settings heading parent in
   match children with
   | [] -> ()
   | _ ->
@@ -206,7 +219,7 @@ let toc _ config soup =
       begin
         let counter = make_counter 0 in
         let headings = Html_utils.find_headings soup in
-        let headings = List.filter (fun e -> not @@ Html_utils.matches_any_of settings.ignore_heading_selectors soup e) headings in
+        let headings = List.filter (fun e -> not @@ ignored_heading settings soup e) headings in
         if ((List.length headings) < settings.min_headings) then Ok () else
         let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
         let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
