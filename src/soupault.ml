@@ -567,7 +567,7 @@ let initialize () =
     begin
       if not settings.generator_mode then
         Logs.info @@ fun m -> m "Running in HTML processor mode, not using page templates";
-      if settings.index_only && not (settings.index && (settings.dump_json <> None)) then
+      if settings.index_only && not (settings.index && (settings.dump_index_json <> None)) then
         Logs.warn @@ fun m -> m "--index-only is useless without index=true and dump_json options in the config!";
       if settings.build_dir = "" then
       (* Treating build_dir="" as "build in the current dir" wasn't a part of the design.
@@ -580,7 +580,7 @@ let initialize () =
   else (Ok (config, widgets, hooks, settings))
 
 let dump_index_json settings index =
-  match settings.dump_json with
+  match settings.dump_index_json with
   | None -> Ok ()
   | Some f ->
     try Ok (Soup.write_file f @@ Autoindex.json_string_of_entries index)

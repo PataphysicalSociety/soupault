@@ -169,7 +169,7 @@ type settings = {
   index : bool;
 
   (* Save site metadata to a JSON file. *)
-  dump_json : string option;
+  dump_index_json : string option;
 
 
   ignore_template_errors : bool;
@@ -282,7 +282,7 @@ let default_settings = {
   (* Must always be false by default, only used internally. *)
   no_index_extraction = false;
 
-  dump_json = None;
+  dump_index_json = None;
   ignore_template_errors = false;
   index_extract_after_widgets = [];
   index_fields = [];
