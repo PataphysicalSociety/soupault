@@ -476,6 +476,7 @@ let get_args settings =
     ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "<DIR>  Output directory");
     ("--profile", Arg.String (fun s -> sr := {!sr with build_profiles=(s :: !sr.build_profiles)}), "<NAME>  Build profile (you can give this option more than once)");
     ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
+    ("--dump-index-json", Arg.String (fun s -> sr := {!sr with dump_index_json=(Some s)}), "<PATH>  Dump extracted index into a JSON file");
     ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
     ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
     ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
