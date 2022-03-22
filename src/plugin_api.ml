@@ -734,6 +734,8 @@ struct
        "render_template", V.efunc (V.string **-> V.value **->> V.string) render_template;
        "base64_encode", V.efunc (V.string **->> V.option V.string) base64_encode;
        "base64_decode", V.efunc (V.string **->> V.option V.string) base64_decode;
+       "starts_with", V.efunc (V.string **-> V.string **->> V.bool)
+         (fun s pat -> Re_wrapper.re_match s ("^" ^ pat));  
      ] g;
 
     C.register_module "JSON" [
