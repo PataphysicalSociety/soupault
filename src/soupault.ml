@@ -584,6 +584,7 @@ let dump_index_json settings index =
   match settings.dump_index_json with
   | None -> Ok ()
   | Some f ->
+    let () = Logs.info @@ fun m -> m "Exporting index data to JSON file %s" f in
     try Ok (Soup.write_file f @@ Autoindex.json_string_of_entries index)
     with Sys_error e -> Error e
 
