@@ -744,6 +744,7 @@ struct
        "base64_encode", V.efunc (V.string **->> V.option V.string) base64_encode;
        "base64_decode", V.efunc (V.string **->> V.option V.string) base64_decode;
        "url_encode", V.efunc (V.string **-> V.option (V.list V.string) **->> V.string) url_encode;
+       "url_decode", V.efunc (V.string **->> V.string) Text.url_decode;
        (* Uncomment when OCaml 4.13 is available for the CI *)
        (* "starts_with", V.efunc (V.string **-> V.string **->> V.bool) (fun s pat -> String.starts_with ~prefix:pat s); *)
      ] g;
