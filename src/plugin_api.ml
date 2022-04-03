@@ -478,7 +478,7 @@ struct
       (* Everything in Lua has a truth value, so V.bool.is appears to never fail *)
       else if V.bool.is v then `Bool (V.bool.project v)
       (* Not sure if this actually can happen *)
-      else raise (Plugin_error "Unimplemented projection")
+      else internal_error  "Unimplemented Lua to OCaml value projection"
     and project_lua_table t =
       let ts = t |> V.table.project |> V.Luahash.to_seq |> List.of_seq in
       (* In Lua, everything is a table. There are no arrays/lists, only int-indexed tables.
@@ -884,7 +884,7 @@ let json_of_lua v =
     (* Everything in Lua has a truth value, so V.bool.is appears to never fail *)
     else if V.bool.is v then `Bool (V.bool.project v)
     (* Not sure if this actually can happen *)
-    else raise (Plugin_error "Unimplemented projection")
+    else internal_error "Unimplemented Lua to OCaml value projection"
   and project_lua_table t =
     let ts = t |> V.table.project |> V.Luahash.to_seq |> List.of_seq in
     (* In Lua, everything is a table. There are no arrays/lists, only int-indexed tables.
