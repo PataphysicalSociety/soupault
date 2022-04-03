@@ -466,7 +466,9 @@ struct
 
     let rec value_of_lua v =
       if V.int.is v then `Float (V.int.project v |> float_of_int)
-      (* float is a supertype of int, so int "is" a float, and order of checks is important *)
+      (* Lua's float is a supertype of int, so int "is" a float, and the order of checks is important:
+         if we checked for float first, the int check would never be executed.
+       *)
       else if V.float.is v then `Float (V.float.project v)
       else if V.string.is v then `String (V.string.project v)
       else if V.table.is v then project_lua_table v
@@ -862,15 +864,17 @@ let rec lua_of_toml v =
 (* If you are wondering if fhis is a duplicate of the value_of_lua function found inside the MakeLib module,
    then yes, effectively it is.
    The problem is that MakeLib functions are not visible outside that module,
-   but we can't define a function when we don't have a Value module,
-   so we've got this.
+   but we can't define this function before the Value module is created,
+   since it refers to functions from it, so we've got what we've got.
    Luckily, this code is very rarely modified, so duplication isn't a terribly big problem. 
  *)
 let json_of_lua v =
   let module V = I.Value in
   let rec project_lua_value v =
     if V.int.is v then `Float (V.int.project v |> float_of_int)
-    (* float is a supertype of int, so int "is" a float, and order of checks is important *)
+    (* Lua's float is a supertype of int, so every int is also a float, and the order of checks is important:
+       if we checked for float first, the int check would never be executed. 
+     *)
     else if V.float.is v then `Float (V.float.project v)
     else if V.string.is v then `String (V.string.project v)
     else if V.table.is v then project_lua_table v
