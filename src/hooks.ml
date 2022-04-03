@@ -1,4 +1,5 @@
 open Defaults
+open Soupault_common
 
 module I = Plugin_api.I
 
@@ -108,7 +109,7 @@ let run_post_index_hook settings soupault_config hook_config file_name lua_code 
   let assoc_of_json j =
     match j with
     | `O kvs -> kvs
-    | _ -> failwith "post-index hook got a JSON value that isn't an object, please report a bug"
+    | _ -> internal_error "post-index hook got a JSON value that isn't an object"
   in
   let open Defaults in
   let lua_str = I.Value.string in

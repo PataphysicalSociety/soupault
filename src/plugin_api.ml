@@ -604,7 +604,7 @@ struct
       match data with
       | `O vs -> List.map (fun (k, v) -> (k, Template.jingoo_of_json v)) vs |> Template.render tmpl
       | `A _ -> raise (Plugin_error "String.render_template requires a string-indexed table, found a number-indexed array")
-      | _ -> raise (Plugin_error "Cannot happen: project_lua_table returned an unexpected result")
+      | _ -> internal_error "project_lua_table returned an unexpected result"
 
     (* Datetime helpers *)
     let reformat_date date_string input_formats output_format =

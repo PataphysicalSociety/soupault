@@ -12,7 +12,7 @@ let rec jingoo_of_json j =
   | `Bool b -> Jg_types.box_bool b
   | `Float f -> Jg_types.box_float f
   | `Null -> Jg_types.Tnull
-  | _ -> failwith "Unimplemented JSON to Jingoo type conversion"
+  | _ -> internal_error "Unimplemented JSON to Jingoo type conversion"
 
 let render tmpl data = Jg_template.Loaded.eval ~models:data tmpl
 
