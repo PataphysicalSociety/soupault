@@ -1,3 +1,5 @@
+open Soupault_common
+
 exception Plugin_error of string
 exception Plugin_exit of string option
 
@@ -156,23 +158,23 @@ module Html = struct
     let* soup = soup in
     let* n =
       try to_general soup |> Html_utils.select_any_of selectors
-      with Utils.Soupault_error msg -> raise (Plugin_error msg)
+      with Soupault_error msg -> raise (Plugin_error msg)
     in Some (ElementNode n)
 
   let select_all_of soup selectors =
     let* soup = soup in
     try to_general soup |> Html_utils.select_all selectors |> List.map (fun x -> ElementNode x) |> return
-    with Utils.Soupault_error msg ->
+    with Soupault_error msg ->
       raise (Plugin_error msg)
 
   let matches_selector soup elem selector =
     try Soup.matches_selector (to_soup soup) selector (to_element elem)
-    with Utils.Soupault_error msg ->
+    with Soupault_error msg ->
       raise (Plugin_error msg)
 
   let matches_any_of_selectors soup elem selectors =
     try Html_utils.matches_any_of selectors (to_soup soup) (to_element elem)
-    with Utils.Soupault_error msg ->
+    with Soupault_error msg ->
       raise (Plugin_error msg)
 
   let children node =
