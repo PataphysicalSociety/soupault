@@ -722,6 +722,7 @@ struct
        "dirname", V.efunc (V.string **->> V.string) FilePath.dirname;
        (* Operations on UNIX/URL paths. *)
        "join_path_unix", V.efunc (V.string **-> V.string **->> V.string) FilePath.UnixPath.concat;
+       "join_url", V.efunc (V.string **-> V.string **->> V.string) FilePath.UnixPath.concat;
        "basename_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.basename;
        "dirname_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.dirname;
        "get_extension", V.efunc (V.string **->> V.string) Utils.get_extension;
