@@ -446,6 +446,43 @@ struct
       let keys = get_hash_keys h in
       List.fold_left (add_matching_value h p) [] keys |> List.rev
 
+    let hash_get_nested_value h path =
+      let rec aux h path =
+        match path with
+        | [] ->
+          (* Normally prevented by the outer function,
+             shouldn't happen.
+           *)
+          internal_error "hash_get_nested_value's inner function got an empty path"
+        | [k] -> V.Luahash.find h k
+        | k :: ks ->
+          try
+            let v = V.Luahash.find h k in
+            (* If a key exists and its value is a table, look one level deeper. *)
+            if V.table.is v then aux (V.table.project v) ks
+            (* If a key exists and its value is set to nil, then return nil.
+               Since settings a table member to nil in Lua deletes it,
+               this case is unlikely, but who knows if it's really impossible in Lua-ML?
+             *)
+            else if V.unit.is v then v
+            (* If a key exists but its value not a table and it's not the last key in the path,
+               the table structure clearly doesn't match plugin author's expectations.
+               The best thing to do is to throw an error.
+             *)
+            else plugin_error @@ Printf.sprintf "value at key \"%s\" is not a table, cannot look up anything in it"
+              (V.to_string v)
+          with Not_found ->
+            (* If there is no such key, then the path partially does not exist.
+               For the purpose of this function that's fine, it's intended to return a value at a path
+               only if every nested subtable exists.
+               If not, just return nil to indicate undefined sub-table value.
+             *)
+            V.unit.embed ()
+      in
+      match path with
+      | [] -> plugin_error "Cannot get a table value at an empty path"
+      | _ -> aux h path
+
     let get_headings_tree soup =
       match soup with
       | None -> []
@@ -782,6 +819,9 @@ struct
       "has_key", V.efunc (V.table **-> V.value **->> V.bool) (fun t k -> V.Luahash.find_opt t k |> Option.is_some);
       "has_value", V.efunc (V.table **-> V.value **->> V.bool) hash_has_value;
       "get_key_default", V.efunc (V.table **-> V.value **-> V.value **->> V.value) (fun t k d -> V.Luahash.find_opt t k |> Option.value ~default:d);
+      "get_nested_value", V.efunc (V.table **-> V.list V.value **->> V.value) hash_get_nested_value;
+      "get_nested_value_default", V.efunc (V.table **-> V.list V.value **-> V.value **->> V.value)
+        (fun t p d -> let v = hash_get_nested_value t p in if V.unit.is v then d else v);
       "iter", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit) V.Luahash.iter;
       "iter_values", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit) (fun f t -> V.Luahash.iter (fun _ v -> f v) t);
       "iter_ordered", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit)
