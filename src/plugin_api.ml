@@ -841,6 +841,7 @@ struct
     ] g;
 
     C.register_module "Value" [
+      "repr", V.efunc (V.value **->> V.string) V.to_string;
       "is_int", V.efunc (V.value **->> V.bool) V.int.is;
       "is_float", V.efunc (V.value **->> V.bool) V.float.is;
       "is_string", V.efunc (V.value **->> V.bool) V.string.is;
