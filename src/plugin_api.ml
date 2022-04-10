@@ -11,14 +11,14 @@ module Re_wrapper = struct
       let re = Re.Perl.compile_pat pat in
       Re.replace ~all:all ~f:(fun _ -> sub) re s
     with Re__Perl.Parse_error | Re__Perl.Not_supported ->
-      raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
   let find_all s pat =
     try
       let re = Re.Perl.compile_pat pat in
       Re.matches re s
     with Re__Perl.Parse_error | Re__Perl.Not_supported ->
-      raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
   let re_match s pat =
     let ms = find_all s pat in
@@ -28,7 +28,7 @@ module Re_wrapper = struct
     try
       Re.split (Re.Perl.compile_pat pat) s
     with Re__Perl.Parse_error | Re__Perl.Not_supported ->
-      raise (Plugin_error (Printf.sprintf "Malformed regex \"%s\"" pat))
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 end
 
 module Log = struct
@@ -92,7 +92,7 @@ module Plugin_version = struct
      let msg = Printf.sprintf "Plugin requires soupault %s or newer, current version is %s" vstr Defaults.version_string in
      raise (Plugin_error msg)
     with Failure msg ->
-      raise @@ Plugin_error (Printf.sprintf "Plugin.require_version failed: %s" msg)
+      plugin_error @@ Printf.sprintf "Plugin.require_version failed: %s" msg
 end
 
 module Html = struct
@@ -117,9 +117,9 @@ module Html = struct
       let n' = Soup.element n in begin
         match n' with
         | Some e -> e
-        | None -> raise (Plugin_error "Expected an HTML element, but found a document or a text node")
+        | None -> plugin_error "Expected an HTML element, but found a document or a text node"
       end
-    | _ -> raise (Plugin_error "Expected an HTML element node, but found a document")
+    | _ -> plugin_error "Expected an HTML element node, but found a document"
 
   let is_element n =
     match n with
@@ -136,14 +136,14 @@ module Html = struct
   let to_soup n =
     match n with
     | SoupNode n -> n
-    | _ -> raise (Plugin_error "Expected an HTML document but found an element or a text node")
+    | _ -> plugin_error "Expected an HTML document but found an element or a text node"
 
   let select soup selector =
     let* soup = soup in
     let* elems =
       try to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x) |> return
       with Soup.Parse_error msg ->
-        raise (Plugin_error (Printf.sprintf "HTML.select called with invalid CSS selector '%s': %s" selector msg))
+        plugin_error @@ Printf.sprintf "HTML.select called with invalid CSS selector '%s': %s" selector msg
     in Some elems
 
   let select_one soup selector =
@@ -151,31 +151,31 @@ module Html = struct
     let* n =
       try to_general soup |> Soup.select_one selector
       with Soup.Parse_error msg ->
-        raise (Plugin_error (Printf.sprintf "HTML.select_one called with invalid CSS selector '%s': %s" selector msg))
+        plugin_error @@ Printf.sprintf "HTML.select_one called with invalid CSS selector '%s': %s" selector msg
     in Some (ElementNode n)
 
   let select_any_of soup selectors =
     let* soup = soup in
     let* n =
       try to_general soup |> Html_utils.select_any_of selectors
-      with Soupault_error msg -> raise (Plugin_error msg)
+      with Soupault_error msg -> plugin_error msg
     in Some (ElementNode n)
 
   let select_all_of soup selectors =
     let* soup = soup in
     try to_general soup |> Html_utils.select_all selectors |> List.map (fun x -> ElementNode x) |> return
     with Soupault_error msg ->
-      raise (Plugin_error msg)
+      plugin_error msg
 
   let matches_selector soup elem selector =
     try Soup.matches_selector (to_soup soup) selector (to_element elem)
     with Soupault_error msg ->
-      raise (Plugin_error msg)
+      plugin_error msg
 
   let matches_any_of_selectors soup elem selectors =
     try Html_utils.matches_any_of selectors (to_soup soup) (to_element elem)
     with Soupault_error msg ->
-      raise (Plugin_error msg)
+      plugin_error msg
 
   let children node =
     let* node = node in
@@ -243,12 +243,12 @@ module Html = struct
 
   let get_classes node =
     match node with
-    | None -> raise (Plugin_error "HTML.get_classes was called on a nil value")
+    | None -> plugin_error "HTML.get_classes was called on a nil value"
     | Some node -> to_element node |> Soup.classes
 
   let has_class node class_name =
     match node with
-    | None -> raise (Plugin_error "HTML.has_class was called on a nil value")
+    | None -> plugin_error "HTML.has_class was called on a nil value"
     | Some node ->
       to_element node |> Soup.classes |> List.find_opt ((=) class_name) |> Option.is_some
 
@@ -273,35 +273,35 @@ module Html = struct
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.prepend_child n child
-    | SoupNode _ -> raise (Plugin_error "Cannot prepend a child to a document node")
+    | SoupNode _ -> plugin_error "Cannot prepend a child to a document node"
     | GeneralNode _ as n -> Soup.prepend_child (to_element n) child
 
   let insert_before node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.insert_before n child
-    | SoupNode _ -> raise (Plugin_error "Cannot use insert_before with a document node")
+    | SoupNode _ -> plugin_error "Cannot use insert_before with a document node"
     | GeneralNode _ as n -> Soup.insert_before (to_element n) child
 
   let insert_after node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.insert_after n child
-    | SoupNode _ -> raise (Plugin_error "Cannot use insert_after with a document node")
+    | SoupNode _ -> plugin_error "Cannot use insert_after with a document node"
     | GeneralNode _ as n -> Soup.insert_after (to_element n) child
 
   let replace node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.replace n child
-    | SoupNode _ -> raise (Plugin_error "Cannot use replace with a document node")
+    | SoupNode _ -> plugin_error "Cannot use replace with a document node"
     | GeneralNode _ as n -> Soup.replace (to_element n) child
 
   let replace_content node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Html_utils.replace_content n child
-    | SoupNode _ -> raise (Plugin_error "Cannot use replace_content with a document node")
+    | SoupNode _ -> plugin_error "Cannot use replace_content with a document node"
     | GeneralNode _ as n -> Html_utils.replace_content (to_element n) child
 
   let append_root node child =
@@ -319,7 +319,7 @@ module Html = struct
     match node with
     | ElementNode n -> Soup.name n |> return
     | GeneralNode _ as n -> Soup.name (to_element n) |> return
-    | _ -> raise (Plugin_error "Cannot get tag name: node is an HTML document")
+    | _ -> plugin_error "Cannot get tag name: node is an HTML document"
 
   let set_tag_name node name =
     match node with
@@ -328,8 +328,8 @@ module Html = struct
       begin
         match n with
         | ElementNode n -> Soup.set_name name n
-        | SoupNode _ -> raise (Plugin_error "Document node does not have a tag name")
-        | GeneralNode _ -> raise (Plugin_error "Cannot set tag name of a general node")
+        | SoupNode _ -> plugin_error "Document node does not have a tag name"
+        | GeneralNode _ -> plugin_error "Cannot set tag name of a general node"
       end
 
   let delete node =
@@ -542,9 +542,9 @@ struct
       match v' with
       | `Float f -> string_of_float f
       | `String s -> s
-      | _ -> raise
-        (Plugin_error (Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
-          (V.to_string v)))
+      | _ ->
+        plugin_error @@ Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
+          (V.to_string v)
 
     let rec lua_of_json v =
       match v with
@@ -636,11 +636,11 @@ struct
 
     let render_template tmpl data =
       let tmpl = Template.of_string tmpl in
-      if not (V.table.is data) then raise (Plugin_error "String.render_template requires a table") else
+      if not (V.table.is data) then plugin_error "String.render_template requires a table" else
       let data = project_lua_table data in
       match data with
       | `O vs -> List.map (fun (k, v) -> (k, Template.jingoo_of_json v)) vs |> Template.render tmpl
-      | `A _ -> raise (Plugin_error "String.render_template requires a string-indexed table, found a number-indexed array")
+      | `A _ -> plugin_error "String.render_template requires a string-indexed table, found a number-indexed array"
       | _ -> internal_error "project_lua_table returned an unexpected result"
 
     (* Datetime helpers *)
@@ -731,7 +731,7 @@ struct
       ] g;
 
      C.register_module "Plugin" [
-       "fail", V.efunc (V.string **->> V.unit) (fun s -> raise (Plugin_error s));
+       "fail", V.efunc (V.string **->> V.unit) (fun s -> plugin_error s);
        "exit", V.efunc (V.option V.string **->> V.unit) (fun e -> raise (Plugin_exit e));
        "require_version", V.efunc (V.string **->> V.unit) Plugin_version.require_version;
        "soupault_version", V.efunc (V.unit **->> V.string) (fun () -> Defaults.version_string);
@@ -953,9 +953,9 @@ let json_of_lua v =
     match v' with
     | `Float f -> string_of_float f
     | `String s -> s
-    | _ -> raise
-      (Plugin_error (Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
-        (V.to_string v)))
+    | _ ->
+      plugin_error @@ Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
+        (V.to_string v)
   in
   try Ok (project_lua_value v)
   with Plugin_error msg -> Error msg
