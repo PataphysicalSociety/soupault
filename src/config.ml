@@ -5,8 +5,11 @@ open Defaults
 open Otoml
 
 exception Config_error of string
-
 let config_error err = raise (Config_error err)
+
+(* For internal use, to avoid re-raising Config_error *)
+exception Index_view_error of string
+let index_view_error err = raise (Index_view_error err)
 
 let sort_type_from_string s =
   match s with
@@ -242,15 +245,15 @@ let _get_index_view st view_name =
     let lua_processor = get_lua_index_processor	st in
     match item_template, index_template, script, lua_processor with
     | _, _, Some _, Some Ok _ ->
-      config_error "options index_processor and file/lua_source are mutually exclusive, please pick only one"
+      index_view_error "options index_processor and file/lua_source are mutually exclusive, please pick only one"
     | _, _, _, Some (Ok (file_name, lua_code)) -> LuaIndexer (file_name, lua_code)
-    | _, _, _, Some (Error msg) -> config_error @@ Printf.sprintf "Failed to load index processor plugin for view %s: %s" name msg
+    | _, _, _, Some (Error msg) -> index_view_error @@ Printf.sprintf "Failed to load index processor plugin: %s" msg
     | Some item_template, None, None, None -> _get_template item_template
     | None, Some index_template, None, None -> _get_template ~item_template:false index_template
     | None, None, Some script, None -> ExternalIndexer script
     | None, None, None, None ->
-      config_error (Printf.sprintf "Index view \"%s\" does not have index_item_template, index_template, index_processor,\
-        or file/lua_source options. Please specify how you want that view to be rendered." view_name)
+      index_view_error @@ Printf.sprintf "No view rendering options found! Please specify one of: index_item_template, index_template, index_processor,\
+        or file/lua_source options."
     | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
   in
   let selector = OH.find_string st ["index_selector"] in
@@ -278,7 +281,7 @@ let _get_index_views index_table =
       try
         let v = get_view k views in
         get_views ks views (v :: acc)
-      with Config_error e | Key_error e | Type_error e ->
+      with Index_view_error e | Key_error e | Type_error e ->
         Printf.ksprintf config_error "Misconfigured index view \"%s\": %s" k e
     end
   in
