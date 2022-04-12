@@ -220,20 +220,35 @@ let _get_index_view st view_name =
     end
   in
   let _get_index_processor name st =
+    let get_lua_index_processor st =
+      (* Utils.load_plugin_code assumes that if neither "file" nor "lua_source" are set,
+         it's an error, because in plugins and hooks that's the case.
+         Index views is a special case though, file/lua_source is just one of the options they can use.
+         That's why this wrapper is needed, to distinguish cases when those options are absent and when they are present
+         but their values are incorrect.
+       *) 
+      let lua_source = OH.find_string_opt ~strict:true st ["lua_source"] in
+      let lua_file = OH.find_string_opt ~strict:true st ["file"] in
+      match lua_source, lua_file with
+      | None, None -> None
+      | _, _ ->
+        let res = Utils.load_plugin_code st (Printf.sprintf "<inline Lua code from index view \"%s\">" name)
+          "index processor"
+        in Some res
+    in
     let item_template = OH.find_string_opt ~strict:true st ["index_item_template"] in
     let index_template = OH.find_string_opt ~strict:true st ["index_template"] in
     let script = OH.find_string_opt ~strict:true st ["index_processor"] in
-    let lua_processor =
-      Utils.load_plugin_code st (Printf.sprintf "<inline Lua code from index view \"%s\">" name) "index processor"
-    in
+    let lua_processor = get_lua_index_processor	st in
     match item_template, index_template, script, lua_processor with
-    | _, _, Some _, Ok _ ->
+    | _, _, Some _, Some Ok _ ->
       config_error "options index_processor and file/lua_source are mutually exclusive, please pick only one"
-    | _, _, _, Ok (file_name, lua_code) -> LuaIndexer (file_name, lua_code)
-    | Some item_template, None, None, Error _ -> _get_template item_template
-    | None, Some index_template, None, Error _ -> _get_template ~item_template:false index_template
-    | None, None, Some script, Error _ -> ExternalIndexer script
-    | None, None, None, Error _ ->
+    | _, _, _, Some (Ok (file_name, lua_code)) -> LuaIndexer (file_name, lua_code)
+    | _, _, _, Some (Error msg) -> config_error @@ Printf.sprintf "Failed to load index processor plugin for view %s: %s" name msg
+    | Some item_template, None, None, None -> _get_template item_template
+    | None, Some index_template, None, None -> _get_template ~item_template:false index_template
+    | None, None, Some script, None -> ExternalIndexer script
+    | None, None, None, None ->
       config_error (Printf.sprintf "Index view \"%s\" does not have index_item_template, index_template, index_processor,\
         or file/lua_source options. Please specify how you want that view to be rendered." view_name)
     | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
