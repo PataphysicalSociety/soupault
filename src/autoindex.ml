@@ -155,7 +155,7 @@ let jingoo_model_of_entry e =
   | _ -> internal_error "json_of_entry returned something else than an object, which must not happen"
 
 (** Renders an index using built-in Mustache templates *)
-let render_index ?(item_template=true) view template settings soup entries =
+let render_index ?(item_template=true) soupault_config view template settings soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
   try
     let () =
@@ -164,8 +164,15 @@ let render_index ?(item_template=true) view template settings soup entries =
       Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false entries)
     in
     let entries =
-      if item_template then List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
-      else [Template.render template @@ ["entries", Template.jingoo_of_json (json_of_entries entries)] |> Soup.parse]
+      if item_template then
+        List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
+      else
+        let env = [
+          "soupault_config", Template.jingoo_of_toml soupault_config;
+          "entries", Template.jingoo_of_json (json_of_entries entries)
+        ]
+        in
+        [Template.render template env |> Soup.parse]
     in
     let () = List.iter (Html_utils.insert_element view.index_action soup) entries in
     Ok ()
@@ -246,9 +253,9 @@ let insert_index env soupault_config soup view =
       let* index = sort_entries env.settings (get_sort_options env.settings view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl ->
-        let* () = render_index view tmpl env.settings ic index in Ok []
+        let* () = render_index soupault_config view tmpl env.settings ic index in Ok []
       | Defaults.IndexTemplate tmpl ->
-        let* () = render_index ~item_template:false view tmpl env.settings ic index in Ok []
+        let* () = render_index ~item_template:false soupault_config view tmpl env.settings ic index in Ok []
       | Defaults.ExternalIndexer cmd ->
         let* () = run_index_processor view cmd ic index in Ok []
       | Defaults.LuaIndexer (file_name, lua_code) ->
