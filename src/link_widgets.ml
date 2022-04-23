@@ -26,9 +26,9 @@ let get_target_attr elem =
   | "embed" -> "src"
   | "object" -> "data"
   | _ ->
-    (* Can't happen *)
-    soupault_error @@ Printf.sprintf
-      "Internal error: relative_links widget tried to process an unsupported element <%s>" tag_name
+    (* Shouldn't happen *)
+    internal_error @@ Printf.sprintf
+      "a relative_links or an absolute_links widget tried to process unsupported element <%s>" tag_name
 
 let re_matches s pat =
   try
