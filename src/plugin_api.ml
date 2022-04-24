@@ -15,25 +15,31 @@ module Re_wrapper = struct
     try
       Regex_utils.Raw.replace ~all:all pat s sub
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.replace call" pat
+
+  let replace_all s pat sub =
+    try
+      Regex_utils.Raw.replace ~all:true pat s sub
+    with Regex_utils.Bad_regex ->
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.replace_all call" pat
 
   let find_all s pat =
     try
       Regex_utils.Raw.get_matching_strings pat s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.find_all call" pat
 
   let re_match s pat =
     try
       Regex_utils.Raw.matches pat s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.match call" pat
 
   let split s pat =
     try
       Regex_utils.Raw.split pat s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.split call" pat
 end
 
 module Log = struct
@@ -722,7 +728,7 @@ struct
         "replace", V.efunc (V.string **-> V.string **-> V.string **->> V.string)
           (Re_wrapper.replace ~all:false);
         "replace_all", V.efunc (V.string **-> V.string **-> V.string **->> V.string)
-          (Re_wrapper.replace ~all:true);
+          (Re_wrapper.replace_all);
         "find_all", V.efunc (V.string **-> V.string **->> (V.list V.string)) Re_wrapper.find_all;
         "match", V.efunc (V.string **-> V.string **->> V.bool) Re_wrapper.re_match;
         "split", V.efunc (V.string **-> V.string **->> (V.list V.string)) Re_wrapper.split;
