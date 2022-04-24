@@ -1,4 +1,5 @@
 open Defaults
+open Soupault_common
 
 let page_matches site_dir actual_path conf_path =
   let conf_path = FilePath.concat site_dir conf_path in
@@ -7,10 +8,7 @@ let page_matches site_dir actual_path conf_path =
 let regex_matches actual_path path_re =
   try Regex_utils.Raw.matches path_re actual_path
   with Regex_utils.Bad_regex ->
-    let () = Logs.warn @@ fun m -> m "Failed to check page %s against regex \"%s\" (malformed regex?), assuming false"
-      actual_path path_re
-    in
-    false
+    soupault_error @@ Printf.sprintf "Could not check a path regex option: malformed regex \"%s\"" path_re
 
 (* Normally a directory is a section.
    However, some directories can be in fact hand-made "clean URLs".
