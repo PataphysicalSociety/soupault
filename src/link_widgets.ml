@@ -30,23 +30,15 @@ let get_target_attr elem =
     internal_error @@ Printf.sprintf
       "a relative_links or an absolute_links widget tried to process unsupported element <%s>" tag_name
 
-let re_matches s pat =
-  try
-    let re = Re.Perl.compile_pat pat in
-    let ms = Re.matches re s in
-    List.length ms != 0
-  with Re__Perl.Parse_error | Re__Perl.Not_supported ->
-    soupault_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
-
 let target_matches only_regex exclude_regex target =
   match only_regex with
   | Some r ->
-    if not (re_matches target r)
-    then (let () = Logs.debug @@ fun m -> m "Link target \"%s\" does not match the only_target_regex" target in false)
+    if not (Regex_utils.Internal.matches target r)
+    then (let () = Logs.debug @@ fun m -> m "Link target \"%s\" does not match only_target_regex" target in false)
     else true
   | None ->
-    if (re_matches target exclude_regex)
-    then (let () = Logs.debug @@ fun m -> m "Link target \"%s\" matches the exclude_target_regex" target in false)
+    if (Regex_utils.Internal.matches target exclude_regex)
+    then (let () = Logs.debug @@ fun m -> m "Link target \"%s\" matches exclude_target_regex" target in false)
     else true
 
 let relativize elem env check_file only_regex exclude_regex =
@@ -69,10 +61,10 @@ let relativize elem env check_file only_regex exclude_regex =
        *)
       if check_file && (Sys.file_exists (FilePath.concat env.target_dir target)) then () else
       (* Remove the build_dir from the path *)
-      let relative_target_dir = Utils.regex_replace env.target_dir ("^" ^ env.settings.build_dir) "" in
+      let relative_target_dir = Regex_utils.Internal.replace env.target_dir ("^" ^ env.settings.build_dir) "" in
       let parent_path = Utils.split_path relative_target_dir |> List.map (fun _ -> "..") in
       (* Strip leading slashes *)
-      let target = Utils.regex_replace target "^/+" "" in
+      let target = Regex_utils.Internal.replace target "^/+" "" in
       let target = String.concat "/" (parent_path @ [target]) in
       Soup.set_attribute (get_target_attr elem) target elem
     end
@@ -86,12 +78,12 @@ let absolutize elem env prefix check_file only_regex exclude_regex =
     Logs.debug @@ fun m -> m "Ignoring a <%s> element without \"%s\" attribute" (Soup.name elem) target_attr
   | Some target ->
     if not (target_matches only_regex exclude_regex target)
-    then Logs.debug @@ fun m -> m "Link target \"%s\" matches the exlude_target_regex, ignoring" target
+    then Logs.debug @@ fun m -> m "Link target \"%s\" matches exclude_target_regex, ignoring" target
     else begin
       (* Remove the build_dir from the path *)
-      let relative_target_dir = Utils.regex_replace env.target_dir ("^" ^ env.settings.build_dir) "" in
+      let relative_target_dir = Regex_utils.Internal.replace env.target_dir ("^" ^ env.settings.build_dir) "" in
       (* Strip leading slashes *)
-      let target = Utils.regex_replace target "^/+" "" in
+      let target = Regex_utils.Internal.replace target "^/+" "" in
       let parent_path =
         (if check_file && (Sys.file_exists (FilePath.concat env.target_dir target))
         then let dir_path = Utils.split_path relative_target_dir in String.concat "/" (prefix :: dir_path)
@@ -130,7 +122,7 @@ let absolute_links env config soup =
   let () = Config.check_options valid_options config "widget \"absolute_links\"" in
   let* prefix = Config.find_string_result config ["prefix"] in
   (* Strip trailing slashes to avoid duplicate slashes after concatenation *)
-  let prefix = Utils.regex_replace prefix "/+$" "" in
+  let prefix = Regex_utils.Internal.replace prefix "/+$" "" in
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
   let only_regex = OH.find_string_opt config ["only_target_regex"] in
   if (Option.is_some exclude_regex) && (Option.is_some only_regex)

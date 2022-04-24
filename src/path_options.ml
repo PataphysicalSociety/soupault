@@ -5,13 +5,10 @@ let page_matches site_dir actual_path conf_path =
   (=) conf_path actual_path
 
 let regex_matches actual_path path_re =
-  let matches = Utils.get_matching_strings path_re actual_path in
-  match matches with
-  | Ok ms -> List.length ms <> 0
-  | Error msg ->
-    let () =
-      Logs.warn @@ fun m -> m "Failed to check page %s against regex \"%s\" (malformed regex?), assuming false: %s"
-      actual_path path_re msg
+  try Regex_utils.Raw.matches path_re actual_path
+  with Regex_utils.Bad_regex ->
+    let () = Logs.warn @@ fun m -> m "Failed to check page %s against regex \"%s\" (malformed regex?), assuming false"
+      actual_path path_re
     in
     false
 

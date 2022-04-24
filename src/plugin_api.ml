@@ -5,29 +5,34 @@ exception Plugin_exit of string option
 
 let plugin_error err = raise (Plugin_error err)
 
+(* Please note that these functions use "string, regex" argument order.
+   This inconsistency with internal regex functions is unfortunate,
+   but it's been this way since the introduction of the Lua API
+   and will have to stay this way.
+ *)
 module Re_wrapper = struct
   let replace ?(all=false) s pat sub =
     try
-      let re = Re.Perl.compile_pat pat in
-      Re.replace ~all:all ~f:(fun _ -> sub) re s
-    with Re__Perl.Parse_error | Re__Perl.Not_supported ->
+      Regex_utils.Raw.replace ~all:all pat s sub
+    with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
   let find_all s pat =
     try
-      let re = Re.Perl.compile_pat pat in
-      Re.matches re s
-    with Re__Perl.Parse_error | Re__Perl.Not_supported ->
+      Regex_utils.Raw.get_matching_strings pat s
+    with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
   let re_match s pat =
-    let ms = find_all s pat in
-    List.length ms != 0
+    try
+      Regex_utils.Raw.matches pat s
+    with Regex_utils.Bad_regex ->
+      plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 
   let split s pat =
     try
-      Re.split (Re.Perl.compile_pat pat) s
-    with Re__Perl.Parse_error | Re__Perl.Not_supported ->
+      Regex_utils.Raw.split pat s
+    with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\"" pat
 end
 
@@ -778,7 +783,7 @@ struct
          (fun s l -> try Text.sub s 0 l with Invalid_argument _ -> s);
        "truncate_ascii", V.efunc (V.string **-> V.int **->> V.string)
          (fun s l -> try String.sub s 0 l with Invalid_argument _ -> s);
-       "slugify_soft", V.efunc (V.string **->> V.string) (fun s -> Utils.regex_replace s "\\s+" "-");
+       "slugify_soft", V.efunc (V.string **->> V.string) (fun s -> Regex_utils.Internal.replace s "\\s+" "-");
        "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify;
        "join", V.efunc (V.string **-> V.list V.string **->> V.string) String.concat;
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
