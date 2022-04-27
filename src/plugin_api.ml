@@ -13,31 +13,31 @@ let plugin_error err = raise (Plugin_error err)
 module Re_wrapper = struct
   let replace ?(all=false) s pat sub =
     try
-      Regex_utils.Raw.replace ~all:all pat s sub
+      Regex_utils.Raw.replace ~all:all ~regex:pat ~sub:sub s
     with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.replace call" pat
 
   let replace_all s pat sub =
     try
-      Regex_utils.Raw.replace ~all:true pat s sub
+      Regex_utils.Raw.replace ~all:true ~regex:pat ~sub:sub s
     with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.replace_all call" pat
 
   let find_all s pat =
     try
-      Regex_utils.Raw.get_matching_strings pat s
+      Regex_utils.Raw.get_matching_strings ~regex:pat s
     with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.find_all call" pat
 
   let re_match s pat =
     try
-      Regex_utils.Raw.matches pat s
+      Regex_utils.Raw.matches ~regex:pat s
     with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.match call" pat
 
   let split s pat =
     try
-      Regex_utils.Raw.split pat s
+      Regex_utils.Raw.split ~regex:pat s
     with Regex_utils.Bad_regex ->
       plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.split call" pat
 end
@@ -789,7 +789,7 @@ struct
          (fun s l -> try Text.sub s 0 l with Invalid_argument _ -> s);
        "truncate_ascii", V.efunc (V.string **-> V.int **->> V.string)
          (fun s l -> try String.sub s 0 l with Invalid_argument _ -> s);
-       "slugify_soft", V.efunc (V.string **->> V.string) (fun s -> Regex_utils.Internal.replace s "\\s+" "-");
+       "slugify_soft", V.efunc (V.string **->> V.string) (fun s -> Regex_utils.Internal.replace ~regex:"\\s+" ~sub:"-" s);
        "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify;
        "join", V.efunc (V.string **-> V.list V.string **->> V.string) String.concat;
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);

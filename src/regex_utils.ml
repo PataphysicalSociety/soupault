@@ -26,21 +26,21 @@ let compile_regex regex =
    (e.g. tell the user which config option bad regex comes from.
  *)
 module Raw = struct
-  let get_matching_strings regex str =
+  let get_matching_strings ~regex str =
     let re = compile_regex regex in
     Re.matches re str
 
-  let matches regex str =
-    let res = get_matching_strings regex str in
+  let matches ~regex str =
+    let res = get_matching_strings ~regex:regex str in
     match res with
     | [] -> false
     | _  -> true
 
-  let replace ?(all=false) regex str sub =
+  let replace ?(all=false) ~regex ~sub str =
     let re = compile_regex regex in
     Re.replace ~all:all ~f:(fun _ -> sub) re str
 
-  let split regex str =
+  let split ~regex str =
     let re = compile_regex regex in
     Re.split re str
 end
@@ -50,20 +50,20 @@ end
    That's why they raise the never-handled Internal_error exception.
  *)
 module Internal = struct
-  let get_matching_strings regex str =
-    try Raw.get_matching_strings regex str
+  let get_matching_strings ~regex str =
+    try Raw.get_matching_strings ~regex:regex str
     with Bad_regex -> internal_error @@ format_error regex
 
-  let matches regex string =
-    try Raw.matches regex string
+  let matches ~regex string =
+    try Raw.matches ~regex:regex string
     with Bad_regex -> internal_error @@ format_error regex
 
-  let replace ?(all=false) regex str sub =
-    try Raw.replace ~all:all regex str sub
+  let replace ?(all=false) ~regex ~sub str =
+    try Raw.replace ~all:all ~regex:regex ~sub:sub str
     with Bad_regex -> internal_error @@ format_error regex
 
-  let split regex string =
-    try Raw.split regex string
+  let split ~regex string =
+    try Raw.split ~regex:regex string
     with Bad_regex -> internal_error @@ format_error regex
 end
 
@@ -72,19 +72,19 @@ end
    and the user can choose whether to ignore page processing error or not.
  *)
 module Public = struct
-  let get_matching_strings regex str =
-    try Raw.get_matching_strings regex str
+  let get_matching_strings ~regex str =
+    try Raw.get_matching_strings ~regex:regex str
     with Bad_regex -> soupault_error @@ format_error regex
 
-  let matches regex string =
-    try Raw.matches regex string
+  let matches ~regex string =
+    try Raw.matches ~regex:regex string
     with Bad_regex -> soupault_error @@ format_error regex
 
-  let replace ?(all=false) regex str sub =
-    try Raw.replace ~all:all regex str sub
+  let replace ?(all=false) ~regex ~sub str =
+    try Raw.replace ~all:all ~regex:regex ~sub str
     with Bad_regex -> soupault_error @@ format_error regex
 
-  let split regex string =
-    try Raw.split regex string
+  let split ~regex string =
+    try Raw.split ~regex:regex string
     with Bad_regex -> soupault_error @@ format_error regex
 end
