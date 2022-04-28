@@ -7,8 +7,15 @@ let soupault_error s = raise (Soupault_error s)
    and either debug the problem or report it to the maintainers.
  *)
 exception Internal_error of string
-let internal_error s =
-  let msg = Printf.sprintf "soupault encountered an internal error: %s.\
-    You can run soupault --debug to get an exception trace.\
-    Please report it as a bug!" s
-  in raise (Internal_error msg)
+let internal_error err =
+  let () =
+    Logs.err @@ fun m -> m "soupault encountered an internal error: %s." err;
+    if not (Printexc.backtrace_status ()) then
+      (* --debug or debug=true in the config enable exception trace recording early in the startup process.
+         If exception trace recording isn't enabled, it likely means soupault is not running with debug on
+         (or there's a logic error in initialization ;).
+       *)
+      Logs.err @@ fun m ->  m "You can run soupault --debug to get an exception trace. Please report it as a bug!"
+    else
+      Logs.err @@ fun m ->  m "Please report a bug and attach the message and the exception trace to your report."
+  in raise (Internal_error err)
