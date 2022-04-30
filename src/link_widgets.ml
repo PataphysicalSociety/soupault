@@ -13,7 +13,15 @@ open Soupault_common
 let default_exclude_regex = "^((([a-zA-Z0-9]+):)|#|\\.|//)"
 
 (* Exhaustive list of elements supported by link widgets. *)
-let link_selectors = ["a"; "link"; "img"; "script"; "audio"; "video"; "object"; "embed"]
+let link_selectors = [
+  "a"; "area"; "link"; "script";
+  "form"; "input"; "button";
+  "source"; "img";
+  "bgsound"; "audio"; "video"; "track";
+  "applet"; "embed"; "object";
+  "portal"; "iframe"; "frame";
+  "body"; "base"
+]
 
 (** Updates attribute's value using a target rewriting function:
     relativize_link_target, absolutize_link_target, or a wrapper for one of those.
@@ -38,21 +46,104 @@ let process_attr func attr_name elem =
     let new_attr_value = func attr_value in
     Soup.set_attribute attr_name new_attr_value elem
 
+(** Rewrites attributes with space-separated URLs.
+
+   One example is the deprecated "archive" attribute of [<object>],
+   but there may be more.
+ *) 
+let process_space_separated func attr_name elem =
+  let apply_to_components func attr_value =
+    let components = Regex_utils.Internal.split ~regex:"\\s+" attr_value in
+    match components with
+    | [] ->
+      (* Given attribute is probably an empty string, so we cannot do anything with it. *)
+      attr_value
+    | _  ->
+      let new_components = List.map func components in
+      String.concat " " new_components
+  in process_attr (apply_to_components func) attr_name elem 
+
+(** Rewrites srcset attribute values. 
+
+   The srcset attribute of <img> and <source> has the most complicated syntax:
+   it's a comma-separated list of space-separated tokens where the first token
+   if the URL. E.g.  "$url1 $size1, $url2, $size2, ...".
+
+   That means we have to split the srcset attribute value into its comma-separated parts,
+   then extract the URL from each part and apply the rewriting function to it,
+   then reassemble the whole thing.
+ *)
+let process_srcset func attr_name elem =
+  (* Separates the URL from an srcset component, processes it, and reassembles the component. *)
+  let process_component func component =
+    let component_parts = Regex_utils.Internal.split ~regex:"\\s+" component in
+    match component_parts with
+    | [] ->
+      (* The component is neither a list of space-separated strings nor even a single string.
+         Most likely it's an empty string. In any case, there's nothing we can do with it.
+       *)
+      component
+    | url :: rest ->
+      String.concat " " ((func url) :: rest)
+  in
+  let process_sources func srcset_value =
+    let components = Regex_utils.Internal.split ~regex:"\\s*,\\s*" srcset_value in
+    let new_components = List.map (process_component func) components in
+    String.concat ", " new_components
+  in process_attr (process_sources func) attr_name elem
+
 (* HTML uses attributes with wildly different names for link targets.
    Some elements may allow more than one possible attribute,
    and some attributes may have multiple targets in them.
    We have to maintain a map of element names to their allowed attributes
    plus functions that can be used to process them.
+
+   Note that this map intentionally includes a lot of deprecated elements and attributes.
+   That's because the goal of soupault is to process existing HTML,
+   not to nudge people to modernize it.
  *)
 let attribute_map = [
-  "a",      ["href", process_attr];
-  "link",   ["href", process_attr];
-  "script", ["src", process_attr];
-  "audio",  ["src", process_attr];
-  "video",  ["src", process_attr];
-  "embed",  ["src", process_attr];
-  "object", ["data", process_attr];
-  "img",    ["src", process_attr];
+  (* Links. *)
+  "a",       ["href", process_attr];
+  "area",    ["href", process_attr];
+  "link",    ["href", process_attr];
+  "script",  ["src", process_attr];
+  (* Forms and their elements. *)
+  "form",    ["action", process_attr];
+  "input",   ["src", process_attr];
+  "button",  ["formaction", process_attr];
+  (* HTML5 provides <source> for use inside media elements
+     (<audio>, <video>, <picture>...) as a uniform alternative
+     to both src=... and srcset=... attributes from HTML4.
+   *)
+  "source",  ["src", process_attr; "srcset", process_srcset];
+  (* <img> can appear on its own or inside a <picture>. *)
+  "img",     ["src", process_attr; "longdesc", process_attr; "srcset", process_srcset];
+  (* IE-only legacy element, but I seem to recall it was popular
+     with awful websites at one point. ;)
+   *)
+  "bgsound", ["src", process_attr];
+  (* HTML5 media elements.
+     Note that <picture> doesn't support a source attribute,
+     so it's not in this list.
+   *)
+  "audio",   ["src", process_attr];
+  "video",   ["src", process_attr];
+  "track",   ["src", process_attr];
+  (* Someone will certainly find a way to resurrect Java applets in modern browsers,
+     one way or another.
+   *)
+  "applet",  ["code", process_attr; "archive", process_attr; "object", process_attr];
+  (* Generic embedded objects. *) 
+  "embed",   ["src", process_attr];
+  "object",  ["data", process_attr; "archive", process_space_separated];
+  (* Frames: inline and the other kind. *) 
+  "portal",  ["src", process_attr];
+  "iframe",  ["src", process_attr; "longdesc", process_attr];
+  "frame",   ["src", process_attr; "longdesc", process_attr];
+  (* Misc, mostly legacy. *)
+  "body",    ["background", process_attr];
+  "base",    ["href", process_attr];
 ]
 
 (** Iterates through all relevant attributes of an element
