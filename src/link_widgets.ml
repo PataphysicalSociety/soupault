@@ -128,7 +128,7 @@ let attribute_map = [
      so it's not in this list.
    *)
   "audio",   ["src", process_attr];
-  "video",   ["src", process_attr];
+  "video",   ["src", process_attr; "poster", process_attr];
   "track",   ["src", process_attr];
   (* Someone will certainly find a way to resurrect Java applets in modern browsers,
      one way or another.
