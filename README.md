@@ -83,3 +83,6 @@ opam pin add git+https://github.com/dmbaturin/soupault
 
 Bug reports and patches are always welcome. Feature requests and new features are also welcome,
 but please consider discussing them with the maintainer first.
+
+You can contribute either through [GitHub](https://github.com/PataphysicalSociety/soupault)
+or through [Codeberg](https://codeberg.org/PataphysicalSociety/soupault).
