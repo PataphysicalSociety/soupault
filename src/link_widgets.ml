@@ -12,17 +12,6 @@ open Soupault_common
  *)
 let default_exclude_regex = "^((([a-zA-Z0-9]+):)|#|\\.|//)"
 
-(* Exhaustive list of elements supported by link widgets. *)
-let link_selectors = [
-  "a"; "area"; "link"; "script";
-  "form"; "input"; "button";
-  "source"; "img";
-  "bgsound"; "audio"; "video"; "track";
-  "applet"; "embed"; "object";
-  "portal"; "iframe"; "frame";
-  "body"; "base"
-]
-
 (** Updates attribute's value using a target rewriting function:
     relativize_link_target, absolutize_link_target, or a wrapper for one of those.
 
@@ -145,6 +134,11 @@ let attribute_map = [
   "body",    ["background", process_attr];
   "base",    ["href", process_attr];
 ]
+
+(* Generate a list of all supported element selectors
+   from the keys of the attribute map.
+ *)
+let link_selectors = Utils.assoc_keys attribute_map
 
 (** Iterates through all relevant attributes of an element
     and applies appropriate attribute processing functions to them,
