@@ -6,7 +6,8 @@ open Defaults
 (** Reads a file and return its content *)
 let get_file_content file =
   try Ok (Soup.read_file file)
-  with Sys_error msg -> Error msg
+  with Sys_error msg ->
+    Error (Printf.sprintf "Failed to read tile %s" msg)
 
 let write_file file content =
   try
