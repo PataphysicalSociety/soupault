@@ -21,7 +21,8 @@ let sort_type_from_string s =
   | "calendar" -> Calendar
   | "numeric" -> Numeric
   | "lexicographic" -> Lexicographic
-  | _ -> Printf.ksprintf config_error "\"%s\" is not a valid value for the sort_type option. Choose either \"calendar\", \"numeric\" or \"lexicographic\"" s
+  | _ -> Printf.ksprintf config_error {|"%s" is not a valid value for the "sort_type" option.\
+    Choose either "calendar", "numeric" or "lexicographic"|} s
 
 (** Checks if config file exists.
     When config doesn't exist, soupault uses default settings,
@@ -91,8 +92,8 @@ let find_table_result err path config = find_opt config get_table path |> Option
 let find_result accessor config path =
   try Ok (Otoml.find config accessor path)
   with
-  | Otoml.Key_error _ -> Error (Printf.sprintf "Missing required option %s" (Otoml.string_of_path path))
-  | Otoml.Type_error msg -> Error (Printf.sprintf "Wrong type for option %s: %s" (Otoml.string_of_path path) msg)
+  | Otoml.Key_error _ -> Error (Printf.sprintf {|Missing required option "%s"|} (Otoml.string_of_path path))
+  | Otoml.Type_error msg -> Error (Printf.sprintf {|Wrong type for option "%s": %s|} (Otoml.string_of_path path) msg)
 
 let find_string_or ?(strict=false) ~default:default config path =
   OH.find_string_opt ~strict:strict config path |> Option.value ~default:default
@@ -154,10 +155,10 @@ let get_index_queries index_table =
     let required = find_bool_or ~default:false it [k; "required"] in
     let () =
       if (Option.is_some default_value) && select_all then
-      Logs.warn @@ fun m -> m "default is ignored when select_all is true"
+      Logs.warn @@ fun m -> m {|"default" is ignored when "select_all" is true|}
     in
     (match selectors with
-    | [] -> config_error "selector option is required and must be a string or a list of strings"
+    | [] -> config_error {|"selector" option is required and must be a string or a list of strings|}
     | _ ->
       {
         field_name = k;
@@ -176,7 +177,7 @@ let get_index_queries index_table =
       let q =
         try get_query k qt
         with Config_error err ->
-          Printf.ksprintf config_error "Malformed config for index field \"%s\": %s" k err
+          Printf.ksprintf config_error {|Malformed config for index field "%s": %s|} k err
       in get_queries qt ks' (q :: acc)
   in
   let qt = find_table_opt ["fields"] index_table in
@@ -250,7 +251,7 @@ let _get_index_view st view_name =
     let lua_processor = get_lua_index_processor	st in
     match item_template, index_template, script, lua_processor with
     | _, _, Some _, Some Ok _ ->
-      index_view_error "options index_processor and file/lua_source are mutually exclusive, please pick only one"
+      index_view_error {|"index_processor" and "file"/"lua_source" are mutually exclusive, please pick only one|}
     | _, _, _, Some (Ok (file_name, lua_code)) -> LuaIndexer (file_name, lua_code)
     | _, _, _, Some (Error msg) -> index_view_error @@ Printf.sprintf "Failed to load index processor plugin: %s" msg
     | Some item_template, None, None, None -> _get_template item_template
@@ -259,7 +260,7 @@ let _get_index_view st view_name =
     | None, None, None, None ->
       index_view_error @@ Printf.sprintf "No view rendering options found! Please specify one of: index_item_template, index_template, index_processor,\
         or file/lua_source options."
-    | _ -> config_error "options index_item_template, index_template, and index_processor are mutually exclusive, please pick only one"
+    | _ -> config_error {|options "index_item_template", "index_template", and "index_processor" are mutually exclusive, please pick only one|}
   in
   let selector = OH.find_string st ["index_selector"] in
   let action = OH.find_string_opt st ["action"] in
@@ -334,7 +335,7 @@ let update_page_template_settings settings config =
       let content_selector = OH.find_string_opt config ["content_selector"] in
       let content_action = OH.find_string_opt config ["content_action"] in
       match file with
-      | None -> Printf.ksprintf config_error "Missing required option \"file\" in [templates.%s]" name
+      | None -> Printf.ksprintf config_error {|Missing required option "file" in [templates.%s]|} name
       | Some file ->
         try
           let tmpl_data = Soup.read_file file in
@@ -348,7 +349,7 @@ let update_page_template_settings settings config =
           let templates = tmpl :: settings.page_templates in
           {settings with page_templates=templates}
         with Sys_error msg ->
-          Printf.ksprintf config_error "Could not load the file for [templates.%s]: %s, ignoring" name msg
+          Printf.ksprintf config_error "Could not load the file for [templates.%s]: %s" name msg
     end
   in
   let tt = find_table_opt [Defaults.templates_table] config in
