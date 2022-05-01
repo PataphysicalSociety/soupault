@@ -265,12 +265,11 @@ let relative_links env config soup =
 
 (** Converts all internal links to absolute. *)
 let absolute_links env config soup =
-  let (let*) = Result.bind in
   let valid_options = List.append Config.common_widget_options
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
   in
   let () = Config.check_options valid_options config "widget \"absolute_links\"" in
-  let* prefix = Config.find_string_result config ["prefix"] in
+  let prefix = Config.find_string_result config ["prefix"] |> Config.required_option in
   (* Strip trailing slashes to avoid duplicate slashes after concatenation *)
   let prefix = Regex_utils.Internal.replace ~regex:"/+$" ~sub:"" prefix in
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
