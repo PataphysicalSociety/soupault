@@ -7,6 +7,11 @@ open Otoml
 exception Config_error of string
 let config_error err = raise (Config_error err)
 
+let required_option res =
+  match res with
+  | Ok v -> v
+  | Error msg -> config_error msg
+
 (* For internal use, to avoid re-raising Config_error *)
 exception Index_view_error of string
 let index_view_error err = raise (Index_view_error err)
