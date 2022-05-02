@@ -636,14 +636,14 @@ struct
         let () = Logs.warn @@ fun m -> m "Could not encode a Base64 string: %s" msg in
         None
 
-    let url_encode s chars =
+    let url_encode s exclude_chars =
       let chars_of_strings ss =
         try List.map (fun s -> if ((String.length s) = 1) then s.[0]
                                else failwith @@ Printf.sprintf {|String "%s" does not represent a character|} s) ss
         with Failure msg -> plugin_error @@ Printf.sprintf "String.url_encode got an incorrect chars argument: %s" msg
       in
-      let chars = Option.bind chars (fun ss -> Some (chars_of_strings ss)) in
-      Text.url_encode ~chars:chars s
+      let exclude_chars = Option.bind exclude_chars (fun ss -> Some (chars_of_strings ss)) in
+      Text.url_encode ~exclude_chars:exclude_chars s
 
     let render_template tmpl data =
       let tmpl = Template.of_string tmpl in

@@ -24,22 +24,22 @@ let length s =
   if not (is_valid s) then String.length s else
   Camomile.UTF8.length s
 
-(* Allow for "soft" encoding if the user supplies a list of character that needs encoding,
+(* Allow for "soft" encoding if the user supplies a list of characters to exclude from encoding
    but default to encoding all characters outside the unreserved set. *)
-let url_encode ?(chars=None) s =
+let url_encode ?(exclude_chars=None) s =
   let is_reserved c =
     match c with
     | 'a' .. 'z' | 'A' .. 'Z' | '-' | '_' | '.' | '~' -> false
     | _ -> true 
   in
-  let needs_encoding chars c =
-    match chars with
+  let needs_encoding exclude_chars c =
+    match exclude_chars with
     | None -> is_reserved c
     | Some cs ->
-      List.exists ((=) c) cs
+      (is_reserved c) && (not @@ List.exists ((=) c) cs)
   in
   let add_char buf c =
-    if needs_encoding chars c then Buffer.add_string buf @@ Printf.sprintf "%%%02X" (Char.code c)
+    if needs_encoding exclude_chars c then Buffer.add_string buf @@ Printf.sprintf "%%%02X" (Char.code c)
     else Buffer.add_char buf c
   in
   (* Allocate memory for the worst case when every character needs to be encoded.
