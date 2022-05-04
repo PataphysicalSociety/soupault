@@ -99,7 +99,7 @@ let attribute_map = [
   "script",  ["src", process_attr];
   (* Forms and their elements. *)
   "form",    ["action", process_attr];
-  "input",   ["src", process_attr];
+  "input",   ["src", process_attr; "formaction", process_attr];
   "button",  ["formaction", process_attr];
   (* HTML5 provides <source> for use inside media elements
      (<audio>, <video>, <picture>...) as a uniform alternative
@@ -130,9 +130,19 @@ let attribute_map = [
   "portal",  ["src", process_attr];
   "iframe",  ["src", process_attr; "longdesc", process_attr];
   "frame",   ["src", process_attr; "longdesc", process_attr];
+  (* Quotes and insertions/deletions.
+     It's very unlikely that the source will be relative rather than a full URL,
+     but it's not impossible.
+   *)
+  "blockquote", ["cite", process_attr];
+  "q",       ["cite", process_attr];
+  "ins",     ["cite", process_attr];
+  "del",     ["cite", process_attr];
   (* Misc, mostly legacy. *)
   "body",    ["background", process_attr];
   "base",    ["href", process_attr];
+  "html",    ["manifest", process_attr];
+  "command", ["icon", process_attr];
 ]
 
 (* Generate a list of all supported element selectors
