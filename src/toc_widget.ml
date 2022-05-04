@@ -132,8 +132,9 @@ let rec _make_toc settings depth counter parent tree =
     Logs.debug @@ fun m -> m "Heading %s is ignored because its level exceeds max_level (%d)"
       (Soup.to_string heading) settings.max_level
   else if level < settings.min_level then
-    Logs.debug @@ fun m -> m "Heading %s is ignored because its level is below min_level (%d), processings its sub-headings (if any)"
-      (Soup.to_string heading) settings.min_level;
+    let () = Logs.debug @@ fun m -> m "Heading %s is ignored because its level is below min_level (%d), processings its sub-headings (if any)"
+      (Soup.to_string heading) settings.min_level
+    in
     List.iter (_make_toc settings depth counter parent) children
   else let item = add_item settings heading parent in
   match children with
