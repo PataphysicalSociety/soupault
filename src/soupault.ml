@@ -457,11 +457,13 @@ let process_page index index_hash widgets hooks config settings page_data =
 type soupault_action = DoActualWork | InitProject | ShowVersion | ShowDefaultConfig | ShowEffectiveConfig
 
 let get_args settings =
-  (* Due to a workaround, we are going to parse argument twice:
-     first to find out if we actually need to do anything but printing a version or help,
-     second time to override config file options with command line ones if needed.
+  (* Due to a workaround, we are going to parse arguments twice:
+     first to find out if we actually need to do any real work (rather than just print version or help),
+     second time to override options in the config file with options given through the command line
+     (e.g. --debug enables debug even if soupault.toml has settings.debug=false). 
 
-     The Arg module has a global state: Arg.current that hold the index of the last processed argument.
+     However, the Arg module has a global state: the Arg.current variable
+     that holds the index of the last processed argument.
      We need to reset it to zero to make the function usable more than once.
    *)
   let () = Arg.current := 0 in
@@ -490,7 +492,7 @@ let get_args settings =
   | [a] -> Ok (a, !sr)
   | _ ->
     (* This function is first called at a point when the logger isn't setup yet,
-       so we need to the the plain old print to tell the user about errors. *)
+       so we only have standard printing functions to tell the user about errors. *)
     let () =
       print_endline "Error: Incorrect comand line option combination.";
       print_endline "Please specify only one of --version, --help, --show-default-config, or --show-effective-config";
@@ -510,13 +512,25 @@ let check_project_dir settings =
   in let () =
     if (not (FU.test FU.Is_dir settings.site_dir))
     then begin
-      (* Absense of a site dir likely means someone is running soupault in a completely wrong dir. *)
+      (* If there's no site_dir under the current working directory,
+         then either the user accidentally ran soupault in a completely wrong directory
+         or their project isn't initialized yet.
+       *)
       Logs.err @@ fun m -> m "Site directory \"%s\" does not exist!" settings.site_dir;
       Logs.err @@ fun m -> m "You can use %s --init to initialize a basic project." Sys.argv.(0);
       exit 1
     end
   in ()
 
+(* There are two ways to give soupault a config file:
+   either specify it in SOUPAULT_CONFIG environment variable
+   or place it in the project directory.
+
+   The original config file name was soupault.conf,
+   but in 2.0.0 the default was changed to soupault.toml
+   to make it clear what the config format is.
+   For backward compatibilit, both variants are still supported.
+ *)
 let find_config_file () =
   let conf_exists = Sys.file_exists Defaults.config_file in
   let alt_conf_exists = Sys.file_exists Defaults.config_file_alt in
@@ -572,7 +586,7 @@ let initialize () =
         Logs.warn @@ fun m -> m "--index-only is useless without index=true and dump_json options in the config!";
       if settings.build_dir = "" then
       (* Treating build_dir="" as "build in the current dir" wasn't a part of the design.
-         I suppose it should be disabled in 2.0.
+         I suppose it should be disabled at some point.
        *)
       Logs.warn @@ fun m -> m "Build directory is set to empty string, using current working directory for output"
     end
@@ -629,7 +643,10 @@ let process_index_files index index_hash widgets hooks config settings files =
 let main () =
   (* Parse the arguments to see if we have any real work to do, or it's --version or similar.
      If it's an action that doesn't rely on the config, we don't even need to read the config file.
+
      Worse yet, config reading errors will prevent us from executing the action.
+     For example, --init must work when the config doesn't exist yet:
+     it will put a default config in the project directory.
    *)
   let* (action, settings) = get_args Defaults.default_settings in
   match action with
@@ -643,7 +660,7 @@ let main () =
     let () =
       if (settings.site_dir <> Defaults.default_settings.site_dir) ||
          (settings.build_dir <> Defaults.default_settings.build_dir)
-      (* Logging is not set at up this point, it's done by `initialize ()`,
+      (* Logging is not set at up this point, it's done by [initialize ()],
          so we use a "normal" print to emit a warning here. *)
       then print_string "Warning: --site-dir and --build-dir options are ignored by --project-init\n\n"
     in
@@ -671,7 +688,7 @@ let main () =
     in
     (* A bit of code duplication ahead, for now at least...
 
-       The procedure for a run with [index.index_first=true] and without is slightly different.
+       Page processing workflows with [index.index_first=true] and without is slightly different.
        The purpose of [index_first=true] is to make the entire site metadata available to _all_ pages.
        Obviously, it can only be done by doing certain amount of work twice:
        at the very least, reading all pages, running widgets that aren't in [index.extract_after_widgets],
@@ -688,8 +705,10 @@ let main () =
            hooks for the page being processed. *)
         let index_hash = Hashtbl.create 1024 in
         (* Do just enough work to have all site metadata produced and extracted.
-           [index_only=true] prevents [process_page] from rendering pages and writing them to disk,
-           and also often (though not always) reduces the number of widgets that will run on each page.
+           [index_only=true] prevents [process_page] from rendering pages and writing them to disk.
+
+           It also often (though not always) reduces the number of widgets that will run on each page
+           because widgets that aren't in the [extract_after_widgets] list are not processed.
          *)
         let* index = process_page_files index_hash widgets hooks config {settings with index_only=true} page_files in
         (* Sort entries according to the global settings so that widgets that use index data
@@ -708,8 +727,9 @@ let main () =
            they will simply return empty lists.
          *)
         let settings = {settings with no_index_extraction=true} in
+        (* At this step Lua index_processors may generate new pages, e.g. for taxonomies or pagination. *)
         let* new_pages = process_index_files index index_hash widgets hooks config settings all_files in
-        (* Now process "fake" pages generated by index processors.
+        (* Now process those "fake" pages generated by index processors.
            Index processing must be disabled on them to prevent index processors from generating
            new "fake" pages from generated pages and creating infinite loops.
          *)
@@ -761,4 +781,3 @@ let () =
   | Error e ->
     Logs.err @@ fun m -> m "%s" e;
     exit 1
-
