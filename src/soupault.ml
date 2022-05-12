@@ -584,14 +584,10 @@ let initialize () =
         Logs.info @@ fun m -> m "Running in HTML processor mode, not using page templates";
       if settings.index_only && not (settings.index && (settings.dump_index_json <> None)) then
         Logs.warn @@ fun m -> m "--index-only is useless without index=true and dump_json options in the config!";
-      if settings.build_dir = "" then
-      (* Treating build_dir="" as "build in the current dir" wasn't a part of the design.
-         I suppose it should be disabled at some point.
-       *)
-      Logs.warn @@ fun m -> m "Build directory is set to empty string, using current working directory for output"
     end
   in
   if settings.site_dir = "" then (Error "site_dir must be a directory path, not an empty string")
+  else if settings.build_dir = "" then (Error "build_dir must be a directory path, not an empty string")
   else (Ok (config, widgets, hooks, settings))
 
 let dump_index_json settings index =
