@@ -287,19 +287,6 @@ let fix_nav_path settings path page_name =
   if page_name = settings.index_page then Utils.drop_tail path
   else path
 
-let make_page_url settings nav_path orig_path target_dir page_file =
-  let orig_page_file_name = FP.basename page_file in
-  let target_page =
-    if settings.clean_urls then target_dir |> FP.basename
-    else orig_page_file_name
-  in
-  let path =
-    if ((FP.chop_extension orig_page_file_name) = settings.index_page) then orig_path
-    else (List.append nav_path [target_page])
-  in
-  (* URL path should be absolute *)
-  String.concat "/" path |> Printf.sprintf "/%s"
-
 (** Decide on the page file name.
 
     If clean URLs are used, it's always <target_dir>/<settings.index_file>
@@ -333,6 +320,19 @@ let save_html settings soupault_config hooks env page_source =
   | None ->
     let () = Logs.info @@ fun m -> m "Writing generated page to %s" env.target_file in
     Utils.write_file env.target_file page_source
+
+let make_page_url settings nav_path orig_path target_dir page_file =
+  let orig_page_file_name = FP.basename page_file in
+  let target_page =
+    if settings.clean_urls then target_dir |> FP.basename
+    else make_page_file_name settings orig_page_file_name ""
+  in
+  let path =
+    if ((FP.chop_extension orig_page_file_name) = settings.index_page) then orig_path
+    else (List.append nav_path [target_page])
+  in
+  (* URL path should be absolute *)
+  String.concat "/" path |> Printf.sprintf "/%s"
 
 let extract_metadata settings soupault_config hooks env html =
   (* Metadata is only extracted from non-index pages *)
