@@ -6,9 +6,9 @@ soupault
 
 Soupault is an HTML manipulation tool. It can be any of:
 
-* static site generator
-* HTML processor
-* metadata extractor
+* static site generator,
+* HTML processor,
+* metadata extractor,
 
 or all of them at the same time.
 
@@ -51,12 +51,12 @@ Soupault is...
 
 * Eternal: it comes as a statically-linked binary with no dependencies.
 * Extensible: you can bring your own [page preprocessors](https://soupault.app/reference-manual/#page-preprocessors) (e.g. Markdown to HTML convertors), pipe HTML elements through [external programs](https://soupault.app/reference-manual/#preprocess-element-widget), and load [Lua plugins](https://soupault.app/plugins/).
-* Flexible: most options are configurable and most built-in features can be reimplemented as Lua plugins.
+* Flexible: most options are configurable, most built-in features can be reimplemented as Lua plugins, and there are [page processing hooks](https://soupault.app/reference-manual/#page-processing-hooks).
 
-Soupault is named after the French dadaist and surrealist writer Philippe Soupault
+Soupault is named after the French dadaist and surrealist writer [Philippe Soupault](https://en.wikipedia.org/wiki/Philippe_Soupault)
 because it's based on the [lambdasoup](http://aantron.github.io/lambdasoup/) library.
 
-Visit https://www.soupault.app for details.
+Visit [soupault.app](https://www.soupault.app) for details.
 
 For support and discussion, write a message to the [mailing list](https://lists.sr.ht/~dmbaturin/soupault).
 
@@ -76,7 +76,7 @@ opam install soupault
 Finally, you can build the latest development version with:
 
 ```sh
-opam pin add git+https://github.com/dmbaturin/soupault
+opam pin add git+https://github.com/PataphysicalSociety/soupault
 ```
 
 # Contributing
