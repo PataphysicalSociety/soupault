@@ -109,7 +109,8 @@ let run_post_index_hook settings soupault_config hook_config file_name lua_code 
   let assoc_of_json j =
     match j with
     | `O kvs -> kvs
-    | _ -> internal_error "post-index hook got a JSON value that isn't an object"
+    | _ -> internal_error @@ Printf.sprintf "post-index hook got a JSON value that isn't an object:\n %s"
+      (Ezjsonm.value_to_string j)
   in
   let open Defaults in
   let lua_str = I.Value.string in
