@@ -107,8 +107,20 @@ let run_pre_parse_hook settings soupault_config hook_config file_name lua_code p
 
 let run_post_index_hook settings soupault_config hook_config file_name lua_code env soup fields =
   let assoc_of_json j =
+    (* This function handles values projected from Lua,
+       and Lua doesn't have a distinction between arrays/lists and tables:
+       everything is a table.
+
+       Thus if [fields] is empty, the projection function (Plugin_api.json_of_lua)
+       can interpret it as either an empty table or an empty list,
+       and both interpretations are valid.
+
+       That's why we handle the empty list ([`A []]) case here. If [fields] is set to a non-empty list,
+       it's clearly a logic bug, though.
+     *)
     match j with
     | `O kvs -> kvs
+    | `A [] -> []
     | _ -> internal_error @@ Printf.sprintf "post-index hook got a JSON value that isn't an object:\n %s"
       (Ezjsonm.value_to_string j)
   in
