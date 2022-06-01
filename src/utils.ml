@@ -46,7 +46,7 @@ let any_in_list xs ys =
   List.fold_left (fun acc x -> (in_list ys x) || acc) false xs
 
 (** Extracts keys from an assoc list *)
-let assoc_keys xs = List.fold_left (fun acc (x, _) -> x :: acc) [] xs
+let assoc_keys xs = List.map (fun (k, _) -> k) xs
 
 let assoc_values xs = List.map (fun (_, v) -> v) xs
 
