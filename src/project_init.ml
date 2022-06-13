@@ -27,7 +27,7 @@ let default_config = Printf.sprintf "
 # To learn about configuring soupault, visit https://www.soupault.app/reference-manual
 
 [settings]
-  # Soupalt version that the config was written/generated for
+  # Soupault version that the config was written/generated for
   # Trying to process this config with an older version will result in an error message
   soupault_version = \"%s\"
 
