@@ -3,19 +3,19 @@ module FP = FilePath
 
 open Defaults
 
-let default_template = "
-<html lang=\"en\">
+let default_template = {|
+<html lang="en">
   <head>
-    <meta charset=\"utf-8\">
+    <meta charset="utf-8">
     <title> <!-- set automatically, see soupault.conf --> </title>
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
     <!-- your page content will be inserted here,
          see the default_content_selector option in soupault.conf -->
   </body>
 </html>
-"
+|}
 
 let default_page = "
 <h1>Welcome!</h1>
@@ -23,13 +23,13 @@ let default_page = "
 "
 
 (* This part contains the default settings and it's used in more than one place in the code *)
-let default_config = Printf.sprintf "
+let default_config = Printf.sprintf {|
 # To learn about configuring soupault, visit https://www.soupault.app/reference-manual
 
 [settings]
   # Soupault version that the config was written/generated for
   # Trying to process this config with an older version will result in an error message
-  soupault_version = \"%s\"
+  soupault_version = "%s"
 
   # Stop on page processing errors?
   strict = true
@@ -41,10 +41,10 @@ let default_config = Printf.sprintf "
   debug = false
 
   # Where input files (pages and assets) are stored.
-  site_dir = \"site\"
+  site_dir = "site"
 
   # Where the output goes
-  build_dir = \"build\"
+  build_dir = "build"
 
   # Files inside the site/ directory can be treated as pages or static assets,
   # depending on the extension.
@@ -54,44 +54,44 @@ let default_config = Printf.sprintf "
   #
   # Note that for formats other than HTML, you need to specify an external program
   # for converting them to HTML (see below).
-  page_file_extensions = [\"htm\", \"html\", \"md\", \"rst\", \"adoc\"]
+  page_file_extensions = ["htm", "html", "md", "rst", "adoc"]
 
   # Files with these extensions are ignored.
-  ignore_extensions = [\"draft\"]
+  ignore_extensions = ["draft"]
 
   # Soupault can work as a website generator or an HTML processor.
   #
-  # In the \"website generator\" mode, it considers files in site/ page bodies
+  # In the "website generator" mode, it considers files in site/ page bodies
   # and inserts them into the empty page template stored in templates/main.html
   #
-  # Setting this option to false switches it to the \"HTML processor\" mode
+  # Setting this option to false switches it to the "HTML processor" mode
   # when it considers every file in site/ a complete page and only runs it through widgets/plugins.
   generator_mode = true
 
   # Files that contain an <html> element are considered complete pages rather than page bodies,
-  # even in the \"website generator\" mode.
+  # even in the "website generator" mode.
   # This allows you to use a unique layout for some pages and still have them processed by widgets.
-  complete_page_selector = \"html\"
+  complete_page_selector = "html"
 
   # Website generator mode requires a page template (an empty page to insert a page body into).
-  # If you use \"generator_mode = false\", this file is not required.
-  default_template_file = \"templates/main.html\"
+  # If you use "generator_mode = false", this file is not required.
+  default_template_file = "templates/main.html"
 
-  # Page content is inserted into a certain element of the page template. This option is a CSS selector
-  # used for locating that element.
+  # Page content is inserted into a certain element of the page template.
+  # This option is a CSS selector that is used for locating that element.
   # By default the content is inserted into the <body>
-  default_content_selector = \"body\"
+  default_content_selector = "body"
 
   # You can choose where exactly to insert the content in its parent element.
   # The default is append_child, but there are more, including prepend_child and replace_content
-  default_content_action = \"append_child\"
+  default_content_action = "append_child"
 
   # If a page already has a document type declaration, keep the declaration
   keep_doctype = true
 
   # If a page does not have a document type declaration, force it to HTML5
   # With keep_doctype=false, soupault will replace existing declarations with it too
-  doctype = \"<!DOCTYPE html>\"
+  doctype = "<!DOCTYPE html>"
 
   # Insert whitespace into HTML for better readability
   # When set to false, the original whitespace (if any) will be preserved as is
@@ -105,32 +105,32 @@ let default_config = Printf.sprintf "
   # Plugins can be either automatically discovered or loaded explicitly.
   # By default discovery is enabled and the place where soupault is looking is the plugins/ subdirectory
   # in your project.
-  # E.g. a file at plugins/my-plugin.lua will be registered as a widget named \"my-plugin\".
+  # E.g., a file at plugins/my-plugin.lua will be registered as a widget named "my-plugin".
   plugin_discovery = true
-  plugin_dirs = [\"plugins\"]
-"
+  plugin_dirs = ["plugins"]
+|}
 
 Defaults.version_string
 
 (* This part contains example settings for a simple website,
    to give the user an idea what kind of functionality is available. *)
-let sample_config = "
+let sample_config = {|
 
 # It is possible to store pages in any format if you have a program
 # that converts it to HTML and writes it to standard output.
 # Example:
 #[preprocessors]
-#  md = \"cmark --unsafe --smart\"
-#  adoc = \"asciidoctor -o -\"
+#  md = "cmark --unsafe --smart"
+#  adoc = "asciidoctor -o -"
 
 # Pages can be further processed with \"widgets\"
 
 # Takes the content of the first <h1> and inserts it into the <title>
 [widgets.page-title]
-  widget = \"title\"
-  selector = \"h1\"
-  default = \"My Homepage\"
-  append = \" &mdash; My Homepage\"
+  widget = "title"
+  selector = "h1"
+  default = "My Homepage"
+  append = " &mdash; My Homepage"
 
   # Insert a <title> in a page if it doesn't have one already.
   # By default soupault assumes if it's missing, you don't want it.
@@ -139,19 +139,19 @@ let sample_config = "
 # Inserts a generator meta tag in the page <head>
 # Just for demonstration, feel free to remove
 [widgets.generator-meta]
-  widget = \"insert_html\"
-  html = '<meta name=\"generator\" content=\"soupault\">'
-  selector = \"head\"
+  widget = "insert_html"
+  html = '<meta name="generator" content="soupault">'
+  selector = "head"
 
 # <blink> elements are evil, delete them all
 [widgets.no-blink]
-  widget = \"delete_element\"
-  selector = \"blink\"
+  widget = "delete_element"
+  selector = "blink"
 
   # By default this widget deletes all elements matching the selector,
   # but you can set this option to false to delete just the first one
   delete_all = true
-"
+|}
 
 let print_end_message settings = Printf.printf "Initialization complete.
 
