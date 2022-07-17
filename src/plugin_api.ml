@@ -60,8 +60,8 @@ module Sys_wrappers = struct
     with Sys_error msg ->
       Printf.ksprintf plugin_error "Failed to write file \"%s\": %s" name msg
 
-  let get_program_output cmd =
-    let res = Process_utils.get_program_output cmd in
+  let get_program_output cmd input =
+    let res = Process_utils.get_program_output ~input:input cmd in
     match res with
     | Ok o -> Some o
     | Error msg ->
@@ -761,7 +761,7 @@ struct
        "delete_recursive", V.efunc (V.string **->> V.unit) (fun s -> Sys_wrappers.delete_file ~r:true s);
        "list_dir", V.efunc (V.string **->> V.list V.string) Sys_wrappers.ls;
        (* External program execution *)
-       "get_program_output", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
+       "get_program_output", V.efunc (V.string **-> V.option V.string **->> V.option V.string) (Sys_wrappers.get_program_output);
        "run_program", V.efunc (V.string **->> V.option V.int) (Sys_wrappers.run_program);
        "run_program_get_exit_code", V.efunc (V.string **->> V.int) (Sys_wrappers.run_program_get_exit_code);
        (* Operations on native file paths. *)
