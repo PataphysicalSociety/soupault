@@ -314,7 +314,6 @@ let save_html settings soupault_config hooks env page_source =
   match save_hook with
   | Some (file_name, source_code, hook_config) ->
     if Hooks.hook_should_run settings hook_config "save" env.page_file then
-      let () = Logs.info @@ fun m -> m "Running the \"save\" hook on page %s" env.page_file in
       Hooks.run_save_hook settings soupault_config hook_config file_name source_code env page_source
     else Utils.write_file env.target_file page_source
   | None ->
