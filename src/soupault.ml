@@ -321,6 +321,16 @@ let save_html settings soupault_config hooks env page_source =
     let () = Logs.info @@ fun m -> m "Writing generated page to %s" env.target_file in
     Utils.write_file env.target_file page_source
 
+let run_post_save_hook settings soupault_config hooks env =
+  let post_save_hook = Hashtbl.find_opt hooks "post-save" in
+  match post_save_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if Hooks.hook_should_run settings hook_config "post-save" env.page_file then
+      Hooks.run_post_save_hook settings soupault_config hook_config file_name source_code env
+    else Ok ()
+  | None ->
+    Ok ()
+
 let make_page_url settings nav_path orig_path target_dir page_file =
   let orig_page_file_name = FP.basename page_file in
   let target_page =
@@ -436,6 +446,8 @@ let process_page page_data index index_hash widgets hooks config settings =
   let* () = mkdir target_dir in
   let* html_str = render_html settings config hooks env html in
   let* () = save_html settings config hooks env html_str in
+  (* Finally, run the post-save hook. *)
+  let* () = run_post_save_hook settings config hooks env in
   Ok (index_entry, new_pages)
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)

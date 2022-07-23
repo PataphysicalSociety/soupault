@@ -7,7 +7,7 @@ let (let*) = Result.bind
 
 let lua_of_toml = Plugin_api.lua_of_toml
 
-let hook_types = ["pre-parse"; "pre-process"; "post-index"; "render"; "save"]
+let hook_types = ["pre-parse"; "pre-process"; "post-index"; "render"; "save"; "post-save"]
 
 let hook_should_run settings hook_config hook_type page_file =
   let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
@@ -80,6 +80,28 @@ let run_save_hook settings soupault_config hook_config file_name lua_code env pa
     ] state;
   in
   let () = Logs.info @@ fun m -> m "Running the save hook on page %s" env.page_file in
+  Plugin_api.run_lua file_name state lua_code
+
+let run_post_save_hook settings soupault_config hook_config file_name lua_code env =
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let state = I.mk () in
+   let () =
+    (* Set up the save hook environment *)
+    I.register_globals [
+      "page_file", lua_str.embed env.page_file;
+      "page_url", lua_str.embed env.page_url;
+      "target_file", lua_str.embed env.target_file;
+      "target_dir", lua_str.embed env.target_dir;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state;
+  in
+  let () = Logs.info @@ fun m -> m "Running the post-save hook on page %s" env.page_file in
   Plugin_api.run_lua file_name state lua_code
 
 let run_pre_parse_hook settings soupault_config hook_config file_name lua_code page_file page_source =
