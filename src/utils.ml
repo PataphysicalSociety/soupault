@@ -52,6 +52,8 @@ let assoc_values xs = List.map (fun (_, v) -> v) xs
 
 let assoc_map f kvs = List.map (fun (k, v) -> (k, f v)) kvs
 
+let assoc_map2 f kvs = List.map (fun (k, v) -> (k, f k v)) kvs
+
 (** Result-aware iteration *)
 let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
   match xs with
@@ -134,6 +136,27 @@ let has_extension extension file =
   match res with
   | None -> false
   | Some _ -> true
+
+let strip_extensions file =
+  let parts = String.split_on_char '.' file in
+  match parts with
+  | [] | "" :: [] | "" :: "" :: _ ->
+    (* UNIX-like OSes and Windows alike disallow empty file names
+       and file names that consist entirely of dots,
+       so such names will never be found in real directory listings.
+       But if anything happens that makes such file names appear,
+       it's better to have a distinctive error for that condition.
+     *)
+    internal_error "Nomen tuum malum est, te pudeat!"
+  | "" :: (_ as name) :: _ ->
+    (* If a name starts with a dot, we consider its part before a second dot
+       its "base" name.
+       As in, [strip_extensions(".bashrc.gz")] will return ".bashrc".
+       That's the most sensible behavior I can think of.
+     *)
+    "." ^ name
+  | (_ as name) :: _ ->
+    name  
 
 (* Remove trailing slashes from a path. *)
 let normalize_path path =
