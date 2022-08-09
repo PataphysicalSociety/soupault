@@ -1,6 +1,7 @@
 module OH = Otoml.Helpers
 
 open Defaults
+open Soupault_common
 
 open Otoml
 
@@ -136,7 +137,11 @@ let valid_path_options = [
     "page"; "section"; "path_regex"; "exclude_page"; "exclude_section"; "exclude_path_regex"
   ]
 
-(* Update global settings with values from the config, if there are any *)
+(* Get the mapping of file extensions to page preprocessor commands.
+   Page preprocessors arguments are simply appended to the command
+   since they aren't expected to need anything but an input file path.
+   That allows us to store them simply as string.
+ *)
 let _get_page_preprocessors config =
   let t = find_table_opt [Defaults.page_preprocessors_table] config in
   match t with
@@ -144,6 +149,33 @@ let _get_page_preprocessors config =
   | Some t ->
     let t = get_table t in
     Utils.assoc_map get_string t
+
+(* Get the mapping of file extensions to asset processors.
+   Since asset processors are expected to both process a file and write
+   the result to a target location, it's a bit more involved than with page preprocessors.
+
+   That's why we store them as Jingoo templates that can take input and output files
+   and precompile those templates for speed.
+ *)
+let _get_asset_processors config =
+  let get_processor extension toml_value =
+    try
+      let template_string = get_string toml_value in
+      Template.of_string template_string
+    with Soupault_error msg ->
+      (* XXX: maybe Template.render should use a special exception rather than Soupault_error.
+         In the config parsing stage, Soupault_error is not handled,
+         which is why we have to catch it and re-raise it as Config_error instead,
+       *)
+      let () = Logs.err @@ fun m -> m {|Could not compile template from asset_processors.%s|} extension in
+      config_error msg
+  in
+  let t = find_table_opt [Defaults.asset_processors_table] config in
+  match t with
+  | None -> []
+  | Some t ->
+    let t = get_table t in
+    Utils.assoc_map2 get_processor t
 
 let get_index_queries index_table =
   let get_query k it =
@@ -412,9 +444,10 @@ let _update_settings settings config =
        soupault_version = OH.find_string_opt st ["soupault_version"];
 
        page_preprocessors = _get_page_preprocessors config;
+       asset_processors = _get_asset_processors config;
      }
 
-let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"; "hooks"; "custom_options"]
+let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "asset_processors"; "templates"; "hooks"; "custom_options"]
 
 let check_subsections ?(parent_path=[]) config valid_tables table_name =
   let bad_section_msg tbl _ suggestion =

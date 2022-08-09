@@ -104,19 +104,19 @@ let make_page_dir_name settings target_dir page_name =
   else target_dir +/ page_name
 
 let load_html settings soupault_config hooks page_file =
-  let load_file preprocessor page_file =
+  let load_file page_preprocessor page_file =
     try
-    match preprocessor with
+    match page_preprocessor with
     | None -> Ok (Soup.read_file page_file)
     | Some prep ->
       let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote page_file) in
-      let () = Logs.info @@ fun m -> m "Calling preprocessor \"%s\" on page %s" (String.escaped prep) page_file in
+      let () = Logs.info @@ fun m -> m "Calling page preprocessor \"%s\" on page %s" (String.escaped prep) page_file in
       Process_utils.get_program_output prep_cmd
     with Sys_error e -> Error e
   in
   let ext = Utils.get_extension page_file in
-  let preprocessor = List.assoc_opt ext settings.preprocessors in
-  let* page_source = load_file preprocessor page_file in
+  let page_preprocessor = List.assoc_opt ext settings.page_preprocessors in
+  let* page_source = load_file page_preprocessor page_file in
   let pre_parse_hook = Hashtbl.find_opt hooks "pre-parse" in
   let* page_source =
     match pre_parse_hook with
@@ -647,6 +647,43 @@ let process_index_files index index_hash widgets hooks config settings files =
     []
     files
 
+let process_asset_file settings src_path dst_path =
+  let extension = Utils.get_extension src_path in
+  let processor = List.assoc_opt extension settings.asset_processors in
+  match processor with
+  | None ->
+    (* Utils.cp takes care of missing directories if needed. *)
+    Utils.cp [src_path] dst_path
+  | Some template ->
+    (* Assets are processed early, so directories may not exist yet, we may need to create them. *)
+    let () = FileUtil.mkdir ~parent:true dst_path in
+    let file_name = FilePath.basename src_path in
+    let jg_string = Jingoo.Jg_types.box_string in
+    let env = [
+      ("source_file_path", jg_string src_path);
+      ("source_file_name", jg_string file_name);
+      ("source_file_base_name", jg_string (file_name |> Utils.strip_extensions));
+      ("target_dir", jg_string dst_path);
+    ]
+    in
+    let command = Template.render template env in
+    let () = Logs.info @@ fun m -> m {|Calling asset processor command: "%s"|} command in
+    let res = Process_utils.get_program_output command in
+    begin
+      match res with
+      | Ok output ->
+        let () = Logs.debug @@ fun m -> m "Asset processor output:\n%s" output in
+        Ok ()
+      |
+        (* XXX: This seemingly useless destructuring is there to keep the compiler happy
+           because the type of Process_utils.get_program_output is p(string, string) result],
+           while the type that Utils.iter expects is [(unit, string) result].
+           Since [res] is [(string, string) result], we have to extract its error part
+           and nominally "re-box" it.
+         *)
+        Error msg -> Error msg
+    end
+
 let main () =
   (* Parse the arguments to see if we have any real work to do, or it's --version or similar.
      If it's an action that doesn't rely on the config, we don't even need to read the config file.
@@ -690,7 +727,7 @@ let main () =
     in
     let* () =
       if not settings.index_only
-      then Utils.iter (fun (src, dst) -> Utils.cp [src] dst) asset_files
+      then Utils.iter (fun (src, dst) -> process_asset_file settings src dst) asset_files
       else Ok ()
     in
     (* A bit of code duplication ahead, for now at least...

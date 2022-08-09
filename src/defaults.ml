@@ -200,7 +200,10 @@ type settings = {
   index_sort_options : sort_options;
 
   (* Page preprocessors convert other formats to HTML. *)
-  preprocessors : (string * string) list;
+  page_preprocessors : (string * string) list;
+
+  (* Asset processors that manipulate static asset files. *)
+  asset_processors : (string * Template.t) list;
 
   plugin_dirs : string list;
   plugin_discovery: bool;
@@ -228,7 +231,8 @@ let config_file_alt = "soupault.conf"
 let config_path_env_var = "SOUPAULT_CONFIG"
 let settings_table = "settings"
 let index_settings_table = "index"
-let preprocessors_table = "preprocessors"
+let page_preprocessors_table = "preprocessors"
+let asset_processors_table = "asset_processors"
 let widgets_table = "widgets"
 let plugins_table = "plugins"
 let templates_table = "templates"
@@ -296,7 +300,8 @@ let default_settings = {
 
   index_sort_options = default_sort_options;
 
-  preprocessors = [];
+  page_preprocessors = [];
+  asset_processors = [];
 
   plugin_dirs = ["plugins"];
   plugin_discovery = true;
