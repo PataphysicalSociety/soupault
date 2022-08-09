@@ -137,8 +137,8 @@ let valid_path_options = [
   ]
 
 (* Update global settings with values from the config, if there are any *)
-let _get_preprocessors config =
-  let t = find_table_opt [Defaults.preprocessors_table] config in
+let _get_page_preprocessors config =
+  let t = find_table_opt [Defaults.page_preprocessors_table] config in
   match t with
   | None -> []
   | Some t ->
@@ -411,7 +411,7 @@ let _update_settings settings config =
 
        soupault_version = OH.find_string_opt st ["soupault_version"];
 
-       preprocessors = _get_preprocessors config
+       page_preprocessors = _get_page_preprocessors config;
      }
 
 let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "templates"; "hooks"; "custom_options"]
