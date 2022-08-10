@@ -93,6 +93,21 @@ module Sys_wrappers = struct
     try FileUtil.ls path
     with Sys_error msg ->
       Printf.ksprintf plugin_error "Failed to get directory contents if \"%s\": %s" path msg
+
+  let get_extension f =
+    try Utils.get_extension f
+    with Utils.Malformed_file_name name ->
+      Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.get_extension|} name
+
+  let get_extensions f =
+    try	Utils.get_extensions f
+    with Utils.Malformed_file_name name ->
+      Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.get_extensions|} name
+
+  let has_extension e f =
+    try	Utils.has_extension e f
+    with Utils.Malformed_file_name name	->
+      Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.has_extension|} name
 end
 
 module Plugin_version = struct
@@ -773,9 +788,11 @@ struct
        "join_url", V.efunc (V.string **-> V.string **->> V.string) FilePath.UnixPath.concat;
        "basename_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.basename;
        "dirname_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.dirname;
-       "get_extension", V.efunc (V.string **->> V.string) Utils.get_extension;
-       "get_extensions", V.efunc (V.string **->> V.list V.string) Utils.get_extensions;
-       "has_extension", V.efunc (V.string **-> V.string **->> V.bool) (fun f e -> Utils.has_extension e f);
+        (* Operations with file extensions. *)
+       "get_extension", V.efunc (V.string **->> V.string) Sys_wrappers.get_extension;
+       "get_extensions", V.efunc (V.string **->> V.list V.string) Sys_wrappers.get_extensions;
+       "has_extension", V.efunc (V.string **-> V.string **->> V.bool) (fun f e -> Sys_wrappers.has_extension e f);
+       (* Misc. *)
        "random", V.efunc (V.int **->> V.int) Random.int;
        "is_windows", V.efunc (V.unit **->> V.bool) (fun () -> Sys.win32);
        "is_unix", V.efunc (V.unit **->> V.bool) (fun () -> Sys.unix);

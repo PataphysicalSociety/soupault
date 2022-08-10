@@ -1,6 +1,8 @@
 include Soupault_common
 open Defaults
 
+exception Malformed_file_name of string
+
 (* IO helpers *)
 
 (** Reads a file and return its content *)
@@ -118,17 +120,45 @@ let profile_matches profile build_profiles =
   | Some _, [] -> false
   | Some p, _ -> Option.is_some @@ List.find_opt ((=) p) build_profiles
 
-(* Fixup for FilePath.get_extension raising Not_found for files without extensions.
+(** Splits a file name into its "proper name" and extensions. *)
+let split_file_name file =
+  let parts = String.split_on_char '.' file in
+  match parts with
+  | [] | "" :: [] | "" :: "" :: _ ->
+    (* UNIX-like OSes and Windows alike disallow empty file names
+       and file names that consist entirely of dots,
+       so if this function gets a malformed path,
+       the user should be notified that something went wrong.
+     *)
+    raise @@ Malformed_file_name file
+  | "" :: name :: extensions ->
+    (* If a name starts with a dot, we consider its part before a second dot
+       its "base" name.
+       As in, [strip_extensions(".bashrc.gz")] will return ".bashrc".
+       That's the most sensible behavior I can think of.
+     *)
+    (("." ^ name), extensions)
+  | name :: extensions ->
+    (name, extensions)
 
-   See https://github.com/gildor478/ocaml-fileutils/issues/12 for details.
+(** Get all extensions. *)
+let get_extensions file =
+  let (_, extensions) = split_file_name file in
+  extensions
+
+(** Get the last extension, or return an empty string
+    if there are no extensions.
  *)
 let get_extension file =
-  try FilePath.get_extension file
-  with Not_found -> ""
+  let (_, extensions) = split_file_name file in
+  match (List.rev extensions) with
+  | [] -> ""
+  | ext :: _ -> ext
 
-let get_extensions file =
-  let parts = String.split_on_char '.' file in
-  drop_head parts
+(* Remove all extensions. *)
+let strip_extensions file =
+  let (name, _) = split_file_name file in
+  name
 
 let has_extension extension file =
   let extensions = get_extensions file in
@@ -136,27 +166,6 @@ let has_extension extension file =
   match res with
   | None -> false
   | Some _ -> true
-
-let strip_extensions file =
-  let parts = String.split_on_char '.' file in
-  match parts with
-  | [] | "" :: [] | "" :: "" :: _ ->
-    (* UNIX-like OSes and Windows alike disallow empty file names
-       and file names that consist entirely of dots,
-       so such names will never be found in real directory listings.
-       But if anything happens that makes such file names appear,
-       it's better to have a distinctive error for that condition.
-     *)
-    internal_error "Nomen tuum malum est, te pudeat!"
-  | "" :: (_ as name) :: _ ->
-    (* If a name starts with a dot, we consider its part before a second dot
-       its "base" name.
-       As in, [strip_extensions(".bashrc.gz")] will return ".bashrc".
-       That's the most sensible behavior I can think of.
-     *)
-    "." ^ name
-  | (_ as name) :: _ ->
-    name  
 
 (* Remove trailing slashes from a path. *)
 let normalize_path path =

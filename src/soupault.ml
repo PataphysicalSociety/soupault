@@ -103,6 +103,18 @@ let make_page_dir_name settings target_dir page_name =
   if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
   else target_dir +/ page_name
 
+let get_preprocessor preprocessors file_name =
+  try
+    let ext = Utils.get_extension file_name in
+    List.assoc_opt ext preprocessors
+  with Utils.Malformed_file_name _ ->
+    (* Since page file names comes from directory listings,
+       they are guaranteed to be valid, non-reserved names.
+       But if this "can't happen" situation does happen,
+       it's probably better to have a distinctive error for it.
+     *)
+    internal_error "Nomen tuum malum est, te pudeat!"
+
 let load_html settings soupault_config hooks page_file =
   let load_file page_preprocessor page_file =
     try
@@ -114,8 +126,7 @@ let load_html settings soupault_config hooks page_file =
       Process_utils.get_program_output prep_cmd
     with Sys_error e -> Error e
   in
-  let ext = Utils.get_extension page_file in
-  let page_preprocessor = List.assoc_opt ext settings.page_preprocessors in
+  let page_preprocessor = get_preprocessor settings.page_preprocessors page_file in
   let* page_source = load_file page_preprocessor page_file in
   let pre_parse_hook = Hashtbl.find_opt hooks "pre-parse" in
   let* page_source =
@@ -648,8 +659,7 @@ let process_index_files index index_hash widgets hooks config settings files =
     files
 
 let process_asset_file settings src_path dst_path =
-  let extension = Utils.get_extension src_path in
-  let processor = List.assoc_opt extension settings.asset_processors in
+  let processor = get_preprocessor settings.asset_processors src_path in
   match processor with
   | None ->
     (* Utils.cp takes care of missing directories if needed. *)
