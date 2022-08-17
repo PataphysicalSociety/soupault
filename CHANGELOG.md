@@ -1,3 +1,21 @@
+# 4.1.0
+
+# New features
+
+* There are now asset preprocessors that allow running asset files through external programs (image convertors, Sass compilers... you name it).
+* New `post-save` hook makes it easier to post-process generated page files (e.g., run them through an HTML minifier).
+* [Plugin API] It's now possible to send data to the standard input of external programs by calling `Sys.get_program_output(cmd, input_string)`.
+* [Plugin API] New `Sys.strip_extensions` function for removing extensions from file names.
+
+## Bug fixes
+
+* Removed a duplicate log message in the `save` hook code.
+* Fixed a typo in the default config (no functional change, it was in a comment).
+
+## Internal changes
+
+* The function that extracts keys from assoc lists is rewritten in a marginally simpler and faster way.
+
 # 4.0.1
 
 ## Bug fixes
