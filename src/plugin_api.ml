@@ -108,6 +108,11 @@ module Sys_wrappers = struct
     try	Utils.has_extension e f
     with Utils.Malformed_file_name name	->
       Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.has_extension|} name
+
+  let strip_extensions f =
+    try Utils.strip_extensions f
+    with Utils.Malformed_file_name name ->
+      Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.strip_extensions|} name
 end
 
 module Plugin_version = struct
@@ -792,6 +797,7 @@ struct
        "get_extension", V.efunc (V.string **->> V.string) Sys_wrappers.get_extension;
        "get_extensions", V.efunc (V.string **->> V.list V.string) Sys_wrappers.get_extensions;
        "has_extension", V.efunc (V.string **-> V.string **->> V.bool) (fun f e -> Sys_wrappers.has_extension e f);
+       "strip_extensions", V.efunc (V.string **->> V.string) Sys_wrappers.strip_extensions;
        (* Misc. *)
        "random", V.efunc (V.int **->> V.int) Random.int;
        "is_windows", V.efunc (V.unit **->> V.bool) (fun () -> Sys.win32);
