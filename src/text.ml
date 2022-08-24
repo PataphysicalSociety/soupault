@@ -1,5 +1,17 @@
+(** A home-grown alternative to https://opam.ocaml.org/packages/text/
+    based on Camomile (https://opam.ocaml.org/packages/camomile/).
+
+    The problem with the text package for soupault's use case
+    is that text depends on libiconv, which makes statically-linked builds impossible.
+    Soupault intentionally avoids any dependencies on shared libraries
+    so that it can be a self-contained executable that is trivial to distribute.
+ *) 
+
 open CamomileLibraryDefault
 
+(* Checks if a string is valid UTF-8 or not.
+   Other functions rely on it to provide an ASCII fallback
+   for strings that cannot be treated as UTF-8 due to invalid characters in them. *)
 let is_valid s =
   try
     let () = Camomile.UTF8.validate s in
@@ -7,6 +19,10 @@ let is_valid s =
   with Camomile.UTF8.Malformed_code ->
     false
 
+(** Extracts substrings.
+   If a string is valid UTF-8, extracts a range of Unicode characters.
+   If not, extracts a range of bytes.
+ *)
 let sub s min max =
   let open Camomile in
   let rec aux buf s pos max =
@@ -20,12 +36,17 @@ let sub s min max =
   let () = aux buf s min max in
   UTF8.Buf.contents buf
 
+(** Calculates string lengths.
+    For valid UTF-8 strings that's length in Unicode characters.
+    In other cases it's length in bytes.
+ *)
 let length s =
   if not (is_valid s) then String.length s else
   Camomile.UTF8.length s
 
-(* Allow for "soft" encoding if the user supplies a list of characters to exclude from encoding
-   but default to encoding all characters outside the unreserved set. *)
+(** Percent-encodes strings for URLs.
+   [exclude_characters] allows for "soft" encoding if the user supplies a list of characters to exclude from encoding.
+   By default, encodes all characters outside the unreserved set. *)
 let url_encode ?(exclude_chars=None) s =
   let is_reserved c =
     match c with
@@ -48,9 +69,9 @@ let url_encode ?(exclude_chars=None) s =
   let () = String.iter (add_char buf) s in
   Buffer.contents buf
 
-(* Percent-encoded URL decoder.
-   Copied from ocaml-uri (https://github.com/mirage/ocaml-uri),
-   distributed under the MIT license.
+(** Decodes percent-encoded URLs.
+    Copied from ocaml-uri (https://github.com/mirage/ocaml-uri),
+    distributed under the MIT license.
  *)
 let url_decode b =
   let int_of_hex_char c =
