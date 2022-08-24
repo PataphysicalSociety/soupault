@@ -1,6 +1,7 @@
 (* Multi-way tree used by the ToC module *)
 
 (* List helper functions *)
+
 module List_utils = struct
   let rec remove p xs =
     match xs with
@@ -60,22 +61,23 @@ let take_section get_level hs =
 
 (* Multi-way tree with artificial node identifiers.
 
-   Heading text is not guaranteed to be unique, headings are not guaranteed
-   to have unique id attributes either.
-   How do we make sure we can insert a node in the headings tree at a well-defined position?
+   Heading text is not guaranteed to be unique,
+   and headings are not guaranteed to have unique id attributes either.
+   How do we make sure that we can insert a node in the headings tree at a well-defined position?
+
    The number of each heading in the document is unique, so we use it as a node identifier.
 
    Having unique identifiers means we can insert at a "path" in the tree,
    where a path is a sequence of node identifiers.
-   E.g. "first h2 after the first h1" would be [1; 2].
+   E.g., "the first h2 after the first h1" would be [1; 2].
 
    When the tree is ready, those identifiers are useless, so we'll remove them later.
  *)
 module Path_tree = struct
 
   type ('a, 'b) path_tree = {
-    id: 'a; (* Unique identifier for the purpose of having a unique identifier *)
-    data: 'b; (* Actual data attached to a node *)
+    id: 'a; (* Unique identifier for the purpose of having a unique identifier. *)
+    data: 'b; (* Actual data attached to a node. *)
     children: ('a, 'b) path_tree list
   }
 
