@@ -7,7 +7,16 @@ let (let*) = Result.bind
 
 let lua_of_toml = Plugin_api.lua_of_toml
 
-let hook_types = ["pre-parse"; "pre-process"; "post-index"; "render"; "save"; "post-save"]
+let hook_types = [
+  "pre-parse";
+  "pre-process";
+  "post-index";
+  "render";
+  "save";
+  "post-save"
+]
+
+(* Auxilliary functions *)
 
 let hook_should_run settings hook_config hook_type page_file =
   let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
@@ -21,95 +30,50 @@ let hook_should_run settings hook_config hook_type page_file =
       hook_type page_file
     in false
 
-let run_render_hook settings soupault_config hook_config file_name lua_code env soup =
-  let open Defaults in
-  let lua_str = I.Value.string in
-  let state = I.mk () in
-  (* Get the index entry for the current page from the index hash *)
-  let index_entry_json =
-    begin
-      let index_entry = Hashtbl.find_opt env.site_index_hash env.page_file in
-      match index_entry with
-      | None -> `Null
-      | Some ie -> Utils.json_of_index_entry ie
-    end
-  in
-  let () =
-    (* Set up the hook environment *)
-    I.register_globals [
-      "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
-      "page_file", lua_str.embed env.page_file;
-      "page_url", lua_str.embed env.page_url;
-      "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index);
-      "index_entry", Plugin_api.lua_of_json index_entry_json;
-      "target_file", lua_str.embed env.target_file;
-      "target_dir", lua_str.embed env.target_dir;
-      "config", lua_of_toml hook_config;
-      "hook_config", lua_of_toml hook_config;
-      "soupault_config", lua_of_toml soupault_config;
-      "force", I.Value.bool.embed settings.force;
-      "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
-    ] state;
-  in
-  let (let*) = Result.bind in
-  let () = Logs.info @@ fun m -> m "Running the render hook on page %s" env.page_file in
-  let* () = Plugin_api.run_lua file_name state lua_code in
-  let res = I.getglobal state (I.Value.string.embed "page_source") in
-  if I.Value.string.is res then Ok (I.Value.string.project res)
-  else Error "render hook has not assigned a string to the page_source variable"
+let check_hook_tables config =
+  let hooks_table = Config.find_table_opt ["hooks"] config in
+  match hooks_table with
+  | None -> ()
+  | Some tbl -> Config.check_subsections ~parent_path:["hooks"] tbl hook_types "hooks"
 
-let run_save_hook settings soupault_config hook_config file_name lua_code env page_source =
-  let open Defaults in
-  let lua_str = I.Value.string in
-  let state = I.mk () in
-   let () =
-    (* Set up the save hook environment *)
-    I.register_globals [
-      "page_source", lua_str.embed page_source;
-      "page_file", lua_str.embed env.page_file;
-      "page_url", lua_str.embed env.page_url;
-      "target_file", lua_str.embed env.target_file;
-      "target_dir", lua_str.embed env.target_dir;
-      "config", lua_of_toml hook_config;
-      "hook_config", lua_of_toml hook_config;
-      "soupault_config", lua_of_toml soupault_config;
-      "force", I.Value.bool.embed settings.force;
-      "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
-    ] state;
-  in
-  let () = Logs.info @@ fun m -> m "Running the save hook on page %s" env.page_file in
-  Plugin_api.run_lua file_name state lua_code
+let load_hook hook_config ident =
+  let default_filename = Printf.sprintf {|<inline Lua source for hook "%s">|} ident in
+  let ident = Printf.sprintf {|hook "%s"|} ident in
+  let res = Utils.load_plugin_code hook_config default_filename ident in
+  match res with
+  | Ok (file_name, source_code) -> (file_name, source_code)
+  | Error msg -> Config.config_error msg
 
-let run_post_save_hook settings soupault_config hook_config file_name lua_code env =
-  let open Defaults in
-  let lua_str = I.Value.string in
-  let state = I.mk () in
-   let () =
-    (* Set up the save hook environment *)
-    I.register_globals [
-      "page_file", lua_str.embed env.page_file;
-      "page_url", lua_str.embed env.page_url;
-      "target_file", lua_str.embed env.target_file;
-      "target_dir", lua_str.embed env.target_dir;
-      "config", lua_of_toml hook_config;
-      "hook_config", lua_of_toml hook_config;
-      "soupault_config", lua_of_toml soupault_config;
-      "force", I.Value.bool.embed settings.force;
-      "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
-    ] state;
-  in
-  let () = Logs.info @@ fun m -> m "Running the post-save hook on page %s" env.page_file in
-  Plugin_api.run_lua file_name state lua_code
+let get_hook config hooks_hash ident =
+  let hook_config = Config.find_table_opt ["hooks"; ident] config in
+  match hook_config with
+  | None -> ()
+  | Some hook_config ->
+    let (file_name, source) = load_hook hook_config ident in
+    Hashtbl.add hooks_hash ident (file_name, source, hook_config)
 
+let get_hooks config =
+  try
+    let () = check_hook_tables config in
+    let hooks_hash = Hashtbl.create 1024 in
+    let () = List.iter (get_hook config hooks_hash) hook_types in
+    Ok hooks_hash
+  with Config.Config_error msg -> Error msg
+
+(* Hook functions *)
+
+(* pre-parse hook runs just after the page source is loaded from a file or received from a preprocessor
+   and before it's parsed into an HTML element tree.
+
+   It only has access to the page source, not an element tree.
+   It is free to modify the [page_source] variable that contains the page source.
+ *)
 let run_pre_parse_hook settings soupault_config hook_config file_name lua_code page_file page_source =
   let open Defaults in
   let lua_str = I.Value.string in
   let state = I.mk () in
    let () =
-    (* Set up the save hook environment *)
+    (* Set up the hook environment *)
     I.register_globals [
       "page_source", lua_str.embed page_source;
       "page_file", lua_str.embed page_file;
@@ -118,7 +82,7 @@ let run_pre_parse_hook settings soupault_config hook_config file_name lua_code p
       "soupault_config", lua_of_toml soupault_config;
       "force", I.Value.bool.embed settings.force;
       "site_dir", lua_str.embed settings.site_dir
-    ] state;
+    ] state
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the pre-parse hook on page %s" page_file in
@@ -127,6 +91,42 @@ let run_pre_parse_hook settings soupault_config hook_config file_name lua_code p
   if I.Value.string.is res then Ok (I.Value.string.project res)
   else Error "pre-parse hook has not assigned a string to the page_source variable"
 
+(* pre-process hook runs just after a page source is parsed into an HTML element tree
+   and before soupault itself does anything with it (before any widgets run).
+
+   It has access to the page element tree and can modify it.
+ *)
+let run_pre_process_hook settings soupault_config hook_config file_name lua_code page_file target_dir target_file soup =
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let state = I.mk () in
+   let () =
+    (* Set up the post-index hook environment *)
+    I.register_globals [
+      "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
+      "page_file", lua_str.embed page_file;
+      "target_file", lua_str.embed target_file;
+      "target_dir", lua_str.embed target_dir;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state
+  in
+  let (let*) = Result.bind in
+  let () = Logs.info @@ fun m -> m "Running the pre-process hook on page %s" page_file in
+  let* () = Plugin_api.run_lua file_name state lua_code in
+  let* target_file = Plugin_api.get_global state "target_file" I.Value.string in
+  let* target_dir = Plugin_api.get_global state "target_dir" I.Value.string in
+  Ok (target_dir, target_file, soup)
+
+(* post-index hook runs after soupault extracts index fields from a page.
+
+   It has access to the page element tree and also to extracted index fields
+   and can modify both.
+ *)
 let run_post_index_hook settings soupault_config hook_config file_name lua_code env soup fields =
   let assoc_of_json j =
     (* This function handles values projected from Lua,
@@ -174,31 +174,95 @@ let run_post_index_hook settings soupault_config hook_config file_name lua_code 
     let* fields = Plugin_api.json_of_lua index_fields in
     Ok (assoc_of_json fields)
 
-let run_pre_process_hook settings soupault_config hook_config file_name lua_code page_file target_dir target_file soup =
+(* render hook replaces the normal page rendering process.
+
+   It must assign HTML source code generated from the element tree
+   to the [page_source] variable.
+ *)
+let run_render_hook settings soupault_config hook_config file_name lua_code env soup =
   let open Defaults in
   let lua_str = I.Value.string in
   let state = I.mk () in
-   let () =
-    (* Set up the post-index hook environment *)
+  (* Get the index entry for the current page from the index hash *)
+  let index_entry_json =
+    begin
+      let index_entry = Hashtbl.find_opt env.site_index_hash env.page_file in
+      match index_entry with
+      | None -> `Null
+      | Some ie -> Utils.json_of_index_entry ie
+    end
+  in
+  let () =
+    (* Set up the hook environment *)
     I.register_globals [
       "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
-      "page_file", lua_str.embed page_file;
-      "target_file", lua_str.embed target_file;
-      "target_dir", lua_str.embed target_dir;
+      "page_file", lua_str.embed env.page_file;
+      "page_url", lua_str.embed env.page_url;
+      "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index);
+      "index_entry", Plugin_api.lua_of_json index_entry_json;
+      "target_file", lua_str.embed env.target_file;
+      "target_dir", lua_str.embed env.target_dir;
       "config", lua_of_toml hook_config;
       "hook_config", lua_of_toml hook_config;
       "soupault_config", lua_of_toml soupault_config;
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir
-    ] state;
+    ] state
   in
   let (let*) = Result.bind in
-  let () = Logs.info @@ fun m -> m "Running the pre-process hook on page %s" page_file in
+  let () = Logs.info @@ fun m -> m "Running the render hook on page %s" env.page_file in
   let* () = Plugin_api.run_lua file_name state lua_code in
-  let* target_file = Plugin_api.get_global state "target_file" I.Value.string in
-  let* target_dir = Plugin_api.get_global state "target_dir" I.Value.string in
-  Ok (target_dir, target_file, soup)
+  let res = I.getglobal state (I.Value.string.embed "page_source") in
+  if I.Value.string.is res then Ok (I.Value.string.project res)
+  else Error "render hook has not assigned a string to the page_source variable"
+
+let run_save_hook settings soupault_config hook_config file_name lua_code env page_source =
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let state = I.mk () in
+   let () =
+    (* Set up the hook environment *)
+    I.register_globals [
+      "page_source", lua_str.embed page_source;
+      "page_file", lua_str.embed env.page_file;
+      "page_url", lua_str.embed env.page_url;
+      "target_file", lua_str.embed env.target_file;
+      "target_dir", lua_str.embed env.target_dir;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state
+  in
+  let () = Logs.info @@ fun m -> m "Running the save hook on page %s" env.page_file in
+  Plugin_api.run_lua file_name state lua_code
+
+let run_post_save_hook settings soupault_config hook_config file_name lua_code env =
+  let open Defaults in
+  let lua_str = I.Value.string in
+  let state = I.mk () in
+   let () =
+    (* Set up the hook environment *)
+    I.register_globals [
+      "page_file", lua_str.embed env.page_file;
+      "page_url", lua_str.embed env.page_url;
+      "target_file", lua_str.embed env.target_file;
+      "target_dir", lua_str.embed env.target_dir;
+      "config", lua_of_toml hook_config;
+      "hook_config", lua_of_toml hook_config;
+      "soupault_config", lua_of_toml soupault_config;
+      "force", I.Value.bool.embed settings.force;
+      "build_dir", lua_str.embed settings.build_dir;
+      "site_dir", lua_str.embed settings.site_dir
+    ] state
+  in
+  let () = Logs.info @@ fun m -> m "Running the post-save hook on page %s" env.page_file in
+  Plugin_api.run_lua file_name state lua_code
+
+(* Lua index processors aren't actually hooks but their execution process is similar. *)
 
 let run_lua_index_processor soupault_config index_view_config file_name lua_code env soup =
   let page_from_lua p =
@@ -216,7 +280,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
   let table_list = I.Value.list I.Value.table in
   let state = I.mk () in
   let () =
-    (* Set up the hook environment *)
+    (* Set up index processor environment *)
     I.register_globals [
       "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
       "page_url", lua_str.embed env.page_url;
@@ -231,7 +295,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
       "build_dir", lua_str.embed env.settings.build_dir;
       "site_dir", lua_str.embed env.settings.site_dir
      ] state;
-    (* Set the output variable `pages` to an empty list by default,
+    (* Set the output variable [pages] to an empty list by default,
        so that index processors that don't create pagination or taxonomies
        don't have to set it at all.
      *)
@@ -245,34 +309,4 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
   try Ok ((I.Value.list I.Value.value).project res |> List.map page_from_lua)
   with Failure msg -> Error (Printf.sprintf "Index processor generated a page incorrectly: %s" msg)
 
-let check_hook_tables config =
-  let hooks_table = Config.find_table_opt ["hooks"] config in
-  match hooks_table with
-  | None -> ()
-  | Some tbl -> Config.check_subsections ~parent_path:["hooks"] tbl hook_types "hooks"
 
-let load_hook hook_config ident =
-  let default_filename = Printf.sprintf "<inline Lua source for hook \"%s\">" ident in
-  let ident = Printf.sprintf "hook \"%s\"" ident in
-  let res = Utils.load_plugin_code hook_config default_filename ident in
-  match res with
-  | Ok (file_name, source_code) -> (file_name, source_code)
-  | Error msg -> Config.config_error msg
-
-let get_hook config hooks_hash ident =
-  let save_hook_config = Config.find_table_opt ["hooks"; ident] config in
-  match save_hook_config with
-  | None -> ()
-  | Some shc ->
-    let (file_name, source) = load_hook shc ident in
-    Hashtbl.add hooks_hash ident (file_name, source, shc)
-
-let _load_hooks config =
-  let () = check_hook_tables config in
-  let hooks_hash = Hashtbl.create 1024 in
-  let () = List.iter (get_hook config hooks_hash) hook_types in
-  hooks_hash
-
-let get_hooks config =
-  try Ok (_load_hooks config)
-  with Config.Config_error msg -> Error msg
