@@ -557,14 +557,14 @@ struct
          and produce a list. This way embedding OCaml lists is reversible, and users who create
          such tables by hand, hopefully, aren't surprised.
        *)
-      let keys = Utils.assoc_keys ts in
+      let keys = CCList.Assoc.keys ts in
       if List.for_all V.int.is keys then
         (* It's an int-indexed table -- a "list".
            However, Hashtbl.to_seq doesn't know about its intended order,
            so we need to sort it by keys ourselves.
          *)
         let ts = List.sort (fun (k, _) (k', _) -> compare k k') ts in
-        `A (Utils.assoc_values ts |> List.map value_of_lua)
+        `A (CCList.Assoc.values ts |> List.map value_of_lua)
       else
          (* Just a normal table, or perhaps a messed-up list... *)
         `O (List.map (fun (k, v) -> (string_of_lua k, value_of_lua v)) ts)
@@ -882,7 +882,7 @@ struct
       "is_table", V.efunc (V.value **->> V.bool) V.table.is;
       "is_list", V.efunc (V.value **->> V.bool) (fun t -> if not (V.table.is t) then false else
                            t |> V.table.project |> V.Luahash.to_seq |> List.of_seq |>
-                                Utils.assoc_keys |> List.for_all V.int.is);
+                                CCList.Assoc.keys |> List.for_all V.int.is);
       "is_nil", V.efunc (V.value **->> V.bool) V.unit.is;
     ] g;
   end (* M *)
@@ -971,14 +971,14 @@ let json_of_lua v =
        and produce a list. This way embedding OCaml lists is reversible, and users who create
        such tables by hand, hopefully, aren't surprised.
      *)
-    let keys = Utils.assoc_keys ts in
+    let keys = CCList.Assoc.keys ts in
     if List.for_all V.int.is keys then
       (* It's an int-indexed table -- a "list".
          However, Hashtbl.to_seq doesn't know about its intended order,
          so we need to sort it by keys ourselves.
        *)
       let ts = List.sort (fun (k, _) (k', _) -> compare k k') ts in
-      `A (Utils.assoc_values ts |> List.map project_lua_value)
+      `A (CCList.Assoc.values ts |> List.map project_lua_value)
     else
        (* Just a normal table, or perhaps a messed-up list... *)
       `O (List.map (fun (k, v) -> (string_of_lua k, project_lua_value v)) ts)

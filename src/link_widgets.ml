@@ -148,7 +148,7 @@ let attribute_map = [
 (* Generate a list of all supported element selectors
    from the keys of the attribute map.
  *)
-let link_selectors = Utils.assoc_keys attribute_map
+let link_selectors = CCList.Assoc.keys attribute_map
 
 (** Iterates through all relevant attributes of an element
     and applies appropriate attribute processing functions to them,

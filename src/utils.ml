@@ -47,14 +47,9 @@ let in_list xs x = List.exists ((=) x) xs
 let any_in_list xs ys =
   List.fold_left (fun acc x -> (in_list ys x) || acc) false xs
 
-(** Extracts keys from an assoc list *)
-let assoc_keys xs = List.map (fun (k, _) -> k) xs
-
-let assoc_values xs = List.map (fun (_, v) -> v) xs
-
-let assoc_map f kvs = List.map (fun (k, v) -> (k, f v)) kvs
-
-let assoc_map2 f kvs = List.map (fun (k, v) -> (k, f k v)) kvs
+(** A map-like function for assoc lists that applies a function to all values,
+    but tells that function both a value and the key it's associated with. *)
+let assoc_map_key_values f kvs = List.map (fun (k, v) -> (k, f k v)) kvs
 
 (** Result-aware iteration *)
 let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =

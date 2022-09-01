@@ -155,7 +155,7 @@ let insert_element action container content =
   match action_fun with
   | Some f -> f container content
   | None ->
-    let index = Spellcheck.make_index (Utils.assoc_keys actions) in
+    let index = Spellcheck.make_index (CCList.Assoc.keys actions) in
     let suggestion = Spellcheck.get_suggestion index action in
     let suggestion = (match suggestion with Some s -> (Printf.sprintf " Did you mean \"%s?\"" s) | None -> "") in
     let () = Logs.warn @@ fun m -> m "Invalid action \"%s\", using default (append child).%s" action suggestion in

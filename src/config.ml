@@ -148,7 +148,7 @@ let _get_page_preprocessors config =
   | None -> []
   | Some t ->
     let t = get_table t in
-    Utils.assoc_map get_string t
+    CCList.Assoc.map_values get_string t
 
 (* Get the mapping of file extensions to asset processors.
    Since asset processors are expected to both process a file and write
@@ -175,7 +175,7 @@ let _get_asset_processors config =
   | None -> []
   | Some t ->
     let t = get_table t in
-    Utils.assoc_map2 get_processor t
+    Utils.assoc_map_key_values get_processor t
 
 let get_index_queries index_table =
   let get_query k it =
