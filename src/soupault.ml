@@ -105,7 +105,7 @@ let make_page_dir_name settings target_dir page_name =
 
 let get_preprocessor preprocessors file_name =
   try
-    let ext = Utils.get_extension file_name in
+    let ext = File_path.get_extension file_name in
     List.assoc_opt ext preprocessors
   with Utils.Malformed_file_name _ ->
     (* Since page file names comes from directory listings,
@@ -314,7 +314,7 @@ let fix_nav_path settings path page_name =
 let make_page_file_name settings page_file target_dir =
   if settings.clean_urls then (target_dir +/ settings.index_file) else
   let page_file = FP.basename page_file in
-  let extension = Utils.get_extension page_file in
+  let extension = File_path.get_extension page_file in
   let page_file =
     if Utils.in_list settings.keep_extensions extension then page_file
     else FP.add_extension (FP.chop_extension page_file) settings.default_extension
@@ -422,7 +422,7 @@ let process_page page_data index index_hash widgets hooks config settings =
   let page_name = FP.basename page_file |> FP.chop_extension in
   let orig_path = nav_path in
   let nav_path = fix_nav_path settings nav_path page_name in
-  let target_dir = make_page_dir_name settings (Utils.concat_path orig_path) page_name |> FP.concat settings.build_dir in
+  let target_dir = make_page_dir_name settings (File_path.concat_path orig_path) page_name |> FP.concat settings.build_dir in
   let target_file = make_page_file_name settings page_file target_dir in
   let* (target_dir, target_file, content) =
     run_pre_process_hook settings config hooks page_file target_dir target_file content
@@ -596,7 +596,7 @@ let initialize () =
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
   let* hooks = Hooks.get_hooks config in
   let* default_template_str =
-    if settings.generator_mode then Utils.get_file_content settings.default_template
+    if settings.generator_mode then Utils.read_file settings.default_template
     else Ok ""
   in
   let settings = {settings with default_template_source=default_template_str} in
@@ -625,7 +625,7 @@ let check_version settings =
   | None -> ()
   | Some v ->
     try
-      let res = Utils.require_version v in
+      let res = Version.require_version v in
       if res then () else begin
         Printf.printf "According to settings.soupault_version, this configuration file is for soupault %s\n" v;
         Printf.printf "You are running soupault version %s, older than required\n" Defaults.version_string;
@@ -662,8 +662,8 @@ let process_asset_file settings src_path dst_path =
   let processor = get_preprocessor settings.asset_processors src_path in
   match processor with
   | None ->
-    (* Utils.cp takes care of missing directories if needed. *)
-    Utils.cp [src_path] dst_path
+    (* Utils.copy_file takes care of missing directories if needed. *)
+    Utils.copy_file [src_path] dst_path
   | Some template ->
     (* Assets are processed early, so directories may not exist yet, we may need to create them. *)
     let () = FileUtil.mkdir ~parent:true dst_path in
@@ -672,7 +672,7 @@ let process_asset_file settings src_path dst_path =
     let env = [
       ("source_file_path", jg_string src_path);
       ("source_file_name", jg_string file_name);
-      ("source_file_base_name", jg_string (file_name |> Utils.strip_extensions));
+      ("source_file_base_name", jg_string (file_name |> File_path.strip_extensions));
       ("target_dir", jg_string dst_path);
     ]
     in
@@ -705,7 +705,7 @@ let main () =
   let* (action, settings) = get_args Defaults.default_settings in
   match action with
   | ShowVersion ->
-    let () = Utils.print_version () in
+    let () = Version.print_version () in
     exit 0
   | ShowDefaultConfig ->
     let () = print_endline Project_init.default_config in

@@ -95,30 +95,30 @@ module Sys_wrappers = struct
       Printf.ksprintf plugin_error "Failed to get directory contents if \"%s\": %s" path msg
 
   let get_extension f =
-    try Utils.get_extension f
-    with Utils.Malformed_file_name name ->
+    try File_path.get_extension f
+    with Malformed_file_name name ->
       Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.get_extension|} name
 
   let get_extensions f =
-    try	Utils.get_extensions f
-    with Utils.Malformed_file_name name ->
+    try	File_path.get_extensions f
+    with Malformed_file_name name ->
       Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.get_extensions|} name
 
   let has_extension e f =
-    try	Utils.has_extension e f
-    with Utils.Malformed_file_name name	->
+    try	File_path.has_extension e f
+    with Malformed_file_name name	->
       Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.has_extension|} name
 
   let strip_extensions f =
-    try Utils.strip_extensions f
-    with Utils.Malformed_file_name name ->
+    try File_path.strip_extensions f
+    with Malformed_file_name name ->
       Printf.ksprintf plugin_error {|Malformed file name "%s" in a call to Sys.strip_extensions|} name
 end
 
 module Plugin_version = struct
   let require_version vstr =
     try
-     let res = Utils.require_version vstr in
+     let res = Version.require_version vstr in
      if res then () else
      let msg = Printf.sprintf "Plugin requires soupault %s or newer, current version is %s" vstr Defaults.version_string in
      raise (Plugin_error msg)

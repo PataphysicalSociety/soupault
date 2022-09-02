@@ -270,7 +270,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
     match page_json with
     | `O [("page_file", `String page_file);
           ("page_content", `String page_content)] ->
-       let nav_path = Utils.split_path (FilePath.dirname page_file) |> Utils.drop_head in
+       let nav_path = File_path.split_path (FilePath.dirname page_file) |> CCList.drop 1 in
        {page_file_path=page_file; page_content=(Some page_content); page_nav_path=nav_path}
     | _ ->
       failwith "generated page must be a table with fields \"page_file\" (string) and \"page_content\" (string)"

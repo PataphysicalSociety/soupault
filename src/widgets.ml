@@ -176,7 +176,7 @@ let widget_should_run settings name widget build_profiles site_dir page_file =
   else
   let options = Config.get_path_options widget.config in
   let profile = OH.find_string_opt widget.config ["profile"] in
-  if not (Utils.profile_matches profile build_profiles) then
+  if not (Utils.build_profile_matches profile build_profiles) then
     let () = Logs.debug @@ fun m -> m "Widget \"%s\" is not enabled in the current build profile" name in false
   else begin
     if Path_options.page_included settings options site_dir page_file then true

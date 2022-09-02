@@ -51,7 +51,7 @@ let include_file _ config soup =
         let () = no_container_action selector in Ok ()
       | Some container ->
         let* file = Config.find_string_result config ["file"] in
-        let* content = Utils.get_file_content file in
+        let* content = Utils.read_file file in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
         Ok (Html_utils.insert_element action container content)
     end

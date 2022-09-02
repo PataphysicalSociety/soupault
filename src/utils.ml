@@ -1,16 +1,15 @@
 include Soupault_common
 open Defaults
 
-exception Malformed_file_name of string
+(* IO helpers that return [(unit, string) result] instead of raising exceptions. *)
 
-(* IO helpers *)
-
-(** Reads a file and return its content *)
-let get_file_content file =
+(* Reads a file and return its content as a string. *)
+let read_file file =
   try Ok (Soup.read_file file)
   with Sys_error msg ->
     Error (Printf.sprintf "Failed to read tile %s" msg)
 
+(* Writes a string to a file. *)
 let write_file file content =
   try
     let chan = open_out file in
@@ -19,8 +18,11 @@ let write_file file content =
     Ok ()
   with Sys_error msg -> Error msg
 
-(* Result wrapper for FileUtil.cp *)
-let cp fs d =
+(* Creates a copy of a file.
+   If the target parent directory doesn't exist,
+   creates that directory first.
+ *)
+let copy_file fs d =
   try
     let () = FileUtil.mkdir ~parent:true d in
     Ok (FileUtil.cp fs d)
@@ -28,30 +30,10 @@ let cp fs d =
   | FileUtil.CpError msg -> Error msg
   | FileUtil.MkdirError msg -> Error msg
 
-(** Exception-safe list tail function that assumes that empty list's
-    tail is an empty list. *)
-let safe_tl xs =
-    match xs with
-    | [] -> []
-    | _ :: xs' -> xs'
 
-(** Removes the last element of a list *)
-let drop_tail xs = List.rev xs |> safe_tl |> List.rev
+(* Result'y equivalants of higher-order list functions. *)
 
-(** Removes the first element of a list *)
-let drop_head xs = safe_tl xs
-
-(** Shortcut for checking if a list has this element *)
-let in_list xs x = List.exists ((=) x) xs
-
-let any_in_list xs ys =
-  List.fold_left (fun acc x -> (in_list ys x) || acc) false xs
-
-(** A map-like function for assoc lists that applies a function to all values,
-    but tells that function both a value and the key it's associated with. *)
-let assoc_map_key_values f kvs = List.map (fun (k, v) -> (k, f k v)) kvs
-
-(** Result-aware iteration *)
+(* Result-aware iteration *)
 let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
   match xs with
   | [] -> Ok ()
@@ -81,120 +63,42 @@ let rec fold_left ?(ignore_errors=false) ?(fmt=(fun x -> x)) f acc xs =
         else e
     end
 
-(** Just prints a hardcoded program version *)
-let print_version () =
-  Printf.printf "soupault %s\n" Defaults.version_string;
-  print_endline "Copyright 2022 Daniil Baturin et al.";
-  print_endline "soupault is free software distributed under the MIT license";
-  print_endline "Visit https://www.soupault.app/reference-manual for documentation"
 
-(** Warns about a deprecated option *)
-let deprecation_warning f opt msg config =
-  let value = f opt config in
-  match value with
-  | None -> ()
-  | Some _ -> Logs.warn @@ fun m -> m "Deprecated option %s: %s" opt msg
+(* List helpers. *)
 
-(* Makes a heading slug for the id attribute.
-   In the "hard" mode it replaces everything but ASCII letters and digits with hyphens.
-   In the "soft" mode it only replaces whitespace with hyphens.
-   HTML standards only demand that id should not have whitespace in it,
-   contrary to the popular opinion.
+(* Exception-safe list tail function that assumes that empty list's tail is an empty list. *)
+let safe_tl xs =
+    match xs with
+    | [] -> []
+    | _ :: xs' -> xs'
+
+(* Removes the last element of a list. *)
+let drop_tail xs = List.rev xs |> safe_tl |> List.rev
+
+(* Shortcut for checking if a list has a certain element, like [if x in xs] in Python.
+   I still wonder why there's no such shortcut in either the standard library
+   or in containers when in lots of cases the [(=)] structural comparison
+   function is really all you need.
  *)
+let in_list xs x = List.exists ((=) x) xs
+
+(* Checks if any elements from one list are present in another list. *)
+let any_in_list needles haystack =
+  List.fold_left (fun acc needle -> (in_list haystack needle) || acc) false needles
+
+(* A map-like function for assoc lists that applies a function to all values,
+    but tells that function both values and keys they are associated with. *)
+let assoc_map_key_values f kvs = List.map (fun (k, v) -> (k, f k v)) kvs
+
+
+(* Makes a slug for the id attribute. *)
 let slugify ?(lowercase=true) ?(regex=None) ?(sub=None) s =
   let regex = Option.value ~default:"[^a-zA-Z0-9\\-]" regex in
   let sub = Option.value ~default:"-" sub in
   let s = Re.replace ~all:true ~f:(fun _ -> sub) (Re.Perl.compile_pat regex) s in
   if lowercase then String.lowercase_ascii s else s
 
-let profile_matches profile build_profiles =
-  (* Processing steps should run unless they have a "profile" option
-     and it doesn't match the current build profile. *)
-  match profile, build_profiles with
-  | None, _ -> true
-  | Some _, [] -> false
-  | Some p, _ -> Option.is_some @@ List.find_opt ((=) p) build_profiles
-
-(** Splits a file name into its "proper name" and extensions. *)
-let split_file_name file =
-  let parts = String.split_on_char '.' file in
-  match parts with
-  | [] | "" :: [] | "" :: "" :: _ ->
-    (* UNIX-like OSes and Windows alike disallow empty file names
-       and file names that consist entirely of dots,
-       so if this function gets a malformed path,
-       the user should be notified that something went wrong.
-     *)
-    raise @@ Malformed_file_name file
-  | "" :: name :: extensions ->
-    (* If a name starts with a dot, we consider its part before a second dot
-       its "base" name.
-       As in, [strip_extensions(".bashrc.gz")] will return ".bashrc".
-       That's the most sensible behavior I can think of.
-     *)
-    (("." ^ name), extensions)
-  | name :: extensions ->
-    (name, extensions)
-
-(** Get all extensions. *)
-let get_extensions file =
-  let (_, extensions) = split_file_name file in
-  extensions
-
-(** Get the last extension, or return an empty string
-    if there are no extensions.
- *)
-let get_extension file =
-  let (_, extensions) = split_file_name file in
-  match (List.rev extensions) with
-  | [] -> ""
-  | ext :: _ -> ext
-
-(* Remove all extensions. *)
-let strip_extensions file =
-  let (name, _) = split_file_name file in
-  name
-
-let has_extension extension file =
-  let extensions = get_extensions file in
-  let res = List.find_opt ((=) extension) extensions in
-  match res with
-  | None -> false
-  | Some _ -> true
-
-(* Remove trailing slashes from a path. *)
-let normalize_path path =
-  (* If a path is empty, leave it empty.
-     Right now soupault treats build_dir="" as
-     "use the current working dir for build dir".
-     Until we all decide whether it's a good idea or not,
-     let's keep it an easily removable line.
-   *)
-  if path = "" then path else
-  let path = Re.replace  ~f:(fun _ -> "") (Re.Perl.compile_pat "/$") path in
-  if path = "" then "/" else path
-
-let concat_path fs = List.fold_left FilePath.concat "" fs
-
-let split_path p =
-  let sep = if Sys.win32 then "(\\\\)+" else "(/)+" in
-  Re.split (Re.Perl.compile_pat sep) p
-
-let string_of_float f =
-  if f = (Float.round f) then int_of_float f |> string_of_int
-  else string_of_float f
-
-(* Ezjsonm.value_to_string will always quote primitives, which is not always convenient.
-   This is an alternate version that just returns bare string representations
-   of JSON primitives.
- *)
-let string_of_json_primitive j =
-  match j with
-  | `String s -> s
-  | `Float f -> string_of_float f
-  | `Bool b -> string_of_bool b
-  | `Null -> "null"
-  | _ -> failwith (Printf.sprintf "Expected a JSON primitive, got %s" (Ezjsonm.value_to_string j))
+(* Date/time helpers. *)
 
 let rec parse_date fmts date_string =
   match fmts with
@@ -219,7 +123,24 @@ let format_date fmt date =
   | None -> soupault_error (Printf.sprintf "Date format \"%s\" is invalid." fmt)
   | Some printer -> ODate.Unix.To.string printer date
 
+
 (* TOML/JSON convertors *)
+
+let string_of_float f =
+  if f = (Float.round f) then int_of_float f |> string_of_int
+  else string_of_float f
+
+(* Ezjsonm.value_to_string will always quote primitives, which is not always convenient.
+   This is an alternate version that just returns bare string representations of JSON primitives.
+ *)
+let string_of_json_primitive j =
+  match j with
+  | `String s -> s
+  | `Float f -> string_of_float f
+  | `Bool b -> string_of_bool b
+  | `Null -> "null"
+  | _ -> failwith (Printf.sprintf "Expected a JSON primitive, got %s" (Ezjsonm.value_to_string j))
+
 let rec toml_of_json j =
   let open Otoml in
   match j with
@@ -256,37 +177,23 @@ let json_of_index_entry e =
 let json_of_index_entries es =
   `A (List.map json_of_index_entry es)
 
-(* Version comparison *)
 
-let version_of_string vstr =
-  (* The scanf approach won't be able to separate pre-release suffix and build metadata
-     in a case like 1.2.3-beta+20210919,
-     but since the semver.org standard says build metadata must be ignored in comparisons,
-     we don't actually need to do it anyway. *)
-  try Ok (Scanf.sscanf vstr "%u.%u.%u-%s" (fun v1 v2 v3 v4 -> (v1, v2, v3, Some v4)))
-  with _ -> try Ok (Scanf.sscanf vstr "%u.%u.%u" (fun v1 v2 v3 -> (v1, v2, v3, None)))
-  (* These options are provided for convenience, they are not semver-compliant.
-     Since there will never be, say, soupault "9.0-beta" (as opposed to "9.0.0-beta")
-     there's no reason to support them. *)
-  with _ -> try Ok (Scanf.sscanf vstr "%u.%u" (fun v1 v2 -> (v1, v2, 0, None)))
-  with _ -> try Ok (Scanf.sscanf vstr "%u" (fun v1 -> (v1, 0, 0, None)))
-  with _ -> Error (Printf.sprintf "Could not parse version string \"%s\"" vstr)
+(* Soupault-specific functions that are used in more than one place
+   and thus needs to be in a shared module.
+ *)
 
-let compare_versions (l1, l2, l3, _) (r1, r2, r3, _) =
-  match compare l1 r1, compare l2 r2, compare l3 r3 with
-  | 0, 0, res -> res
-  | 0, res, _ -> res
-  | res, _, _ -> res
+(* Checks if given build profile is present in the current list of build profiles
+   (specified in the command line with [--profile] options).
+ *)
+let build_profile_matches profile build_profiles =
+  (* Processing steps should run unless they have a "profile" option
+     and it doesn't match the current build profile. *)
+  match profile, build_profiles with
+  | None, _ -> true
+  | Some _, [] -> false
+  | Some p, _ -> Option.is_some @@ List.find_opt ((=) p) build_profiles
 
-let require_version vstr =
-  let current_version = Defaults.version in
-  let required_version = version_of_string vstr in
-  match required_version with
-  | Ok required_version ->
-    (compare_versions current_version required_version) >= 0
-  | Error msg -> failwith msg
-
-(* Plugin/hook code loading *)
+(* Loads plugin or hook code from given config options. *)
 let load_plugin_code plugin_config default_filename ident =
   let file = Otoml.Helpers.find_string_opt plugin_config ["file"] in
   let source = Otoml.Helpers.find_string_opt plugin_config ["lua_source"] in
@@ -304,3 +211,9 @@ let load_plugin_code plugin_config default_filename ident =
      with Sys_error msg ->
        Error (Printf.sprintf "Could not read file %s: %s" file msg)
 
+(* Warns about a deprecated option *)
+let deprecation_warning f opt msg config =
+  let value = f opt config in
+  match value with
+  | None -> ()
+  | Some _ -> Logs.warn @@ fun m -> m "Deprecated option %s: %s" opt msg

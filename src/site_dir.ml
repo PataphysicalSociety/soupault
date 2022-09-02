@@ -12,11 +12,11 @@ let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
 let remove_ignored_files settings files =
-  let ignored settings file = Utils.any_in_list (Utils.get_extensions file) settings.ignore_extensions in
+  let ignored settings file = Utils.any_in_list (File_path.get_extensions file) settings.ignore_extensions in
   List.filter (fun f -> not (ignored settings f)) files
 
 let list_section_files settings path =
-  let is_page_file f = Utils.in_list settings.page_extensions (Utils.get_extension f) in
+  let is_page_file f = Utils.in_list settings.page_extensions (File_path.get_extension f) in
   let files = FU.ls path |> FU.filter (FU.Is_file) |> remove_ignored_files settings in
   let page_files = List.find_all is_page_file files in
   let other_files = List.find_all (fun f -> not (is_page_file f)) files in
@@ -68,7 +68,7 @@ let get_site_files settings =
     let	section_index_files =
       List.map (fun x -> ({page_file_path=x; page_content=None; page_nav_path=nav_path})) section_index_files
     in
-    let asset_path = Utils.concat_path (settings.build_dir :: nav_path) in
+    let asset_path = File_path.concat_path (settings.build_dir :: nav_path) in
     let section_asset_files = List.map (fun x -> (x, asset_path)) section_asset_files in
     (* Collect files from subdirs *)
     List.fold_left

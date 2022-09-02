@@ -1,7 +1,12 @@
+(* Common exceptions and helpers. *)
+
+(* Indicates a page processing error.
+   Such errors are ignored when [settings.strict] is set to false.
+ *)
 exception Soupault_error of string
 let soupault_error s = raise (Soupault_error s)
 
-(* This exception indicates an unrecoverable error in soupault's own logic:
+(* Indicates an unrecoverable error in soupault's own logic:
    unimplemented edge case, broken invariant etc.
    It MUST NOT be ever handled so that the user can get a full exception trace
    and either debug the problem or report it to the maintainers.
@@ -19,3 +24,10 @@ let internal_error err =
     else
       Logs.err @@ fun m ->  m "Please report a bug and attach the message and the exception trace to your report."
   in raise (Internal_error err)
+
+(* Indicates that soupault encountered a file name that is impossible in the operating system it's running on.
+
+   When it occurs inside soupault's own code (as opposed to plugin code),
+   it should always be re-raised as Internal_error.
+ *)
+exception Malformed_file_name of string

@@ -41,7 +41,7 @@ let is_handmade_clean_url settings page_file =
 
 let section_matches ?(include_subsections=false) settings site_dir actual_path conf_path =
    (* Remove trailing slashes *)
-   let conf_path = FilePath.concat site_dir conf_path |> Utils.normalize_path in
+   let conf_path = FilePath.concat site_dir conf_path |> File_path.normalize_path in
    let page_dir = FilePath.dirname actual_path in
    let page_dir =
      if (is_handmade_clean_url settings actual_path)

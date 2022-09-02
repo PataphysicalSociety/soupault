@@ -223,7 +223,7 @@ let relativize_link_target check_file env only_regex exclude_regex target =
   (* The assumption is that the target is valid for a page at the site root.
      Thus, for pages in sub-directories, we need to add a "../" for every nesting level.
    *)
-  let parent_path = Utils.split_path relative_target_dir |> List.map (fun _ -> "..") in
+  let parent_path = File_path.split_path relative_target_dir |> List.map (fun _ -> "..") in
   (* Strip leading slashes *)
   let target = Regex_utils.Internal.replace ~regex:"^/+" ~sub:"" target in
   (* Prepend generated double-dot path to the original target. *)
@@ -246,7 +246,7 @@ let absolutize_link_target prefix check_file env only_regex exclude_regex target
        making an assumption that it's valid relative to the site root.
      *)
     (if check_file && (Sys.file_exists (FilePath.concat env.target_dir target))
-     then let dir_path = Utils.split_path relative_target_dir in String.concat "/" (prefix :: dir_path)
+     then let dir_path = File_path.split_path relative_target_dir in String.concat "/" (prefix :: dir_path)
      else prefix)
    in
    String.concat "/" [parent_path; target]
