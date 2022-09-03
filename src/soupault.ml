@@ -316,7 +316,7 @@ let make_page_file_name settings page_file target_dir =
   let page_file = FP.basename page_file in
   let extension = File_path.get_extension page_file in
   let page_file =
-    if Utils.in_list settings.keep_extensions extension then page_file
+    if Utils.in_list extension settings.keep_extensions then page_file
     else FP.add_extension (FP.chop_extension page_file) settings.default_extension
   in target_dir +/ page_file
 

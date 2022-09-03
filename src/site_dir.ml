@@ -12,11 +12,11 @@ let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
 let remove_ignored_files settings files =
-  let ignored settings file = Utils.any_in_list (File_path.get_extensions file) settings.ignore_extensions in
+  let ignored settings file = Utils.any_in_list settings.ignore_extensions (File_path.get_extensions file) in
   List.filter (fun f -> not (ignored settings f)) files
 
 let list_section_files settings path =
-  let is_page_file f = Utils.in_list settings.page_extensions (File_path.get_extension f) in
+  let is_page_file f = Utils.in_list (File_path.get_extension f) settings.page_extensions in
   let files = FU.ls path |> FU.filter (FU.Is_file) |> remove_ignored_files settings in
   let page_files = List.find_all is_page_file files in
   let other_files = List.find_all (fun f -> not (is_page_file f)) files in
@@ -92,7 +92,7 @@ let reorder_pages settings all_pages =
   let process_first = List.map (FilePath.concat settings.site_dir) settings.process_pages_first in
   try
     let () = List.iter (page_exists all_pages) settings.process_pages_first in
-    let pages_first = List.find_all (fun i -> Utils.in_list process_first i.page_file_path) all_pages in
-    let pages_rest = List.filter (fun i -> not @@ Utils.in_list process_first i.page_file_path) all_pages in
+    let pages_first = List.find_all (fun i -> Utils.in_list i.page_file_path process_first) all_pages in
+    let pages_rest = List.filter (fun i -> not @@ Utils.in_list i.page_file_path process_first) all_pages in
     Ok (List.append pages_first pages_rest)
   with Soupault_error msg -> Error msg

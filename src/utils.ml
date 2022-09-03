@@ -3,7 +3,7 @@ open Defaults
 
 (* IO helpers that return [(unit, string) result] instead of raising exceptions. *)
 
-(* Reads a file and return its content as a string. *)
+(* Reads a file and returns its content as a string. *)
 let read_file file =
   try Ok (Soup.read_file file)
   with Sys_error msg ->
@@ -18,9 +18,8 @@ let write_file file content =
     Ok ()
   with Sys_error msg -> Error msg
 
-(* Creates a copy of a file.
-   If the target parent directory doesn't exist,
-   creates that directory first.
+(* Creates a copy of a file with the same name in a different directory.
+   If the target directory doesn't exist, creates that directory first.
  *)
 let copy_file fs d =
   try
@@ -31,10 +30,18 @@ let copy_file fs d =
   | FileUtil.MkdirError msg -> Error msg
 
 
-(* Result'y equivalants of higher-order list functions. *)
+(* Result'y equivalents of higher-order list functions.
+   Since soupault has an option to stop on page processing errors or continue despite them
+   ([settings.strict] in the config or [--strict <true|false>>] in the command line),
+   there needs to be a way to iterate over page lists of collect data from page processing
+   that would allow ignoring errors.
+   Raising an isn't an option since it would interrupt the caller,
+   so the only way to achieve that is to make custom functions and use a sum type to signal errors.
+   The built-in result type suits that purpose perfectly.
+ *)
 
-(* Result-aware iteration *)
-let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
+(* Result-aware iteration that can either stop on errors or ignore them. *)
+let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> ('b, string) result) xs =
   match xs with
   | [] -> Ok ()
   | x :: xs ->
@@ -47,8 +54,8 @@ let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) f xs =
         else e
     end
 
-(* Result-aware fold *)
-let rec fold_left ?(ignore_errors=false) ?(fmt=(fun x -> x)) f acc xs =
+(* Result-aware fold that can either stop on errors or ignore them. *)
+let rec fold_left ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> 'b -> ('c, string) result) acc xs =
   match xs with
   | [] -> Ok acc
   | x :: xs ->
@@ -77,14 +84,14 @@ let drop_tail xs = List.rev xs |> safe_tl |> List.rev
 
 (* Shortcut for checking if a list has a certain element, like [if x in xs] in Python.
    I still wonder why there's no such shortcut in either the standard library
-   or in containers when in lots of cases the [(=)] structural comparison
+   or in ocaml-containers when in lots of cases the [(=)] structural comparison
    function is really all you need.
  *)
-let in_list xs x = List.exists ((=) x) xs
+let in_list needle haystack = List.exists ((=) needle) haystack
 
 (* Checks if any elements from one list are present in another list. *)
 let any_in_list needles haystack =
-  List.fold_left (fun acc needle -> (in_list haystack needle) || acc) false needles
+  List.fold_left (fun acc needle -> (in_list needle haystack) || acc) false needles
 
 (* A map-like function for assoc lists that applies a function to all values,
     but tells that function both values and keys they are associated with. *)
