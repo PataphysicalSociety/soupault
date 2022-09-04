@@ -27,7 +27,8 @@ let hook_should_run settings hook_config hook_type page_file =
   let options = Config.get_path_options hook_config in
   let profile = OH.find_string_opt hook_config ["profile"] in
   if not (Utils.build_profile_matches profile settings.build_profiles) then
-    let () = Logs.debug @@ fun m -> m "%s hook is not used: not enabled in the current build profile" hook_type
+    let () = Logs.debug @@ fun m -> m "%s hook is not used: not enabled in the current build profile (%s)"
+      hook_type (Option.value ~default:"default" profile)
     in false
   else begin
     if Path_options.page_included settings options settings.site_dir page_file then true
