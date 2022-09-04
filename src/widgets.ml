@@ -169,17 +169,17 @@ let get_widgets settings config plugins index_deps =
 
     If none of those options are present, widget always runs.
  *)
-let widget_should_run settings name widget build_profiles site_dir page_file =
+let widget_should_run settings name widget page_file =
   let disabled = Config.find_bool_or ~default:false widget.config ["disabled"] in
   if disabled then
     let () = Logs.debug @@ fun m -> m "Widget \"%s\" is disabled in the configuration" name in false
   else
   let options = Config.get_path_options widget.config in
   let profile = OH.find_string_opt widget.config ["profile"] in
-  if not (Utils.build_profile_matches profile build_profiles) then
+  if not (Utils.build_profile_matches profile settings.build_profiles) then
     let () = Logs.debug @@ fun m -> m "Widget \"%s\" is not enabled in the current build profile" name in false
   else begin
-    if Path_options.page_included settings options site_dir page_file then true
+    if Path_options.page_included settings options settings.site_dir page_file then true
     else
       let () = Logs.debug @@ fun m -> m "Widget \"%s\" will not run: page %s is excluded by its page/section/regex options" name page_file in
       false
