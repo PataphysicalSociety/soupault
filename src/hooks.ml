@@ -1,6 +1,7 @@
 open Defaults
 open Soupault_common
 
+module OH = Otoml.Helpers
 module I = Plugin_api.I
 
 let (let*) = Result.bind
@@ -24,11 +25,17 @@ let hook_should_run settings hook_config hook_type page_file =
     let () = Logs.debug @@ fun m -> m "%s hook is disabled in the configuration" hook_type in false
   else
   let options = Config.get_path_options hook_config in
-  if Path_options.page_included settings options settings.site_dir page_file then true
-  else
-    let () = Logs.debug @@ fun m -> m "%s hook is not used: page %s is excluded by its page/section/regex options"
-      hook_type page_file
+  let profile = OH.find_string_opt hook_config ["profile"] in
+  if not (Utils.build_profile_matches profile settings.build_profiles) then
+    let () = Logs.debug @@ fun m -> m "%s hook is not used: not enabled in the current build profile" hook_type
     in false
+  else begin
+    if Path_options.page_included settings options settings.site_dir page_file then true
+    else
+      let () = Logs.debug @@ fun m -> m "%s hook is not used: page %s is excluded by its page/section/regex options"
+        hook_type page_file
+      in false
+  end
 
 let check_hook_tables config =
   let hooks_table = Config.find_table_opt ["hooks"] config in
