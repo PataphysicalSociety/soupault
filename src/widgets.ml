@@ -1,3 +1,5 @@
+open Soupault_common
+
 module OH = Otoml.Helpers
 
 open Defaults
@@ -32,9 +34,11 @@ let get_widget_config config widget =
   match widget_tbl with
   | Some widget_tbl -> widget_tbl
   | None ->
-    (* This function is, or should be used only with widget names already
-       retrieved from the config *)
-   failwith @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget
+    (* This function is (or should be) used only with widget names retrieved from the config.
+       If any code tries to look up a widget name that isn't defined in the config,
+       it means there's a bug.
+     *)
+   internal_error @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget
 
 let list_widgets config =
   let ws = Config.find_table_opt [Defaults.widgets_table] config >>= (fun x -> Some (Otoml.list_table_keys x)) in
