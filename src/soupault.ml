@@ -476,32 +476,55 @@ let process_page index index_hash widgets hooks config settings page_data =
 
 (* Option parsing and initialization *)
 
-type soupault_action = DoActualWork | InitProject | ShowVersion | ShowDefaultConfig | ShowEffectiveConfig
+type soupault_action = BuildWebsite | InitProject | ShowVersion | ShowDefaultConfig | ShowEffectiveConfig
 
-let get_args settings =
-  (* Due to a workaround, we are going to parse arguments twice:
-     first to find out if we actually need to do any real work (rather than just print version or help),
-     second time to override options in the config file with options given through the command line
-     (e.g. --debug enables debug even if soupault.toml has settings.debug=false). 
+(* Intermediate data structure for CLI options
+   that we will later use to inject CLI overrides into the config loaded from a file.
+ *)
+type cli_options = {
+  action: soupault_action;
+  verbose_opt: bool;
+  debug_opt: bool;
+  strict_opt: bool;
+  site_dir_opt: string;
+  build_dir_opt: string;
+  build_profiles_opt: string list;
+  index_only_opt: bool;
+  dump_index_json_opt: string option;
+  force_opt: bool;
+}
 
-     However, the Arg module has a global state: the Arg.current variable
-     that holds the index of the last processed argument.
-     We need to reset it to zero to make the function usable more than once.
-   *)
-  let () = Arg.current := 0 in
+let default_cli_options = {
+  (* Assume the user wants to build a website unless specified otherwise. *)
+  action = BuildWebsite;
+  (* The rest duplicates default settings in the config. *)
+  verbose_opt = Defaults.default_settings.verbose;
+  debug_opt = Defaults.default_settings.debug;
+  strict_opt = Defaults.default_settings.strict;
+  site_dir_opt = Defaults.default_settings.site_dir;
+  build_dir_opt = Defaults.default_settings.build_dir;
+  build_profiles_opt = Defaults.default_settings.build_profiles;
+  index_only_opt = Defaults.default_settings.index_only;
+  dump_index_json_opt = Defaults.default_settings.dump_index_json;
+  force_opt = Defaults.default_settings.force;
+}
+
+let get_args () =
   let actions = ref [] in
-  let sr = ref settings in
+  let opts = ref default_cli_options in
   let args = Arg.align [
+    (* "Option" flags that change website build behavior. *)
+    ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=true}), " Verbose output");
+    ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=true}), " Debug output");
+    ("--strict", Arg.Bool (fun s -> opts := {!opts with strict_opt=s}), "<true|false>  Stop on page processing errors or not");
+    ("--site-dir", Arg.String (fun s -> opts := {!opts with site_dir_opt=s}), "<DIR>  Directory with input files");
+    ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=s}), "<DIR>  Output directory");
+    ("--profile", Arg.String (fun s -> opts := {!opts with build_profiles_opt=(s :: !opts.build_profiles_opt)}), "<NAME>  Build profile (you can give this option more than once)");
+    ("--index-only", Arg.Unit (fun () -> opts := {!opts with index_only_opt=true}), " Extract site index without generating pages");
+    ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<PATH>  Dump extracted index into a JSON file");
+    ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=true}), " Force generating all target files");
+    (* "Action" flags that make soupault do something else than a website build. *)
     ("--init", Arg.Unit (fun () -> actions := (InitProject :: !actions)), " Set up basic directory structure");
-    ("--verbose", Arg.Unit (fun () -> sr := {!sr with verbose=true}), " Verbose output");
-    ("--debug", Arg.Unit (fun () -> sr := {!sr with debug=true}), " Debug output");
-    ("--strict", Arg.Bool (fun s -> sr := {!sr with strict=s}), "<true|false>  Stop on page processing errors or not");
-    ("--site-dir", Arg.String (fun s -> sr := {!sr with site_dir=s}), "<DIR>  Directory with input files");
-    ("--build-dir", Arg.String (fun s -> sr := {!sr with build_dir=s}), "<DIR>  Output directory");
-    ("--profile", Arg.String (fun s -> sr := {!sr with build_profiles=(s :: !sr.build_profiles)}), "<NAME>  Build profile (you can give this option more than once)");
-    ("--index-only", Arg.Unit (fun () -> sr := {!sr with index_only=true}), " Extract site index without generating pages");
-    ("--dump-index-json", Arg.String (fun s -> sr := {!sr with dump_index_json=(Some s)}), "<PATH>  Dump extracted index into a JSON file");
-    ("--force", Arg.Unit (fun () -> sr := {!sr with force=true}), " Force generating all target files");
     ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
     ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
     ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and exit")
@@ -510,17 +533,33 @@ let get_args settings =
   let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
   let () = Arg.parse args (fun _ -> ()) usage in
   match !actions with
-  | [] -> Ok (DoActualWork, !sr)
-  | [a] -> Ok (a, !sr)
+  | [] ->
+    (* Nothing is specified, that means we perform the default action (build). *)
+    !opts
+  | [a] ->
+    (* One non-default action option is specified, that's normal. *)
+    {!opts with action=a}
   | _ ->
     (* This function is first called at a point when the logger isn't setup yet,
        so we only have standard printing functions to tell the user about errors. *)
     let () =
       print_endline "Error: Incorrect comand line option combination.";
-      print_endline "Please specify only one of --version, --help, --show-default-config, or --show-effective-config";
+      print_endline "Please specify only one of --init, --version, --help, --show-default-config, or --show-effective-config";
       print_endline "To build your website, simply run soupault without any options."
     in
     exit 1
+
+let update_settings settings cli_options =
+  {settings with
+    debug=cli_options.debug_opt;
+    verbose=cli_options.verbose_opt;
+    strict=cli_options.strict_opt;
+    force=cli_options.force_opt;
+    site_dir=cli_options.site_dir_opt;
+    build_dir=cli_options.build_dir_opt;
+    index_only=cli_options.index_only_opt;
+    dump_index_json=cli_options.dump_index_json_opt
+  }
 
 let check_project_dir settings =
   let () =
@@ -572,7 +611,7 @@ let find_config_file () =
       in
       Error "Cannot proceed without a configuration file."
 
-let initialize () =
+let initialize cli_options =
   let () = Random.self_init () in
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose settings.debug in
@@ -584,7 +623,7 @@ let initialize () =
   (* First, populate the settings from the config file data. *)
   let* settings = Config.update_settings settings config in
   (* Then override options from it with values from command line arguments, if there are any. *)
-  let* (_, settings) = get_args settings in
+  let settings = update_settings settings cli_options in
   (* Update the log level from the config and arguments  *)
   let () = setup_logging settings.verbose settings.debug in
   let () = check_project_dir settings in
@@ -694,16 +733,8 @@ let process_asset_file settings src_path dst_path =
         Error msg -> Error msg
     end
 
-let main () =
-  (* Parse the arguments to see if we have any real work to do, or it's --version or similar.
-     If it's an action that doesn't rely on the config, we don't even need to read the config file.
-
-     Worse yet, config reading errors will prevent us from executing the action.
-     For example, --init must work when the config doesn't exist yet:
-     it will put a default config in the project directory.
-   *)
-  let* (action, settings) = get_args Defaults.default_settings in
-  match action with
+let main cli_options =
+  match cli_options.action with
   | ShowVersion ->
     let () = Version.print_version () in
     exit 0
@@ -712,18 +743,22 @@ let main () =
     exit 0
   | InitProject ->
     let () =
-      if (settings.site_dir <> Defaults.default_settings.site_dir) ||
-         (settings.build_dir <> Defaults.default_settings.build_dir)
+      if (cli_options.site_dir_opt <> Defaults.default_settings.site_dir) ||
+         (cli_options.build_dir_opt <> Defaults.default_settings.build_dir)
       (* Logging is not set at up this point, it's done by [initialize ()],
-         so we use a "normal" print to emit a warning here. *)
+      so we use a "normal" print to emit a warning here. *)
       then print_string "Warning: --site-dir and --build-dir options are ignored by --project-init\n\n"
     in
     let () = Project_init.init Defaults.default_settings in
     exit 0
-  | DoActualWork | ShowEffectiveConfig ->
-    let* config, widgets, hooks, settings = initialize () in
+  | ShowEffectiveConfig ->
+    let* config, _, _, settings = initialize cli_options in
     let () = check_version settings in
-    if action = ShowEffectiveConfig then (Otoml.Printer.to_channel stdout config; exit 0) else
+    let () = Otoml.Printer.to_channel stdout config in
+    exit 0
+  | BuildWebsite ->
+    let* config, widgets, hooks, settings = initialize cli_options in
+    let () = check_version settings in
     let () = setup_logging settings.verbose settings.debug in
     let* () = make_build_dir settings.build_dir in
     let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
@@ -829,7 +864,8 @@ let main () =
       end
 
 let () =
-  let res = main () in
+  let cli_options = get_args () in
+  let res = main cli_options in
   match res with
   | Ok _ -> exit 0
   | Error e ->
