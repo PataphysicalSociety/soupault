@@ -483,6 +483,7 @@ type soupault_action = BuildWebsite | InitProject | ShowVersion | ShowDefaultCon
  *)
 type cli_options = {
   action: soupault_action;
+  config_file_opt: string option;
   verbose_opt: bool;
   debug_opt: bool;
   strict_opt: bool;
@@ -497,6 +498,7 @@ type cli_options = {
 let default_cli_options = {
   (* Assume the user wants to build a website unless specified otherwise. *)
   action = BuildWebsite;
+  config_file_opt = None;
   (* The rest duplicates default settings in the config. *)
   verbose_opt = Defaults.default_settings.verbose;
   debug_opt = Defaults.default_settings.debug;
@@ -514,6 +516,7 @@ let get_args () =
   let opts = ref default_cli_options in
   let args = Arg.align [
     (* "Option" flags that change website build behavior. *)
+    ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), " Configuration file path");
     ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=true}), " Verbose output");
     ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=true}), " Debug output");
     ("--strict", Arg.Bool (fun s -> opts := {!opts with strict_opt=s}), "<true|false>  Stop on page processing errors or not");
@@ -583,16 +586,14 @@ let check_project_dir settings =
     end
   in ()
 
-(* There are two ways to give soupault a config file:
-   either specify it in SOUPAULT_CONFIG environment variable
-   or place it in the project directory.
+(* As of soupault 4.2.0, there are two possible default config file names.
 
    The original config file name was soupault.conf,
    but in 2.0.0 the default was changed to soupault.toml
    to make it clear what the config format is.
-   For backward compatibilit, both variants are still supported.
+   For backward compatibility, both variants are still supported.
  *)
-let find_config_file () =
+let find_default_config_file () =
   let conf_exists = Sys.file_exists Defaults.config_file in
   let alt_conf_exists = Sys.file_exists Defaults.config_file_alt in
   match conf_exists, alt_conf_exists with
@@ -611,18 +612,38 @@ let find_config_file () =
       in
       Error "Cannot proceed without a configuration file."
 
+(* There are two ways to specify a custom config file path:
+   either set the [SOUPAULT_CONFIG] environment variable
+   or use --config command line option.
+
+   If both are defined, [--config] takes precedence
+   because it's supposed to be a way to override everything:
+   both the default config path and the environment variable
+   if it's set globally in the system.
+ *)
+let find_config_file cli_options =
+  let config_env_var =
+    try Some (Unix.getenv Defaults.config_path_env_var)
+    with Not_found -> None
+  in
+  match config_env_var, cli_options.config_file_opt with
+  | Some path, None -> Ok path
+  | None, Some path -> Ok path
+  | Some _, Some path ->
+    let () = Logs.warn @@ fun m -> m "Both SOUPAULT_CONFIG environment variable and --config option are given, using --config" in
+    Ok path
+  | None, None ->
+    find_default_config_file ()
+
 let initialize cli_options =
   let () = Random.self_init () in
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose settings.debug in
-  let* config_file =
-    try Ok (Unix.getenv Defaults.config_path_env_var)
-    with Not_found -> find_config_file ()
-  in
+  let* config_file = find_config_file cli_options in
   let* config = Config.read_config config_file in
   (* First, populate the settings from the config file data. *)
   let* settings = Config.update_settings settings config in
-  (* Then override options from it with values from command line arguments, if there are any. *)
+  (* Then override options in it with values from command line arguments, if there are any. *)
   let settings = update_settings settings cli_options in
   (* Update the log level from the config and arguments  *)
   let () = setup_logging settings.verbose settings.debug in
