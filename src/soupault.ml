@@ -636,6 +636,10 @@ let find_config_file cli_options =
     find_default_config_file ()
 
 let initialize cli_options =
+  (* Soupault itself doesn't use the PRNG in any way,
+     but it exposes a random function in the plugin API,
+     so it needs to initialize the RNG to avoid completely predictable sequences.
+   *)
   let () = Random.self_init () in
   let settings = Defaults.default_settings in
   let () = setup_logging settings.verbose settings.debug in
