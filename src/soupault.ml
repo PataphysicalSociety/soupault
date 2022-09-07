@@ -517,31 +517,33 @@ type soupault_action = BuildWebsite | InitProject | ShowVersion | ShowDefaultCon
 type cli_options = {
   action: soupault_action;
   config_file_opt: string option;
-  verbose_opt: bool;
-  debug_opt: bool;
-  strict_opt: bool;
-  site_dir_opt: string;
-  build_dir_opt: string;
   build_profiles_opt: string list;
-  index_only_opt: bool;
+  verbose_opt: bool option;
+  debug_opt: bool option;
+  strict_opt: bool option;
+  site_dir_opt: string option;
+  build_dir_opt: string option;
+  index_only_opt: bool option;
   dump_index_json_opt: string option;
-  force_opt: bool;
+  force_opt: bool option;
 }
 
 let default_cli_options = {
   (* Assume the user wants to build a website unless specified otherwise. *)
   action = BuildWebsite;
+  (* Everything else is assumed to be determined by the config unless
+     overridden by a CLI option.
+   *)
   config_file_opt = None;
-  (* The rest duplicates default settings in the config. *)
-  verbose_opt = Defaults.default_settings.verbose;
-  debug_opt = Defaults.default_settings.debug;
-  strict_opt = Defaults.default_settings.strict;
-  site_dir_opt = Defaults.default_settings.site_dir;
-  build_dir_opt = Defaults.default_settings.build_dir;
-  build_profiles_opt = Defaults.default_settings.build_profiles;
-  index_only_opt = Defaults.default_settings.index_only;
-  dump_index_json_opt = Defaults.default_settings.dump_index_json;
-  force_opt = Defaults.default_settings.force;
+  verbose_opt = None;
+  debug_opt = None;
+  strict_opt = None;
+  site_dir_opt = None;
+  build_dir_opt = None;
+  build_profiles_opt = [];
+  index_only_opt = None;
+  dump_index_json_opt = None;
+  force_opt = None;
 }
 
 let get_args () =
@@ -550,15 +552,15 @@ let get_args () =
   let args = Arg.align [
     (* "Option" flags that change website build behavior. *)
     ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), " Configuration file path");
-    ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=true}), " Verbose output");
-    ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=true}), " Debug output");
-    ("--strict", Arg.Bool (fun s -> opts := {!opts with strict_opt=s}), "<true|false>  Stop on page processing errors or not");
-    ("--site-dir", Arg.String (fun s -> opts := {!opts with site_dir_opt=s}), "<DIR>  Directory with input files");
-    ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=s}), "<DIR>  Output directory");
+    ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=(Some true)}), " Verbose output");
+    ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=(Some true)}), " Debug output");
+    ("--strict", Arg.Bool (fun s -> opts := {!opts with strict_opt=(Some s)}), "<true|false>  Stop on page processing errors or not");
+    ("--site-dir", Arg.String (fun s -> opts := {!opts with site_dir_opt=(Some s)}), "<DIR>  Directory with input files");
+    ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=(Some s)}), "<DIR>  Output directory");
     ("--profile", Arg.String (fun s -> opts := {!opts with build_profiles_opt=(s :: !opts.build_profiles_opt)}), "<NAME>  Build profile (you can give this option more than once)");
-    ("--index-only", Arg.Unit (fun () -> opts := {!opts with index_only_opt=true}), " Extract site index without generating pages");
+    ("--index-only", Arg.Unit (fun () -> opts := {!opts with index_only_opt=(Some true)}), " Extract site index without generating pages");
     ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<PATH>  Dump extracted index into a JSON file");
-    ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=true}), " Force generating all target files");
+    ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=(Some true)}), " Force generating all target files");
     (* "Action" flags that make soupault do something else than a website build. *)
     ("--init", Arg.Unit (fun () -> actions := (InitProject :: !actions)), " Set up basic directory structure");
     ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
@@ -585,17 +587,23 @@ let get_args () =
     in
     exit 1
 
+(* Soupault allows overriding config settings with CLI options.
+   For example, running [soupault --debug] will enable debug logging even if [settings.debug] is [false].
+
+   This function injects those overrides if they are defined.
+ *)
 let update_settings settings cli_options =
-  {settings with
-    debug=cli_options.debug_opt;
-    verbose=cli_options.verbose_opt;
-    strict=cli_options.strict_opt;
-    force=cli_options.force_opt;
-    site_dir=cli_options.site_dir_opt;
-    build_dir=cli_options.build_dir_opt;
-    index_only=cli_options.index_only_opt;
-    dump_index_json=cli_options.dump_index_json_opt
-  }
+  let sr = ref settings in
+  let () =
+    if Option.is_some cli_options.debug_opt then sr := {!sr with debug=(Option.get cli_options.debug_opt)};
+    if Option.is_some cli_options.verbose_opt then sr := {!sr with verbose=(Option.get cli_options.verbose_opt)};
+    if Option.is_some cli_options.strict_opt then sr := {!sr with strict=(Option.get cli_options.strict_opt)};
+    if Option.is_some cli_options.force_opt then sr := {!sr with force=(Option.get cli_options.force_opt)};
+    if Option.is_some cli_options.site_dir_opt then sr := {!sr with site_dir=(Option.get cli_options.site_dir_opt)};
+    if Option.is_some cli_options.build_dir_opt then sr := {!sr with build_dir=(Option.get cli_options.build_dir_opt)};
+    if Option.is_some cli_options.index_only_opt then sr := {!sr with index_only=(Option.get cli_options.index_only_opt)};
+    if Option.is_some cli_options.dump_index_json_opt then sr := {!sr with dump_index_json=cli_options.dump_index_json_opt}
+  in !sr
 
 let check_project_dir settings =
   let () =
@@ -801,8 +809,8 @@ let main cli_options =
     exit 0
   | InitProject ->
     let () =
-      if (cli_options.site_dir_opt <> Defaults.default_settings.site_dir) ||
-         (cli_options.build_dir_opt <> Defaults.default_settings.build_dir)
+      if (cli_options.site_dir_opt <> (Some Defaults.default_settings.site_dir)) ||
+         (cli_options.build_dir_opt <> (Some Defaults.default_settings.build_dir))
       (* Logging is not set at up this point, it's done by [initialize ()],
       so we use a "normal" print to emit a warning here. *)
       then print_string "Warning: --site-dir and --build-dir options are ignored by --project-init\n\n"
