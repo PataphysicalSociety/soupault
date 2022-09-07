@@ -23,7 +23,7 @@ let default_page = "
 "
 
 (* This part contains the default settings and it's used in more than one place in the code *)
-let default_config = Printf.sprintf {|
+let make_default_config settings = Printf.sprintf {|
 # To learn about configuring soupault, visit https://www.soupault.app/reference-manual
 
 [settings]
@@ -41,10 +41,10 @@ let default_config = Printf.sprintf {|
   debug = false
 
   # Where input files (pages and assets) are stored.
-  site_dir = "site"
+  site_dir = "%s"
 
   # Where the output goes
-  build_dir = "build"
+  build_dir = "%s"
 
   # Files inside the site/ directory can be treated as pages or static assets,
   # depending on the extension.
@@ -110,7 +110,7 @@ let default_config = Printf.sprintf {|
   plugin_dirs = ["plugins"]
 |}
 
-Defaults.version_string
+Defaults.version_string settings.site_dir settings.build_dir
 
 (* This part contains example settings for a simple website,
    to give the user an idea what kind of functionality is available. *)
@@ -167,7 +167,7 @@ let init settings  =
        around just for a single use in here *)
     if Config.config_exists Defaults.config_file
     then (print_endline "Config file exists, not overwriting it")
-    else (default_config ^ " " ^ sample_config) |> Soup.write_file Defaults.config_file;
+    else ((make_default_config settings) ^ " " ^ sample_config) |> Soup.write_file Defaults.config_file;
 
     if FileUtil.test (FileUtil.Is_dir) settings.site_dir then
       (print_endline "Site directory already exists. Are you running init in an existing project?";

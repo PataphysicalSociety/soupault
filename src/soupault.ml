@@ -805,17 +805,11 @@ let main cli_options =
     let () = Version.print_version () in
     exit 0
   | ShowDefaultConfig ->
-    let () = print_endline Project_init.default_config in
+    let () = print_endline (Project_init.make_default_config Defaults.default_settings) in
     exit 0
   | InitProject ->
-    let () =
-      if (cli_options.site_dir_opt <> (Some Defaults.default_settings.site_dir)) ||
-         (cli_options.build_dir_opt <> (Some Defaults.default_settings.build_dir))
-      (* Logging is not set at up this point, it's done by [initialize ()],
-      so we use a "normal" print to emit a warning here. *)
-      then print_string "Warning: --site-dir and --build-dir options are ignored by --project-init\n\n"
-    in
-    let () = Project_init.init Defaults.default_settings in
+    let settings = update_settings Defaults.default_settings cli_options in
+    let () = Project_init.init settings in
     exit 0
   | ShowEffectiveConfig ->
     let* config, _, _, settings = initialize cli_options in
