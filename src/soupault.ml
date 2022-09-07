@@ -16,20 +16,26 @@ let mkdir dir =
 
 (*** Logging setup ***)
 
+(* Determines whether log coloring is appropriate in the environment where soupault is running.
+
+   As of 4.2.0, soupault officially supports two kinds of OSes: UNIX-like and Windows.
+   On UNIX-like systems, most terminals support ANSI colors,
+   so we enable color by default but give the user an option to disable it
+   by using the NO_COLOR environment variable (see https://no-color.org).
+
+   We also disable coloring if soupault is sending its output to a pipe rather than a terminal,
+   as any well-behaved program should.
+
+   On Windows, most terminals still don't support colors,
+   so we always disable colors on that platform.
+
+   If a portable way to test terminal color capabilities is ever developed,
+   of course it would be nice to make this check more granular.
+ *)
 let get_color_style () =
-  (* Most Windows terminals don't support ANSI colors at all,
-     so we automatically disable it on that platform.
-     If there's a good way to test if the terminal actually supports it,
-     then this check can be made more granular.
-   *)
   if Sys.win32 then `None else
-  (* See https://no-color.org/
-     All command-line software which outputs text with ANSI color added
-     should check for the presence of a NO_COLOR environment variable that, when present
-     (regardless of its value), prevents the addition of ANSI color.
-   *)
   let no_color = Sys.getenv_opt "NO_COLOR" |> Option.is_some in
-  (* Logs always go to stderr, so we don't check stdout. *)
+  (* Logs always go to stderr, so we don't check if stdout is a TTY. *)
   let interactive = Unix.isatty (Unix.descr_of_out_channel stderr) in
   if interactive && (not no_color) then `Ansi_tty else `None 
 
@@ -56,14 +62,23 @@ let color_level ppf l =
   | Logs.Debug ->
     f ppf debug_style l
 
-(* Omit the executable name from the logs, the user knows already *)
+(* Sets the log format to "[$level] $msg".
+
+   The default log format of Daniel Bünzli's Logs includes executable name in the message,
+   which is useful in some situations, but I doubt it's helpful for typical soupault use.
+ *)
 let pp_header ppf (l, h) =
   match h with
   | None -> if l = Logs.App then () else Format.fprintf ppf "[%a] " color_level (Some l)
   | Some h -> Format.fprintf ppf "[%s] " h
 
-let log_reporter = Logs.format_reporter ~pp_header:pp_header  ()
+(* Performs logging setup.
 
+   The traditional way to handle verboseness is [-v], [-vv], [-vvv]...
+   I believe separate [--verbose] and [--debug] flags are more intuitive
+   and that UI improvement justifies somewhat awkward implementation
+   of the log level check.
+ *)
 let setup_logging verbose debug =
   let level =
     if debug then Logs.Debug
@@ -73,11 +88,12 @@ let setup_logging verbose debug =
   let style = get_color_style () in
   Logs.set_level (Some level);
   Fmt_tty.setup_std_outputs ~style_renderer:style ();
-  Logs.set_reporter log_reporter;
+  Logs.set_reporter @@ Logs.format_reporter ~pp_header:pp_header ();
   (* Enable exception tracing if debug=true *)
   if debug then Printexc.record_backtrace true
 
 (*** Filesystem stuff ***)
+
 let (+/) left right =
     FP.concat left right
 
@@ -86,29 +102,39 @@ let list_dirs path =
 
 let make_build_dir build_dir =
   if (FU.test FU.Exists build_dir) then Ok () else
-  let () = Logs.info @@ fun m -> m "Build directory \"%s\" does not exist, creating" build_dir in
+  let () = Logs.info @@ fun m -> m {|Build directory "%s" does not exist, creating|} build_dir in
   mkdir build_dir
 
-(** Produces a target directory name for the page.
+(*** Page processing helpers. ***)
 
-    If clean URLs are used, then a subdirectory matching the page name
-    should be created inside the section directory, unless the page is
-    a section index page.
-    E.g. "site/foo.html" becomes "build/foo/index.html" to provide
-    a clean URL.
+(* Produces a target directory name for the page.
 
-    If clean URLs are not used, only section dirs are created.
+   If clean URLs are used, then a subdirectory matching the page name
+   should be created inside the section directory, unless the page is
+   a section index page.
+   E.g. "site/foo.html" becomes "build/foo/index.html" to provide
+   a clean URL.
+
+   If clean URLs are not used, only section dirs are created.
  *)
 let make_page_dir_name settings target_dir page_name =
   if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
   else target_dir +/ page_name
 
-let get_preprocessor preprocessors file_name =
+(* Finds a preprocessor for specific file name,
+   if a preprocessor for its extension is configured.
+
+   If a file has multiple extensions, soupault only consideres the last one.
+
+   This function is used for both page preprocessors (in the "[preprocessors]" config section)
+   and asset processors ("[asset_processors]").
+ *)
+let find_preprocessor preprocessors file_name =
   try
     let ext = File_path.get_extension file_name in
     List.assoc_opt ext preprocessors
   with Utils.Malformed_file_name _ ->
-    (* Since page file names comes from directory listings,
+    (* Since page file names come from directory listings,
        they are guaranteed to be valid, non-reserved names.
        But if this "can't happen" situation does happen,
        it's probably better to have a distinctive error for it.
@@ -122,38 +148,28 @@ let load_html settings soupault_config hooks page_file =
     | None -> Ok (Soup.read_file page_file)
     | Some prep ->
       let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote page_file) in
-      let () = Logs.info @@ fun m -> m "Calling page preprocessor \"%s\" on page %s" (String.escaped prep) page_file in
+      let () = Logs.info @@ fun m -> m {|Calling page preprocessor "%s" on page %s|} (String.escaped prep) page_file in
       Process_utils.get_program_output prep_cmd
     with Sys_error e -> Error e
   in
-  let page_preprocessor = get_preprocessor settings.page_preprocessors page_file in
+  let page_preprocessor = find_preprocessor settings.page_preprocessors page_file in
   let* page_source = load_file page_preprocessor page_file in
   let pre_parse_hook = Hashtbl.find_opt hooks "pre-parse" in
   let* page_source =
     match pre_parse_hook with
     | Some (file_name, source_code, hook_config) ->
       if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
-        let () = Logs.info @@ fun m -> m "Running the \"pre-parse\" hook on page %s" page_file in
+        let () = Logs.info @@ fun m -> m {|Running the "pre-parse" hook on page %s|} page_file in
         Hooks.run_pre_parse_hook settings soupault_config hook_config file_name source_code page_file page_source
       else Ok page_source
     | None -> Ok page_source
   in
-  (* As of lambdasoup 0.7.2, Soup.parse never fails, only returns empty element trees. *)
+  (* As of lambdasoup 0.7.2, Soup.parse never fails, only returns empty element trees,
+     so there's no need to handle errors here.
+   *)
   Ok (Soup.parse page_source)
 
-let run_render_hook settings config hooks env soup =
-  let hook = Hashtbl.find_opt hooks "render" in
-  match hook with
-  | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "render" env.page_file)
-    then Ok None
-    else
-      let () = Logs.info @@ fun m -> m "Running the \"render\" hook on page %s" env.page_file in
-      let* page_source = Hooks.run_render_hook
-        settings config hook_config file_name source_code env soup
-      in Ok (Some page_source)
-  | None -> Ok None
-
+(* The built-in HTML rendering function that is used when the "render" hook is not configured. *)
 let render_html_builtin settings soup =
   let add_doctype settings html_str =
     (* 32K is probably a sensible guesstimate of the average page size *)
@@ -199,8 +215,7 @@ let render_html_builtin settings soup =
         add_doctype settings html_str
       | None ->
         (* This may happen if a page (in postprocessor mode)
-           or a page template (in generator mode)
-           is incomplete.
+           or a page template (in generator mode) is incomplete.
            At the moment soupault doesn't prohibit invalid HTML,
            so we need to handle this case.
          *)
@@ -208,22 +223,40 @@ let render_html_builtin settings soup =
         print_html soup
     end
 
+(* The high-level render call that will either run the "render" hook or use the built-in renderer
+   if the hook is not configured or page is excluded from it.
+ *)
 let render_html settings config hooks env soup =
-  let res = run_render_hook settings config hooks env soup in
-  match res with
-  | Ok (Some page_source) -> Ok page_source
-  | Ok None -> Ok (render_html_builtin settings soup)
-  | Error _ as e -> e
+  let hook = Hashtbl.find_opt hooks "render" in
+  match hook with
+  | Some (file_name, source_code, hook_config) ->
+    if not (Hooks.hook_should_run settings hook_config "render" env.page_file)
+    then Ok (render_html_builtin settings soup)
+    else
+      let () = Logs.info @@ fun m -> m {|Running the "render" hook on page %s|} env.page_file in
+      let* page_source = Hooks.run_render_hook
+        settings config hook_config file_name source_code env soup
+      in Ok page_source
+  | None -> Ok (render_html_builtin settings soup)
 
+(* Injects page content into a template.
+   Where exactly it will insert it is defined by the [content_selector] option in the template config,
+   or by [settings.default_content_selector] if the default template is used.
+ *)
 let include_content action selector html content =
   let element = Soup.select_one selector html in
   match element with
   | Some element -> Ok (Html_utils.insert_element (Some action) element content)
   | None ->
-    Error (Printf.sprintf "No element in the template matches selector \"%s\", nowhere to insert the content"
+    Error (Printf.sprintf {|No element in the template matches selector "%s", nowhere to insert the content|}
            selector)
 
-let make_page settings page_file content =
+(* Produces a complete page.
+   In generator mode and for partial pages (those that aren't complete HTML documents)
+   that means insert page content loaded from file into a template.
+   Pages that are already complete documents are returned unchanged.
+ *)
+let make_page settings page_file_path content =
   (* If generator mode is off, treat everything like a complete page *)
   if not settings.generator_mode then Ok content else
   let page_wrapper_elem = Soup.select_one settings.complete_page_selector content in
@@ -238,17 +271,17 @@ let make_page settings page_file content =
     in Ok content
   | None ->
     let tmpl = List.find_opt
-      (fun t -> (Path_options.page_included settings t.template_path_options settings.site_dir page_file) = true)
+      (fun t -> (Path_options.page_included settings t.template_path_options settings.site_dir page_file_path) = true)
       settings.page_templates
     in
     let html, content_selector, content_action = (match tmpl with
       | None ->
-        let () = Logs.info @@ fun m -> m "Using the default template for page %s" page_file in
+        let () = Logs.info @@ fun m -> m "Using the default template for page %s" page_file_path in
         (Soup.parse settings.default_template_source,
          Some settings.default_content_selector,
          Some settings.default_content_action)
       | Some t ->
-        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" t.template_name page_file in
+        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" t.template_name page_file_path in
         (Soup.parse t.template_data,
          t.template_content_selector,
          t.template_content_action))
@@ -723,7 +756,7 @@ let process_index_files index index_hash widgets hooks config settings files =
     files
 
 let process_asset_file settings src_path dst_path =
-  let processor = get_preprocessor settings.asset_processors src_path in
+  let processor = find_preprocessor settings.asset_processors src_path in
   match processor with
   | None ->
     (* Utils.copy_file takes care of missing directories if needed. *)
