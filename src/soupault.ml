@@ -546,14 +546,33 @@ let default_cli_options = {
   force_opt = None;
 }
 
+let usage_msg = Printf.sprintf {|Usage: %s [OPTIONS]
+
+Soupault is a static site generator based on HTML element tree rewriting.
+Visit https://soupault.app/reference-manual/ for documentation.
+
+To build your website, you can simply run %s without any arguments
+or specify --build explicitly if you insist.
+
+You can specify a path to a custom config file using --config option
+or SOUPAULT_CONFIG environment variable.
+
+Options:
+|} Sys.argv.(0) Sys.argv.(0)
+
 let get_args () =
   let actions = ref [] in
   let opts = ref default_cli_options in
   let args = Arg.align [
     (* "Option" flags that change website build behavior. *)
+    ("--build", Arg.Unit (fun () -> actions := (BuildWebsite :: !actions)), " Build a website (default action)");
+    ("--init", Arg.Unit (fun () -> actions := (InitProject :: !actions)), " Set up basic directory structure");
+    ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
+    ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
+    ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and exit");
     ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), " Configuration file path");
-    ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=(Some true)}), " Verbose output");
-    ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=(Some true)}), " Debug output");
+    ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=(Some true)}), " Output build progress and informational messages");
+    ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=(Some true)}), " Output debug information");
     ("--strict", Arg.Bool (fun s -> opts := {!opts with strict_opt=(Some s)}), "<true|false>  Stop on page processing errors or not");
     ("--site-dir", Arg.String (fun s -> opts := {!opts with site_dir_opt=(Some s)}), "<DIR>  Directory with input files");
     ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=(Some s)}), "<DIR>  Output directory");
@@ -562,14 +581,9 @@ let get_args () =
     ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<PATH>  Dump extracted index into a JSON file");
     ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=(Some true)}), " Force generating all target files");
     (* "Action" flags that make soupault do something else than a website build. *)
-    ("--init", Arg.Unit (fun () -> actions := (InitProject :: !actions)), " Set up basic directory structure");
-    ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
-    ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
-    ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and exit")
   ]
   in
-  let usage = Printf.sprintf "Usage: %s [OPTIONS]" Sys.argv.(0) in
-  let () = Arg.parse args (fun _ -> ()) usage in
+  let () = Arg.parse args (fun _ -> ()) usage_msg in
   match !actions with
   | [] ->
     (* Nothing is specified, that means we perform the default action (build). *)
