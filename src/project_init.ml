@@ -56,7 +56,19 @@ let make_default_config settings = Printf.sprintf {|
   # for converting them to HTML (see below).
   page_file_extensions = ["htm", "html", "md", "rst", "adoc"]
 
-  # Files with these extensions are ignored.
+  # By default, soupault uses "clean ULRs",
+  # that is, $site_dir/page.html is converted to $build_dir/page/index.html
+  # You can make it produce $build_dir/page.tml instead by changing this option to false
+  clean_urls = true
+
+  # If you set clean_urls=false,
+  # file names with ".html" and ".htm" extensions are left unchanged.
+  keep_extensions = ["html", "htm"]
+
+  # All other extensions (".md", ".rst"...) are replaced, by default with ".html"
+  default_extension = "html"
+
+  # Page files with these extensions are ignored.
   ignore_extensions = ["draft"]
 
   # Soupault can work as a website generator or an HTML processor.
@@ -96,11 +108,6 @@ let make_default_config settings = Printf.sprintf {|
   # Insert whitespace into HTML for better readability
   # When set to false, the original whitespace (if any) will be preserved as is
   pretty_print_html = true
-
-  # Enables or disables clean URLs.
-  # When false: site/about.html -> build/about.html
-  # When true: site/about.html -> build/about/index.html
-  clean_urls = true
 
   # Plugins can be either automatically discovered or loaded explicitly.
   # By default discovery is enabled and the place where soupault is looking is the plugins/ subdirectory
