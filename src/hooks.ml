@@ -38,6 +38,9 @@ let hook_should_run settings hook_config hook_type page_file =
       in false
   end
 
+(* Check if the user didn't try to add hooks of non-existent types.
+   The set of hooks is fixed and their names must be from the [hook_types] list.
+ *)
 let check_hook_tables config =
   let hooks_table = Config.find_table_opt ["hooks"] config in
   match hooks_table with
@@ -281,7 +284,7 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
        let nav_path = File_path.split_path (FilePath.dirname page_file) |> CCList.drop 1 in
        {page_file_path=page_file; page_content=(Some page_content); page_nav_path=nav_path}
     | _ ->
-      failwith "generated page must be a table with fields \"page_file\" (string) and \"page_content\" (string)"
+      failwith {|generated page must be a table with fields "page_file" (string) and "page_content" (string)|}
   in
   let open Defaults in
   let lua_str = I.Value.string in

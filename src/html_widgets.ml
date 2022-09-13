@@ -9,7 +9,7 @@ let (let*) = Stdlib.Result.bind
 (** Deletes an element from the tree *)
 let delete_element _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "only_if_empty"; "delete_all"] in
-  let () = Config.check_options valid_options config "widget \"delete_element\"" in
+  let () = Config.check_options valid_options config {|widget "delete_element"|} in
   let selector = Config.find_string_result config ["selector"] in
   let when_empty = Config.find_bool_or ~default:false config ["only_if_empty"] in
   let delete_all = Config.find_bool_or ~default:true config ["delete_all"] in
@@ -23,11 +23,11 @@ let delete_element _ config soup =
     begin
       match nodes with
       | [] ->
-         Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nothing to delete" selector
+         Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nothing to delete|} selector
       | ns ->
         let _delete when_empty n =
           if not (Html_utils.is_empty n) && when_empty then
-            Logs.debug @@ fun m -> m "Element matching selector \"%s\" is not empty, configured to delete only when empty" selector
+            Logs.debug @@ fun m -> m {|Element matching selector "%s" is not empty, configured to delete only when empty|} selector
           else Soup.delete n
         in List.iter (_delete when_empty) ns
     end;
@@ -53,7 +53,7 @@ let wrap _ config soup =
     Ok ()
   in
   let valid_options = List.append Config.common_widget_options ["selector"; "wrapper"; "wrap_all"; "wrapper_selector"] in
-  let () = Config.check_options valid_options config "widget \"wrap\"" in
+  let () = Config.check_options valid_options config {|widget "wrap"|} in
   let selectors = get_selectors config in
   let wrapper_selector = OH.find_string_opt config ["wrapper_selector"] in
   let wrap_all = Config.find_bool_or ~default:true config ["wrap_all"] in

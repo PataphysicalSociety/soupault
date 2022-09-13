@@ -16,7 +16,7 @@ let parse_html ?(body=true) str =
 (* Result-aware element selection functions *)
 let wrap_select f selector soup =
   try Ok (f selector soup)
-  with Soup.Parse_error msg -> Error (Printf.sprintf "Invalid CSS selector '%s', parse error: %s" selector msg)
+  with Soup.Parse_error msg -> Error (Printf.sprintf {|Invalid CSS selector "%s", parse error: %s|} selector msg)
 
 let select selector soup = wrap_select Soup.select selector soup
 let select_one selector soup = wrap_select Soup.select_one selector soup
@@ -27,7 +27,7 @@ let check_template selector template =
   let soup = Soup.parse template in
   let content_container = Soup.select_one selector soup in
   match content_container with
-  | None -> Error (Printf.sprintf "Template %s has no element matching selector \"%s\"" template selector)
+  | None -> Error (Printf.sprintf {|Template "%s" has no element matching selector "%s"|} template selector)
   | Some _ -> Ok template
 
 (** Gets an element and returns Error if it doesn't exist,
@@ -157,8 +157,8 @@ let insert_element action container content =
   | None ->
     let index = Spellcheck.make_index (CCList.Assoc.keys actions) in
     let suggestion = Spellcheck.get_suggestion index action in
-    let suggestion = (match suggestion with Some s -> (Printf.sprintf " Did you mean \"%s?\"" s) | None -> "") in
-    let () = Logs.warn @@ fun m -> m "Invalid action \"%s\", using default (append child).%s" action suggestion in
+    let suggestion = (match suggestion with Some s -> (Printf.sprintf {| Did you mean "%s?"|} s) | None -> "") in
+    let () = Logs.warn @@ fun m -> m {|Invalid action "%s", using default (append child).%s|} action suggestion in
     Soup.append_child container content
 
 (* Wraps one HTML (sub)tree in another *)
@@ -189,7 +189,7 @@ let wrap ?(selector=None) wrapper content =
       (* Right now the agreement is to always insert in the first matching elements if there are more than one *)
       let child = Soup.select_one s wrapper in begin
       match child with
-      | None -> Error (Printf.sprintf "the wrapper does not have an element matching selector \"%s\"" s)
+      | None -> Error (Printf.sprintf {|the wrapper does not have an element matching selector "%s"|} s)
       | Some c -> Ok c
       end
   in

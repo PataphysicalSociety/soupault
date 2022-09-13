@@ -18,7 +18,7 @@ let version_of_string vstr =
    *)
   with _ -> try Ok (Scanf.sscanf vstr "%u.%u" (fun v1 v2 -> (v1, v2, 0, None)))
   with _ -> try Ok (Scanf.sscanf vstr "%u" (fun v1 -> (v1, 0, 0, None)))
-  with _ -> Error (Printf.sprintf "Could not parse version string \"%s\"" vstr)
+  with _ -> Error (Printf.sprintf {|Could not parse version string "%s"|} vstr)
 
 (* Compares two versions according to semver rules. *)
 let compare_versions (l1, l2, l3, _) (r1, r2, r3, _) =

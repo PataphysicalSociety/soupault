@@ -60,7 +60,7 @@ let rec _load_widgets settings config plugins ws hash =
     let fail msg = Printf.ksprintf failwith "Error in [widgets.%s]: %s" w msg in
     begin
       match name with
-      | None -> fail "missing required option widget=\"<some widget>\""
+      | None -> fail {|missing required option widget="<some widget>"|}
       | Some name ->
         let widget_func = find_widget plugins name in
         begin
@@ -69,8 +69,8 @@ let rec _load_widgets settings config plugins ws hash =
             (* It's not a built-in or an explicitly configured plugin. Try to find it in plugin directories. *)
             begin
               if not settings.plugin_discovery then
-                let () = Logs.warn @@ fun m -> m "Plugin discovery is disabled, not attempting to find a plugin that implements widget \"%s\"" name in
-                fail @@ Printf.sprintf "unknown widget \"%s\"" name
+                let () = Logs.warn @@ fun m -> m {|Plugin discovery is disabled, not attempting to find a plugin that implements widget "%s"|} name in
+                fail @@ Printf.sprintf {|unknown widget "%s"|} name
               else
                 let file_name = Printf.sprintf "%s.lua" name in
                 let file_path = Plugins.lookup_plugin_file settings.plugin_dirs file_name in
@@ -78,12 +78,12 @@ let rec _load_widgets settings config plugins ws hash =
                 | None ->
                   let dirs_str = String.concat ", " settings.plugin_dirs in
                   let () = Logs.err @@ fun m -> m "Failed to find plugin file %s in directories [%s]" file_name dirs_str in
-                  fail @@ Printf.sprintf "widget \"%s\" is not a soupault built-in and is not provided by any available plugin" name
+                  fail @@ Printf.sprintf {|widget "%s" is not a soupault built-in and is not provided by any available plugin|} name
                 | Some plugin_file ->
                   let lua_source =
                     try Soup.read_file plugin_file
                     with Sys_error msg ->
-                      fail @@ Printf.sprintf "Could not read plugin file that provides widget \"%s\": %s" name msg
+                      fail @@ Printf.sprintf {|Could not read plugin file that provides widget "%s": %s|} name msg
                   in
                   let () = Hashtbl.add plugins name (Plugins.make_plugin_function lua_source settings config name) in
                   let () = Logs.debug @@ fun m -> m "Widget %s is loaded from plugin file %s" name plugin_file in
@@ -99,7 +99,7 @@ let rec _load_widgets settings config plugins ws hash =
 
 let get_widget_order hash =
   let format_bad_deps ds =
-    let format_bad_dep (n, ns) = Printf.sprintf "Widget \"%s\" depends on non-existent widgets: %s" n (String.concat ", " ns) in
+    let format_bad_dep (n, ns) = Printf.sprintf {|Widget "%s" depends on non-existent widgets: %s|} n (String.concat ", " ns) in
     let bad_deps = List.map format_bad_dep ds |> String.concat "\n" in
     Printf.sprintf "Found dependencies on non-existent widgets\n%s" bad_deps
   in
@@ -176,7 +176,7 @@ let get_widgets settings config plugins index_deps =
 let widget_should_run settings name widget page_file =
   let disabled = Config.find_bool_or ~default:false widget.config ["disabled"] in
   if disabled then
-    let () = Logs.debug @@ fun m -> m "Widget \"%s\" is disabled in the configuration" name in false
+    let () = Logs.debug @@ fun m -> m {|Widget "%s" is disabled in the configuration|} name in false
   else
   let options = Config.get_path_options widget.config in
   let profile = OH.find_string_opt widget.config ["profile"] in
@@ -187,6 +187,6 @@ let widget_should_run settings name widget page_file =
   else begin
     if Path_options.page_included settings options settings.site_dir page_file then true
     else
-      let () = Logs.debug @@ fun m -> m "Widget \"%s\" will not run: page %s is excluded by its page/section/regex options" name page_file in
+      let () = Logs.debug @@ fun m -> m {|Widget "%s" will not run: page %s is excluded by its page/section/regex options|} name page_file in
       false
   end

@@ -11,7 +11,7 @@ let of_unix_status s =
    so we need adjustable log level here. *)
 let log_process_outputs ?(func=Logs.debug) cmd out err =
   func @@ fun m ->
-    m "Running \"%s\" produced the following outputs:\n Standard output:\n%s\nStandard error:\n%s" cmd out err
+    m {|Running "%s" produced the following outputs:\n Standard output:\n%s\nStandard error:\n%s|} cmd out err
 
 (* Produces a numeric exit code and a process execution result.
    Numeric codes mimic the bash convention, with one addition:
@@ -34,8 +34,8 @@ let string_of_status s =
 
 let format_error cmd status =
   match status with
-  | Exited 0 -> Printf.sprintf "Command \"%s\" has run successfully" cmd
-  | _ -> Printf.sprintf "Failed to run command \"%s\": %s" cmd (string_of_status status)
+  | Exited 0 -> Printf.sprintf {|Command "%s" has run successfully|} cmd
+  | _ -> Printf.sprintf {|Failed to run command "%s": %s|} cmd (string_of_status status)
 
 (* Executes an external program and returns its stdout if it succeeds.
    Returns a raw, detailed exit status if it fails.
@@ -51,7 +51,7 @@ let get_program_output_raw ?(input=None) ?(debug=false) ?(env=[| |]) command =
       begin match input with
       | None -> ()
       | Some i ->
-        let () = Logs.debug @@ fun m -> m "Data sent to program \"%s\": %s" command i in
+        let () = Logs.debug @@ fun m -> m {|Data sent to program "%s": %s|} command i in
         let () = Soup.write_channel std_in i; flush std_in in
         (* close stdin to signal the end of input *)
         close_out std_in

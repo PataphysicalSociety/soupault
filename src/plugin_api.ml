@@ -15,31 +15,31 @@ module Re_wrapper = struct
     try
       Regex_utils.Raw.replace ~all:all ~regex:pat ~sub:sub s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.replace call" pat
+      plugin_error @@ Printf.sprintf {|Malformed regex "%s" in a Regex.replace call|} pat
 
   let replace_all s pat sub =
     try
       Regex_utils.Raw.replace ~all:true ~regex:pat ~sub:sub s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.replace_all call" pat
+      plugin_error @@ Printf.sprintf {|Malformed regex "%s" in a Regex.replace_all call|} pat
 
   let find_all s pat =
     try
       Regex_utils.Raw.get_matching_strings ~regex:pat s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.find_all call" pat
+      plugin_error @@ Printf.sprintf {|Malformed regex "%s" in a Regex.find_all call|} pat
 
   let re_match s pat =
     try
       Regex_utils.Raw.matches ~regex:pat s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.match call" pat
+      plugin_error @@ Printf.sprintf {|Malformed regex "%s" in a Regex.match call|} pat
 
   let split s pat =
     try
       Regex_utils.Raw.split ~regex:pat s
     with Regex_utils.Bad_regex ->
-      plugin_error @@ Printf.sprintf "Malformed regex \"%s\" in a Regex.split call" pat
+      plugin_error @@ Printf.sprintf {|Malformed regex "%s" in a Regex.split call|} pat
 end
 
 module Log = struct
@@ -53,12 +53,12 @@ module Sys_wrappers = struct
   let read_file name =
     try Some (Soup.read_file name)
     with
-    | Sys_error msg -> let () = Logs.err @@ fun m -> m "Failed to read file \"%s\": %s" name msg in None
+    | Sys_error msg -> let () = Logs.err @@ fun m -> m {|Failed to read file "%s": %s|} name msg in None
 
   let write_file name content =
     try Soup.write_file name content
     with Sys_error msg ->
-      Printf.ksprintf plugin_error "Failed to write file \"%s\": %s" name msg
+      Printf.ksprintf plugin_error {|Failed to write file "%s": %s|} name msg
 
   let get_program_output cmd input =
     let res = Process_utils.get_program_output ~input:input cmd in
@@ -87,12 +87,12 @@ module Sys_wrappers = struct
   let delete_file ?(r=false) path =
     try FileUtil.rm ~recurse:r [path]
     with Unix.Unix_error (e, _, _) ->
-      Printf.ksprintf plugin_error "Could not delete file \"%s\": %s" path (Unix.error_message e)
+      Printf.ksprintf plugin_error {|Could not delete file "%s": %s|} path (Unix.error_message e)
 
   let ls path =
     try FileUtil.ls path
     with Sys_error msg ->
-      Printf.ksprintf plugin_error "Failed to get directory contents if \"%s\": %s" path msg
+      Printf.ksprintf plugin_error {|Failed to get directory contents if "%s": %s|} path msg
 
   let get_extension f =
     try File_path.get_extension f
@@ -500,7 +500,7 @@ struct
                the table structure clearly doesn't match plugin author's expectations.
                The best thing to do is to throw an error.
              *)
-            else plugin_error @@ Printf.sprintf "value at key \"%s\" is not a table, cannot look up anything in it"
+            else plugin_error @@ Printf.sprintf {|value at key "%s" is not a table, cannot look up anything in it|}
               (V.to_string v)
           with Not_found ->
             (* If there is no such key, then the path partially does not exist.

@@ -174,7 +174,7 @@ let toc _ config soup =
     "ignore_heading_selectors"
   ]
   in
-  let () = Config.check_options valid_options config "widget \"toc\"" in
+  let () = Config.check_options valid_options config {|widget "toc"|} in
   let max_level = Config.find_integer_or ~default:6 config ["max_level"] in
   let settings = {
     min_level = Config.find_integer_or ~default:1 config ["min_level"];
@@ -182,11 +182,11 @@ let toc _ config soup =
     max_heading_link_level =
       (let lvl = Config.find_integer_or ~default:max_level config ["max_heading_link_level"] in
       if lvl < max_level then begin
-        let () = Logs.warn @@ fun m -> m "max_heading_level cannot be lower than max_level, forcing to max_level" in
-        max_level
+        let () = Logs.warn @@ fun m -> m "max_heading_level cannot be lower than max_level (%d), forcing to %d"
+          max_level max_level
+        in max_level
       end
-      else lvl)
-    ;
+      else lvl);
     toc_class = OH.find_string_opt config ["toc_list_class"];
     toc_class_levels = Config.find_bool_or ~default:false config ["toc_class_levels"];
     numbered_list = Config.find_bool_or ~default:false config ["numbered_list"];
@@ -214,26 +214,25 @@ let toc _ config soup =
       let container = Soup.select_one selector soup in
       match container with
       | None ->
-        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the ToC" selector in
+        let () = Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nowhere to insert the ToC|} selector in
         Ok ()
       | Some container ->
-      begin
-        let counter = make_counter 0 in
-        let headings = Html_utils.find_headings soup in
-        let headings = List.filter (fun e -> not @@ ignored_heading settings soup e) headings in
-        if ((List.length headings) < settings.min_headings) then Ok () else
-        let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
-        let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
-        match headings_tree with
-        | [] ->
-          let () = Logs.debug @@ fun m -> m "Page has no headings, nothing to build a ToC from" in
-          Ok ()
-        | _ ->
-          let toc_container = make_toc_container settings 1 in
-          let _ = List.iter (_make_toc settings 2 counter toc_container) headings_tree in
-          let () = Html_utils.insert_element action container toc_container in
-          let () =          
-            if settings.link_here then List.iter (fun h -> add_section_link settings h) headings
-          in Ok ()
-      end
+        begin
+          let counter = make_counter 0 in
+          let headings = Html_utils.find_headings soup in
+          let headings = List.filter (fun e -> not @@ ignored_heading settings soup e) headings in
+          if ((List.length headings) < settings.min_headings) then Ok () else
+          let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
+          let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
+          match headings_tree with
+          | [] ->
+            let () = Logs.debug @@ fun m -> m "Page has no headings, nothing to build a ToC from" in
+            Ok ()
+          | _ ->
+            let toc_container = make_toc_container settings 1 in
+            let _ = List.iter (_make_toc settings 2 counter toc_container) headings_tree in
+            let () = Html_utils.insert_element action container toc_container in
+            let () = if settings.link_here then List.iter (fun h -> add_section_link settings h) headings in
+            Ok ()
+        end
     end

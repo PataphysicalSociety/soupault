@@ -110,16 +110,16 @@ let slugify ?(lowercase=true) ?(regex=None) ?(sub=None) s =
 let rec parse_date fmts date_string =
   match fmts with
   | [] ->
-    let () = Logs.debug @@ fun m -> m "Field value \"%s\" could not be parsed as a date, interpreting as a string" date_string in
+    let () = Logs.debug @@ fun m -> m {|Field value "%s" could not be parsed as a date, interpreting as a string|} date_string in
     None
   | f :: fs -> begin
     let parser = ODate.Unix.From.generate_parser f in
     match parser with
-    | None -> soupault_error (Printf.sprintf "Date format \"%s\" is invalid." f)
+    | None -> soupault_error (Printf.sprintf {|Date format "%s" is invalid|} f)
     | Some parser ->
       try
         let date = ODate.Unix.From.string parser date_string in
-        let () = Logs.debug @@ fun m -> m "Date string \"%s\" matched format \"%s\"" date_string f in
+        let () = Logs.debug @@ fun m -> m {|Date string "%s" matched format "%s"|} date_string f in
         Some date
       with _ -> parse_date fs date_string
   end
@@ -127,7 +127,7 @@ let rec parse_date fmts date_string =
 let format_date fmt date =
   let printer = ODate.Unix.To.generate_printer fmt in
   match printer with
-  | None -> soupault_error (Printf.sprintf "Date format \"%s\" is invalid." fmt)
+  | None -> soupault_error (Printf.sprintf {|Date format "%s" is invalid|} fmt)
   | Some printer -> ODate.Unix.To.string printer date
 
 
@@ -206,9 +206,9 @@ let load_plugin_code plugin_config default_filename ident =
   let source = Otoml.Helpers.find_string_opt plugin_config ["lua_source"] in
   match file, source with
   | None, None ->
-    Error (Printf.sprintf "In %s: either \"file\" or \"lua_source\" option is required" ident)
+    Error (Printf.sprintf {|In %s: either "file" or "lua_source" option is required|} ident)
   | Some _, Some _ ->
-    Error (Printf.sprintf "In %s: \"file\" and \"lua_source\" options are mutually exclusive" ident)
+    Error (Printf.sprintf {|In %s: "file" and "lua_source" options are mutually exclusive|} ident)
   | None, Some source ->
     Ok (default_filename, source)
   | Some file, None ->

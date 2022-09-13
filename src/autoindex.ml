@@ -37,7 +37,7 @@ let rec get_fields strip_tags fields soup =
       match e, f.default_field_value with
       | None, None ->
         if f.required_field then soupault_error @@
-          Printf.sprintf "required index field \"%s\" is missing" f.field_name
+          Printf.sprintf {|required index field "%s" is missing|} f.field_name
         else `Null
       | None, Some v -> `String v
       | Some e, _ -> `String e
@@ -107,7 +107,7 @@ let compare_entries settings sort_options l r =
     | Some _ -> v
     | None ->
       if sort_options.sort_strict then Printf.ksprintf soupault_error
-        "Cannot sort entries using sort_by=\"%s\", the following entry does not have that field:\n%s"
+        {|Cannot sort entries using sort_by="%s", the following entry does not have that field:\n%s|}
         (Option.get sort_options.sort_by)
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
@@ -117,7 +117,7 @@ let compare_entries settings sort_options l r =
     | Some _ -> v
     | None ->
       if sort_options.sort_strict then Printf.ksprintf soupault_error
-        "Cannot sort entries using sort_by=\"%s\": value \"%s\" could not be parsed as %s. The offending entry is:\n%s"
+        {|Cannot sort entries using sort_by="%s": value "%s" could not be parsed as %s. The offending entry is:\n%s|}
         (Option.get sort_options.sort_by) (Option.value ~default:"null" orig) type_name
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
@@ -242,12 +242,12 @@ let insert_index env soupault_config soup view =
  let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
-    let () = Logs.debug @@ fun m -> m "Page \"%s\" doesn't have an element matching selector \"%s\", ignoring index view \"%s\""
+    let () = Logs.debug @@ fun m -> m {|Page "%s" doesn't have an element matching selector "%s", ignoring index view "%s"|}
       env.page_file view.index_selector view.index_view_name
     in Ok []
   | Some ic ->
     begin
-      let () = Logs.info @@ fun m -> m "Rendering index view \"%s\" on page %s" view.index_view_name env.page_file in
+      let () = Logs.info @@ fun m -> m {|Rendering index view "%s" on page %s|} view.index_view_name env.page_file in
       let (let*) = Result.bind in
       let index = List.filter (view_includes_page env.settings env.page_file view) env.site_index in
       let* index = sort_entries env.settings (get_sort_options env.settings view) index in

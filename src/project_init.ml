@@ -123,7 +123,7 @@ let sample_config = {|
 #  md = "cmark --unsafe --smart"
 #  adoc = "asciidoctor -o -"
 
-# Pages can be further processed with \"widgets\"
+# Pages can be further processed with "widgets"
 
 # Takes the content of the first <h1> and inserts it into the <title>
 [widgets.page-title]

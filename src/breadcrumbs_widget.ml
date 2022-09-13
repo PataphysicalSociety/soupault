@@ -32,7 +32,7 @@ let check_breadcrumb_template tmpl_str =
 let breadcrumbs env config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
-  let () = Config.check_options valid_options config "widget \"breadcrumbs\"" in
+  let () = Config.check_options valid_options config {|widget "breadcrumbs"|} in
   let min_depth = Config.find_integer_or ~default:1 config ["min_depth"] in
   let selector = Config.find_string_result config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
@@ -44,12 +44,12 @@ let breadcrumbs env config soup =
     begin
       match container with
       | None ->
-        let () = Logs.debug @@ fun m -> m "Page has no elements matching selector \"%s\", nowhere to insert the breadcrumbs" selector in
+        let () = Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nowhere to insert the breadcrumbs|} selector in
         Ok ()
       | Some container ->
         let path_length = List.length env.nav_path in
         if path_length < min_depth then Ok () else
-        let bc_tmpl_str = Config.find_string_or ~default:"<a href=\"{{url}}\">{{name}}</a>" config ["breadcrumb_template"] in
+        let bc_tmpl_str = Config.find_string_or ~default:{|<a href="{{url}}">{{name}}</a>|} config ["breadcrumb_template"] in
         let* _  = check_breadcrumb_template bc_tmpl_str in
         let bc_tmpl = Template.of_string bc_tmpl_str in
         let prepend = Config.find_string_or ~default:"" config ["prepend"] in

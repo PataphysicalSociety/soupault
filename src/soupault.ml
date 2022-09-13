@@ -281,7 +281,7 @@ let make_page settings page_file_path content =
          Some settings.default_content_selector,
          Some settings.default_content_action)
       | Some t ->
-        let () = Logs.info @@ fun m -> m "Using template \"%s\" for page %s" t.template_name page_file_path in
+        let () = Logs.info @@ fun m -> m {|Using template "%s" for page %s|} t.template_name page_file_path in
         (Soup.parse t.template_data,
          t.template_content_selector,
          t.template_content_action))
@@ -313,7 +313,7 @@ let rec process_widgets env settings ws wh config soup =
       | Ok _, _ -> process_widgets env settings ws' wh config soup
       | Error _ as err, true -> err
       | Error msg, false ->
-        let () = Logs.warn @@ fun m -> m "Processing widget \"%s\" failed: %s" w msg in
+        let () = Logs.warn @@ fun m -> m {|Processing widget "%s" failed: %s|} w msg in
         process_widgets env settings ws' wh config soup
     end
 
@@ -397,7 +397,7 @@ let extract_metadata settings soupault_config hooks env html =
     if not (Hooks.hook_should_run settings hook_config "post-index" env.page_file) then (Ok (Some entry)) else
     (* Let the post-index hook update the fields *)
     let* index_fields =
-      let () = Logs.info @@ fun m -> m "Running the \"post-index\" hook on page %s" env.page_file in
+      let () = Logs.info @@ fun m -> m {|Running the "post-index" hook on page %s|} env.page_file in
       Hooks.run_post_index_hook settings soupault_config hook_config file_name source_code env html entry.fields
     in
     Ok (Some {entry with fields=index_fields})
@@ -410,7 +410,7 @@ let run_pre_process_hook settings config hooks page_file target_dir target_file 
     if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
     then Ok (target_dir, target_file, content)
     else
-      let () = Logs.info @@ fun m -> m "Running the \"pre-process\" hook on page %s" page_file in
+      let () = Logs.info @@ fun m -> m {|Running the "pre-process" hook on page %s|} page_file in
       Hooks.run_pre_process_hook
         settings config hook_config file_name source_code page_file target_dir target_file content
   | None -> Ok (target_dir, target_file, content)
@@ -626,7 +626,7 @@ let check_project_dir settings =
          a) either it will blow up very soon after anyway, when soupault gets to the first page
          b) or ther user specified a custom template for every path.
      *)
-    Logs.warn @@ fun m -> m "Default template is required in generator mode, but template file \"%s\" does not exist."
+    Logs.warn @@ fun m -> m {|Default template is required in generator mode, but template file "%s" does not exist|}
       settings.default_template
   in let () =
     if (not (FU.test FU.Is_dir settings.site_dir))
@@ -635,8 +635,8 @@ let check_project_dir settings =
          then either the user accidentally ran soupault in a completely wrong directory
          or their project isn't initialized yet.
        *)
-      Logs.err @@ fun m -> m "Site directory \"%s\" does not exist!" settings.site_dir;
-      Logs.err @@ fun m -> m "You can use %s --init to initialize a basic project." Sys.argv.(0);
+      Logs.err @@ fun m -> m {|Site directory "%s" does not exist!|} settings.site_dir;
+      Logs.err @@ fun m -> m "You can use %s --init to initialize a basic project" Sys.argv.(0);
       exit 1
     end
   in ()

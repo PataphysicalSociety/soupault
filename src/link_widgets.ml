@@ -178,11 +178,11 @@ let target_matches only_regex exclude_regex target =
   match only_regex with
   | Some r ->
     if not (Regex_utils.Internal.matches ~regex:r target)
-    then (let () = Logs.debug @@ fun m -> m "Link target \"%s\" does not match only_target_regex" target in false)
+    then (let () = Logs.debug @@ fun m -> m {|Link target "%s" does not match only_target_regex|} target in false)
     else true
   | None ->
     if (Regex_utils.Internal.matches ~regex:exclude_regex target)
-    then (let () = Logs.debug @@ fun m -> m "Link target \"%s\" matches exclude_target_regex" target in false)
+    then (let () = Logs.debug @@ fun m -> m {|Link target "%s" matches exclude_target_regex|} target in false)
     else true
 
 (** Adjusts relative link targets to match the real depth of the page where they appear.
@@ -201,7 +201,7 @@ let relativize_link_target check_file env only_regex exclude_regex target =
   let open Defaults in
   if not (target_matches only_regex exclude_regex target) then
   let () =
-    Logs.debug @@ fun m -> m "Link target \"%s\" is excluded by regex options, not trying to make it relative" target
+    Logs.debug @@ fun m -> m {|Link target "%s" is excluded by regex options, not trying to make it relative|} target
   in target
   (* Before doing any real work, check if the link target is pointing at a file that actually exists
      at a path relative to _this_ page. If it does, the target is _already correct_
@@ -234,7 +234,7 @@ let absolutize_link_target prefix check_file env only_regex exclude_regex target
   let open Defaults in
   if not (target_matches only_regex exclude_regex target) then
   let () =
-    Logs.debug @@ fun m -> m "Link target \"%s\" is excluded by regex options, not trying to make it absolute" target
+    Logs.debug @@ fun m -> m {|Link target "%s" is excluded by regex options, not trying to make it absolute|} target
   in target
   (* Remove the build_dir from the path *)
   else let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ env.settings.build_dir) ~sub:"" env.target_dir in
@@ -254,7 +254,7 @@ let absolutize_link_target prefix check_file env only_regex exclude_regex target
 (** Converts all internal links to relative according to the page's location in the directory tree. *)
 let relative_links env config soup =
   let valid_options = List.append Config.common_widget_options ["exclude_target_regex"; "only_target_regex"; "check_file"] in
-  let () = Config.check_options valid_options config "widget \"relative_links\"" in
+  let () = Config.check_options valid_options config {|widget "relative_links"|} in
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
   let only_regex = OH.find_string_opt config ["only_target_regex"] in
   if (Option.is_some exclude_regex) && (Option.is_some only_regex)
@@ -278,7 +278,7 @@ let absolute_links env config soup =
   let valid_options = List.append Config.common_widget_options
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
   in
-  let () = Config.check_options valid_options config "widget \"absolute_links\"" in
+  let () = Config.check_options valid_options config {|widget "absolute_links"|} in
   let prefix = Config.find_string_result config ["prefix"] |> Config.required_option in
   (* Strip trailing slashes to avoid duplicate slashes after concatenation *)
   let prefix = Regex_utils.Internal.replace ~regex:"/+$" ~sub:"" prefix in

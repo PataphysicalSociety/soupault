@@ -8,7 +8,7 @@ let page_matches site_dir actual_path conf_path =
 let regex_matches actual_path path_re =
   try Regex_utils.Raw.matches ~regex:path_re actual_path
   with Regex_utils.Bad_regex ->
-    soupault_error @@ Printf.sprintf "Could not check a path regex option: malformed regex \"%s\"" path_re
+    soupault_error @@ Printf.sprintf {|Could not check a path regex option: malformed regex "%s"|} path_re
 
 (* Normally a directory is a section.
    However, some directories can be in fact hand-made "clean URLs".

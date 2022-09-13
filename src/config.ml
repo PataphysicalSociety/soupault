@@ -54,8 +54,8 @@ let bad_option_msg opt ident suggestion =
   let suggestion_msg =
     (match suggestion with
     | None -> ""
-    | Some s -> Printf.sprintf "Did you mean \"%s\"?" s)
-  in Printf.sprintf "Option \"%s\" is not valid for %s. %s" opt ident suggestion_msg
+    | Some s -> Printf.sprintf {|Did you mean "%s"?|} s)
+  in Printf.sprintf {|Option "%s" is not valid for %s. %s|} opt ident suggestion_msg
 
 (** Checks for invalid config options *)
 let check_options ?(fmt=bad_option_msg) valid_options config ident =
@@ -257,7 +257,7 @@ let _get_index_view st view_name =
         else IndexTemplate t
       with _ ->
         (* Jingoo does not provide meaningful parse error reporting as of 1.4.4. *)
-        config_error (Printf.sprintf "Failed to parse template:\n \"%s\"" tmpl)
+        config_error (Printf.sprintf {|Failed to parse template:\n "%s"|} tmpl)
     end
   in
   let _get_index_processor name st =
@@ -273,7 +273,7 @@ let _get_index_view st view_name =
       match lua_source, lua_file with
       | None, None -> None
       | _, _ ->
-        let res = Utils.load_plugin_code st (Printf.sprintf "<inline Lua code from index view \"%s\">" name)
+        let res = Utils.load_plugin_code st (Printf.sprintf {|<inline Lua code from index view "%s">|} name)
           "index processor"
         in Some res
     in
@@ -320,7 +320,7 @@ let _get_index_views index_table =
         let v = get_view k views in
         get_views ks views (v :: acc)
       with Index_view_error e | Key_error e | Type_error e ->
-        Printf.ksprintf config_error "Misconfigured index view \"%s\": %s" k e
+        Printf.ksprintf config_error {|Misconfigured index view "%s": %s|} k e
     end
   in
   let views = [] in
@@ -336,7 +336,7 @@ let _get_index_settings settings config =
   match st with
   | None -> settings
   | Some st ->
-    let () = check_options valid_index_options st "table \"index\"" in
+    let () = check_options valid_index_options st {|table "index"|} in
     let date_formats = find_strings_or ~default:settings.index_date_input_formats st ["date_formats"] in
     {settings with
        index = find_bool_or ~default:settings.index st ["index"];
@@ -411,7 +411,7 @@ let _update_settings settings config =
      let () = Logs.warn @@ fun m -> m "Could not find the [settings] section in the config, using defaults" in
      settings
   | Some st ->
-    let () = check_options valid_settings st "table \"settings\"" in
+    let () = check_options valid_settings st {|table "settings"|} in
     let settings = update_page_template_settings settings config in
     {settings with
        verbose = find_bool_or ~default:settings.verbose st ["verbose"];
@@ -447,19 +447,27 @@ let _update_settings settings config =
        asset_processors = _get_asset_processors config;
      }
 
-let valid_tables = ["settings"; "index"; "plugins"; "widgets"; "preprocessors"; "asset_processors"; "templates"; "hooks"; "custom_options"]
+let valid_tables = [
+  "settings";
+  "templates";
+  "index";
+  "plugins"; "widgets";
+  "preprocessors"; "asset_processors";
+  "hooks";
+  "custom_options"
+]
 
 let check_subsections ?(parent_path=[]) config valid_tables table_name =
   let bad_section_msg tbl _ suggestion =
     let suggestion_msg =
       (match suggestion with
       | None -> ""
-      | Some s -> Printf.sprintf "Did you mean \"%s\"?" s)
+      | Some s -> Printf.sprintf {|Did you mean "%s"?|} s)
     in
     let path = List.append parent_path [tbl] |> Otoml.string_of_path in
     Printf.sprintf "[%s] is not a valid config section. %s" path suggestion_msg
   in
-  check_options ~fmt:bad_section_msg valid_tables config (Printf.sprintf "table \"%s\"" table_name)
+  check_options ~fmt:bad_section_msg valid_tables config (Printf.sprintf {|table "%s"|} table_name)
 
 let update_settings_unsafe settings config =
  match config with
