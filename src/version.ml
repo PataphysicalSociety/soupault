@@ -40,7 +40,8 @@ let require_version vstr =
 
 (* Prints a version message. *)
 let print_version () =
-  Printf.printf "soupault %s\n" Defaults.version_string;
+  Printf.printf "soupault %s\n\n" Defaults.version_string;
   print_endline "Copyright 2022 Daniil Baturin et al.";
-  print_endline "soupault is free software distributed under the MIT license";
-  print_endline "Visit https://www.soupault.app/reference-manual for documentation"
+  print_endline "soupault is free software distributed under the MIT license.";
+  print_endline "Visit https://www.soupault.app for news and documentation.\n";
+  Printf.printf "Compiled with OCaml %s" Sys.ocaml_version
