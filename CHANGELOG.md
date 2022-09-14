@@ -1,6 +1,16 @@
+# 4.2.0
+
+## New features and improvements
+
+* Hooks now support the `profile` option, like widgets, and can be limited to specific build profiles.
+* New log message for hooks and widgets that are ignored due to build profile options.
+* New `--config` option for specifying custom config path without the use of environment variables.
+* `soupault --init` how takes `--site-dir` and `--build-dir` options into account when generating the config.
+* `keep_extensions` and `default_extension` options are now mentioned in configs genrated by `soupault --init`.
+
 # 4.1.0
 
-# New features
+## New features
 
 * There are now asset preprocessors that allow running asset files through external programs (image convertors, Sass compilers... you name it).
 * New `post-save` hook makes it easier to post-process generated page files (e.g., run them through an HTML minifier).
