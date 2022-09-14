@@ -623,7 +623,8 @@ let update_settings settings cli_options =
     if Option.is_some cli_options.site_dir_opt then sr := {!sr with site_dir=(Option.get cli_options.site_dir_opt)};
     if Option.is_some cli_options.build_dir_opt then sr := {!sr with build_dir=(Option.get cli_options.build_dir_opt)};
     if Option.is_some cli_options.index_only_opt then sr := {!sr with index_only=(Option.get cli_options.index_only_opt)};
-    if Option.is_some cli_options.dump_index_json_opt then sr := {!sr with dump_index_json=cli_options.dump_index_json_opt}
+    if Option.is_some cli_options.dump_index_json_opt then sr := {!sr with dump_index_json=cli_options.dump_index_json_opt};
+    sr := {!sr with build_profiles=cli_options.build_profiles_opt}
   in !sr
 
 let check_project_dir settings =
