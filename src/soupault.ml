@@ -509,7 +509,13 @@ let process_page index index_hash widgets hooks config settings page_data =
 
 (* Option parsing and initialization *)
 
-type soupault_action = BuildWebsite | InitProject | ShowVersion | ShowDefaultConfig | ShowEffectiveConfig
+type soupault_action =
+  | BuildWebsite
+  | InitProject
+  | ShowVersion
+  | ShowVersionNumber
+  | ShowDefaultConfig
+  | ShowEffectiveConfig
 
 (* Intermediate data structure for CLI options
    that we will later use to inject CLI overrides into the config loaded from a file.
@@ -569,7 +575,8 @@ let get_args () =
     ("--init", Arg.Unit (fun () -> actions := (InitProject :: !actions)), " Set up basic directory structure");
     ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
     ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
-    ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and exit");
+    ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and copyright information and exit");
+    ("--version-number", Arg.Unit (fun () -> actions := (ShowVersionNumber :: !actions)), " Print version number and exit");
     ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), " Configuration file path");
     ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=(Some true)}), " Output build progress and informational messages");
     ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=(Some true)}), " Output debug information");
@@ -817,6 +824,9 @@ let main cli_options =
   match cli_options.action with
   | ShowVersion ->
     let () = Version.print_version () in
+    exit 0
+  | ShowVersionNumber ->
+    let () = print_endline Defaults.version_string in
     exit 0
   | ShowDefaultConfig ->
     let () = print_endline (Project_init.make_default_config Defaults.default_settings) in

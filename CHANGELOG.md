@@ -5,6 +5,7 @@
 * Hooks now support the `profile` option, like widgets, and can be limited to specific build profiles.
 * New log message for hooks and widgets that are ignored due to build profile options.
 * New `--config` option for specifying custom config path without the use of environment variables.
+* New `--version-number` option that prints just the version number (for easy use from scripts).
 * `soupault --init` how takes `--site-dir` and `--build-dir` options into account when generating the config.
 * `keep_extensions` and `default_extension` options are now mentioned in configs genrated by `soupault --init`.
 
