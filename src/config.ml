@@ -257,7 +257,7 @@ let _get_index_view st view_name =
         else IndexTemplate t
       with _ ->
         (* Jingoo does not provide meaningful parse error reporting as of 1.4.4. *)
-        config_error (Printf.sprintf {|Failed to parse template:\n "%s"|} tmpl)
+        config_error (Printf.sprintf "Failed to parse template:\n%s" tmpl)
     end
   in
   let _get_index_processor name st =

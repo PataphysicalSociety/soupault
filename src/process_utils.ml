@@ -11,7 +11,7 @@ let of_unix_status s =
    so we need adjustable log level here. *)
 let log_process_outputs ?(func=Logs.debug) cmd out err =
   func @@ fun m ->
-    m {|Running "%s" produced the following outputs:\n Standard output:\n%s\nStandard error:\n%s|} cmd out err
+    m "Running \"%s\" produced the following outputs:\n Standard output:\n%s\nStandard error:\n%s" cmd out err
 
 (* Produces a numeric exit code and a process execution result.
    Numeric codes mimic the bash convention, with one addition:
