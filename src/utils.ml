@@ -196,9 +196,21 @@ let build_profile_matches profile build_profiles =
   (* Processing steps should run unless they have a "profile" option
      and it doesn't match the current build profile. *)
   match profile, build_profiles with
-  | None, _ -> true
-  | Some _, [] -> false
-  | Some p, _ -> Option.is_some @@ List.find_opt ((=) p) build_profiles
+  | None, _ ->
+    (* Widget/hook is not limited to any build profile,
+       it should always run.
+     *)
+    true
+  | Some _, [] ->
+    (* Widget/hook is limited to a build profile but soupault is not run with any --profile options,
+       so it cannot possibly match any given profile.
+     *)
+    false
+  | Some p, _ ->
+    (* Widget/hook is limited to a build profile and some profiles are given in the CLI options,
+       so we need to actually check if that profile is in the list.
+     *)
+    Option.is_some @@ List.find_opt ((=) p) build_profiles
 
 (* Loads plugin or hook code from given config options. *)
 let load_plugin_code plugin_config default_filename ident =
