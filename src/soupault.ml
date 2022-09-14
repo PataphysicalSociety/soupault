@@ -843,8 +843,11 @@ let main cli_options =
     exit 0
   | BuildWebsite ->
     let* config, widgets, hooks, settings = initialize cli_options in
-    let () = check_version settings in
-    let () = setup_logging settings.verbose settings.debug in
+    let () =
+      check_version settings;
+      setup_logging settings.verbose settings.debug;
+      Logs.info @@ fun m -> m "Running with build profiles: %s" (String.concat ", " settings.build_profiles) 
+    in
     let* () = make_build_dir settings.build_dir in
     let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
     (* If settings.process_pages_first is set, extract those pages and move them to the head of the list.
