@@ -479,7 +479,9 @@ let update_settings_unsafe settings config =
 
 let update_settings settings config =
   try Ok (update_settings_unsafe settings config)
-  with Config_error e -> Error e
+  with
+  | Config_error e -> Error e
+  | Otoml.Type_error e -> Error (Printf.sprintf "Incorrect config option value: %s" e)
 
 let inject_default path default config =
   let value = find_opt config (fun x -> x) path in
