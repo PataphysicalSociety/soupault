@@ -107,7 +107,7 @@ let compare_entries settings sort_options l r =
     | Some _ -> v
     | None ->
       if sort_options.sort_strict then Printf.ksprintf soupault_error
-        {|Cannot sort entries using sort_by="%s", the following entry does not have that field:\n%s|}
+        "Cannot sort entries using sort_by=\"%s\", the following entry does not have that field:\n%s"
         (Option.get sort_options.sort_by)
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
@@ -117,7 +117,7 @@ let compare_entries settings sort_options l r =
     | Some _ -> v
     | None ->
       if sort_options.sort_strict then Printf.ksprintf soupault_error
-        {|Cannot sort entries using sort_by="%s": value "%s" could not be parsed as %s. The offending entry is:\n%s|}
+        "Cannot sort entries using sort_by=\"%s\": value \"%s\" could not be parsed as %s. The offending entry is:\n%s"
         (Option.get sort_options.sort_by) (Option.value ~default:"null" orig) type_name
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
