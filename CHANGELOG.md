@@ -9,6 +9,10 @@
 * `soupault --init` how takes `--site-dir` and `--build-dir` options into account when generating the config.
 * `keep_extensions` and `default_extension` options are now mentioned in configs genrated by `soupault --init`.
 
+# Bug fixes
+
+* TOML type errors are now correctly handled and prefixed with an error message.
+
 # 4.1.0
 
 ## New features
