@@ -12,6 +12,7 @@
 # Bug fixes
 
 * TOML type errors are now correctly handled and prefixed with an error message.
+* Trying to use a list for a boolean option behaves as expected now (`[]` is `false`, any non-empty list is true).
 
 # 4.1.0
 
