@@ -577,7 +577,7 @@ let get_args () =
     ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
     ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and copyright information and exit");
     ("--version-number", Arg.Unit (fun () -> actions := (ShowVersionNumber :: !actions)), " Print version number and exit");
-    ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), " Configuration file path");
+    ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), "<PATH>  Configuration file path");
     ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=(Some true)}), " Output build progress and informational messages");
     ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=(Some true)}), " Output debug information");
     ("--strict", Arg.Bool (fun s -> opts := {!opts with strict_opt=(Some s)}), "<true|false>  Stop on page processing errors or not");
