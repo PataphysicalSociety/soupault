@@ -786,11 +786,14 @@ struct
        "run_program_get_exit_code", V.efunc (V.string **->> V.int) (Sys_wrappers.run_program_get_exit_code);
        (* Operations on native file paths. *)
        "join_path", V.efunc (V.string **-> V.string **->> V.string) FilePath.concat;
+       "split_path", V.efunc (V.string **->> V.list V.string) File_path.split_path;
        "basename", V.efunc (V.string **->> V.string) FilePath.basename;
        "dirname", V.efunc (V.string **->> V.string) FilePath.dirname;
        (* Operations on UNIX/URL paths. *)
        "join_path_unix", V.efunc (V.string **-> V.string **->> V.string) FilePath.UnixPath.concat;
        "join_url", V.efunc (V.string **-> V.string **->> V.string) FilePath.UnixPath.concat;
+       "split_path_unix", V.efunc (V.string **->> V.list V.string) File_path.split_path_unix;
+       "split_path_url", V.efunc (V.string **->> V.list V.string) File_path.split_path_unix;
        "basename_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.basename;
        "dirname_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.dirname;
         (* Operations with file extensions. *)

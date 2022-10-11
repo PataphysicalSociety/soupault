@@ -73,3 +73,10 @@ let concat_path fs = List.fold_left FilePath.concat "" fs
 let split_path p =
   let sep = if Sys.win32 then {|(\\)+|} else "(/)+" in
   Re.split (Re.Perl.compile_pat sep) p
+
+(* Splits a file path into its components using the forward slash separator convention,
+   so that it's safe to use for URLs on any OS.
+ *)
+let split_path_unix p =
+  let sep = "(/)+" in
+  Re.split (Re.Perl.compile_pat sep) p
