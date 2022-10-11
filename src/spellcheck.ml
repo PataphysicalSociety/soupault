@@ -1,9 +1,8 @@
 
 (* "Spell checking" for config options based on "normalized" identifiers.
 
-    In code/configs, letter typos (e.g. "Strign.lowrrcase_asci") is just one
-    class of errors. Misplaced or wrong delimiters are just as common,
-    and so in incorrect capitalization.
+    In code/configs, letter typos (e.g. "Strign.lowrrcase_asci") is just one class of errors.
+    Misplaced or wrong delimiters are just as common, and so in incorrect capitalization.
 
     To get a reasonable chance to guess what the user meant, we strip identifiers
     down to their "essence" by removing all delimieters and using case-insensitive
@@ -14,7 +13,7 @@
 let max_distance = 2
 
 let remove_delims s =
-  let re = Re.Perl.compile_pat "[_-\\./\\\\]" in
+  let re = Re.Perl.compile_pat {|[_-\./\\]|} in
   Re.replace ~all:true ~f:(fun _ -> "") re s
 
 let normalize s = s |> remove_delims |> String.lowercase_ascii

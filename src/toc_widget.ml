@@ -45,7 +45,7 @@ let get_heading_id settings counter heading =
       | Some t ->
         if settings.use_slugs then
           (* soft_slug is a shortcut for "only replace whitespace with hyphens" *)
-          let regex = if settings.soft_slug then (Some "\\s+") else settings.slug_regex in
+          let regex = if settings.soft_slug then (Some {|\s+|}) else settings.slug_regex in
           let lowercase = if settings.soft_slug then false else settings.slug_force_lowercase in
           try Utils.slugify
             ~lowercase:lowercase

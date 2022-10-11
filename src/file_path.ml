@@ -71,5 +71,5 @@ let concat_path fs = List.fold_left FilePath.concat "" fs
    according to the convention of the OS that soupault is running on.
  *)
 let split_path p =
-  let sep = if Sys.win32 then "(\\\\)+" else "(/)+" in
+  let sep = if Sys.win32 then {|(\\)+|} else "(/)+" in
   Re.split (Re.Perl.compile_pat sep) p
