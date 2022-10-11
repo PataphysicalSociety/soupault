@@ -13,7 +13,7 @@
 let max_distance = 2
 
 let remove_delims s =
-  let re = Re.Perl.compile_pat {|[_-\./\\]|} in
+  let re = Re.Perl.compile_pat {|[_\-\./\\]|} in
   Re.replace ~all:true ~f:(fun _ -> "") re s
 
 let normalize s = s |> remove_delims |> String.lowercase_ascii
