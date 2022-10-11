@@ -846,7 +846,8 @@ let main cli_options =
     let () =
       check_version settings;
       setup_logging settings.verbose settings.debug;
-      Logs.info @@ fun m -> m "Running with build profiles: %s" (String.concat ", " settings.build_profiles) 
+      if settings.build_profiles <> []
+      then Logs.info @@ fun m -> m "Running with build profiles: %s" (String.concat ", " settings.build_profiles)
     in
     let* () = make_build_dir settings.build_dir in
     let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
