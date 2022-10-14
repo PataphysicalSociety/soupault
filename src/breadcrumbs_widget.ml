@@ -11,18 +11,22 @@ let make_breadcrumbs nav_path bc_tmpl prepend append between =
       (* href for each next level accumulates, e.g. section, section/subsection... *)
       let acc_href = Printf.sprintf "%s/%s" acc_href x in
       let bc_link = Template.render bc_tmpl ["name", box_string x; "url", box_string acc_href] |> Soup.parse in
-      let () = Soup.append_root bc_soup bc_link in
-      (* Fixup: don't insert the "between" after the last element *)
-      let () = if (List.length xs) >= 1 then Soup.append_root bc_soup (Soup.parse between) in
+      let () =
+        Soup.append_root bc_soup bc_link;
+        (* Fixup: only insert the "between" bit if it's not the last element. *)
+        if (List.length xs) >= 1 then Soup.append_root bc_soup (Soup.parse between)
+      in
       aux xs bc_soup acc_href
   in
   let bc_soup = Soup.create_soup () in
-  (* XXX: reusing a soup for append_child doesn't seem to work as of 0.6.3,
-     nodes retain their context forever.
-     this is why they are parsed into a new soup every time *)
-  let () = Soup.append_root bc_soup (Soup.parse prepend) in
-  let () = aux nav_path bc_soup "" in
-  let () = Soup.append_root bc_soup (Soup.parse append) in
+  let () =
+    (* XXX: reusing a soup for append_child doesn't seem to work as of 0.6.3,
+       nodes retain their context forever.
+       this is why they are parsed into a new soup every time *)
+    Soup.append_root bc_soup (Soup.parse prepend);
+    aux nav_path bc_soup "";
+    Soup.append_root bc_soup (Soup.parse append)
+  in
   bc_soup
 
 let check_breadcrumb_template tmpl_str =

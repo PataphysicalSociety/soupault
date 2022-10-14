@@ -221,6 +221,7 @@ let toc _ config soup =
           let counter = make_counter 0 in
           let headings = Html_utils.find_headings soup in
           let headings = List.filter (fun e -> not @@ ignored_heading settings soup e) headings in
+          (* Don't do anything if the page has fewer headings than set by the min_headings option. *)
           if ((List.length headings) < settings.min_headings) then Ok () else
           let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
           let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
@@ -231,8 +232,10 @@ let toc _ config soup =
           | _ ->
             let toc_container = make_toc_container settings 1 in
             let _ = List.iter (_make_toc settings 2 counter toc_container) headings_tree in
-            let () = Html_utils.insert_element action container toc_container in
-            let () = if settings.link_here then List.iter (fun h -> add_section_link settings h) headings in
+            let () =
+              Html_utils.insert_element action container toc_container;
+              if settings.link_here then List.iter (fun h -> add_section_link settings h) headings
+            in
             Ok ()
         end
     end
