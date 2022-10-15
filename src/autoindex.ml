@@ -152,7 +152,9 @@ let jingoo_model_of_entry e =
   let j = json_of_entry e in
   match j with
   | `O js -> List.map (fun (k, v) -> k, Template.jingoo_of_json v) js
-  | _ -> internal_error "json_of_entry returned something else than an object, which must not happen"
+  | _ -> Printf.ksprintf internal_error
+    "json_of_entry returned something else than an object, which must not happen!\nThe value was:\n%s"
+    (Ezjsonm.value_to_string j)
 
 (** Renders an index using built-in Mustache templates *)
 let render_index ?(item_template=true) soupault_config view template settings soup entries =
