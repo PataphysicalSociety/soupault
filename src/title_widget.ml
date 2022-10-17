@@ -39,7 +39,7 @@ let set_title _ config soup =
   let title_node = Soup.select_one "head title" soup in
   match title_node with
   | None ->
-    let () = Logs.debug @@ fun m -> m "Page does not have a  <title> element, assuming you don't want to set it" in
+    let () = Logs.debug @@ fun m -> m "Page does not have a <title> element, assuming you don't want to set it" in
     Ok ()
   | Some title_node ->
     if (not (Html_utils.is_empty title_node)) && keep then Ok () else

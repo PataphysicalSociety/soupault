@@ -14,8 +14,7 @@ let regex_matches actual_path path_re =
    However, some directories can be in fact hand-made "clean URLs".
    One valid reason to do that is to keep page-specific assets together with pages.
 
-   We provide a way to mark a directory as "leaf rather than branch"
-   using a configurable "leaf file".
+   We provide a way to mark a directory as "leaf rather than branch" using a configurable "leaf file".
  *)
 let has_leaf_file settings page_file =
   match settings.index_leaf_file with
@@ -32,7 +31,7 @@ let is_handmade_clean_url settings page_file =
     let () = Logs.debug @@ fun m -> m "Forced indexing is enabled for page %s" page_file in
     true
   (* Another way to force an "index" page to be treated as a normal page
-     is to create a "leaf market" file in its directory,
+     is to create a "leaf marker" file in its directory,
      if enabled by the index.leaf_file option. *)
   else if (has_leaf_file settings page_file) then
     let () = Logs.debug @@ fun m -> m "Directory with page %s contains a leaf marker file, treating as a non-index page" page_file in
