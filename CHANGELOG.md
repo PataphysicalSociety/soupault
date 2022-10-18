@@ -1,3 +1,21 @@
+# 4.3.0
+
+## New features and improvements
+
+### New Lua plugin functions
+
+* `String.starts_with(str, prefix)`
+* `Sys.split_path(path_str)` for splitting native file paths (uses `/` on UNIX-like systems, `\` on Windows).
+* `Sys.split_path_unit` (aks `Sys.split_path_url`) for splitting paths using the `/`-convention regardless of the OS (safe for URLs).
+
+## Bug fixes
+
+* `--help` message about the `--config` option now correctly mentions that it takes a path.
+* Removed a useless log message about build profiles when there are none (no `--profile` options given).
+* Improved error reporting in certain unlikely situations (mainly internal errors).
+* When index entry comparison failure fails due to bad field values, offending entries are logged in JSON to simplify debugging.
+* Corrected a mistake in option spell checking logic that could sometimes lead to useless suggestions.
+
 # 4.2.0
 
 ## New features and improvements
