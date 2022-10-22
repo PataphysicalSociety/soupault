@@ -11,7 +11,7 @@
 ## Bug fixes
 
 * `--help` message about the `--config` option now correctly mentions that it takes a path.
-* Removed a useless log message about build profiles when there are none (no `--profile` options given).
+* Removed a useless log message about build profiles when no profiles are specified (i.e., `--profile` option is not given).
 * Improved error reporting in certain unlikely situations (mainly internal errors).
 * When index entry comparison failure fails due to bad field values, offending entries are logged in JSON to simplify debugging.
 * Corrected a mistake in option spell checking logic that could sometimes lead to useless suggestions.
