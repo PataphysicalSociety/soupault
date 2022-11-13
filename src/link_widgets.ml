@@ -198,6 +198,7 @@ let target_matches only_regex exclude_regex target =
    to make relative paths correct.
  *)
 let relativize_link_target check_file env only_regex exclude_regex target =
+  let strip_leading_slashes s = Regex_utils.Internal.replace ~regex:"^/+" ~sub:"" s in
   let open Defaults in
   if not (target_matches only_regex exclude_regex target) then
   let () =
@@ -217,17 +218,38 @@ let relativize_link_target check_file env only_regex exclude_regex target =
        2. If a file is not in the site_dir, it doesn't mean it's not in the target_dir either.
           It may be a dynamically generated asset created by a Lua plugin or an external script.
    *)
-  else if check_file && (Sys.file_exists (FilePath.concat env.target_dir target)) then target else
+  else if check_file && (Sys.file_exists (FilePath.concat env.target_dir target)) then
+    let () = Logs.debug @@ fun m -> m {|Link target "%s" points to a file that exists at the same level, not relativizing|} target in
+    (* Adding "./" isn't strictly necessary since "foo.png" works just as well as "./foo.png" if foo.png exists.
+       However, not adding it and simply returning the raw target leads to different outputs in cold and warm builds.
+       For example, if a page as <a href="foo/bar.html">, then it will be "./foo/bar.html" for cold builds
+       (because that page isn't generated yet and this check fails)
+       but just "foo/bar.html" for warm builds when that page exists from a previous run and the check succeeds.
+       It's arguably better to sacrifice minimalism for consistency and always prepend "./".
+     *)
+    "./" ^ (strip_leading_slashes target)
   (* Remove the build_dir from the target path to produce a path relative to the site root. *)
-  let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ env.settings.build_dir) ~sub:"" env.target_dir in
-  (* The assumption is that the target is valid for a page at the site root.
-     Thus, for pages in sub-directories, we need to add a "../" for every nesting level.
+  else let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ env.settings.build_dir) ~sub:"" env.target_dir in
+  let parent_path = File_path.split_path relative_target_dir in
+  (* "Absolute" links that point to the site root (like "/favicon.ico") and "purely relative" ones (like "foo.png")
+      require different treatment.
+      Links relative to the root must be made to point at an upper-level directory when links from a template
+      are reused for nested pages, using the "../" syntax.
+      Links that are relative to the current dir must be explicitly made to point at the current level,
+      using the "./" syntax.
+      Links in the top-level page also require "./" because the top page has no parents.
    *)
-  let parent_path = File_path.split_path relative_target_dir |> List.map (fun _ -> "..") in
-  (* Strip leading slashes *)
-  let target = Regex_utils.Internal.replace ~regex:"^/+" ~sub:"" target in
-  (* Prepend generated double-dot path to the original target. *)
-  String.concat "/" (parent_path @ [target])
+  let target_is_absolute = Regex_utils.Internal.matches ~regex:"^/+" target in
+  let target = strip_leading_slashes target in
+  if (parent_path = []) || (not target_is_absolute) then
+    (* If true, then they are at the same level, only prepend "./" *)
+    "./" ^ target
+  else
+    (* If not, prepend generated double-dot path to the original target.
+       The assumption is that the target is valid for a page at the site root.
+       Thus, for pages in sub-directories, we need to add a "../" for every nesting level.
+     *)
+    String.concat "/" @@ ((List.map (fun _ -> "..") parent_path) @ [target])
 
 (** Prepends a prefix (typically the base URL of the website) to link targets. *)
 let absolutize_link_target prefix check_file env only_regex exclude_regex target =
