@@ -201,24 +201,24 @@ let relativize_link_target check_file env only_regex exclude_regex target =
   let strip_leading_slashes s = Regex_utils.Internal.replace ~regex:"^/+" ~sub:"" s in
   let open Defaults in
   if not (target_matches only_regex exclude_regex target) then
-  let () =
-    Logs.debug @@ fun m -> m {|Link target "%s" is excluded by regex options, not trying to make it relative|} target
-  in target
-  (* Before doing any real work, check if the link target is pointing at a file that actually exists
-     at a path relative to _this_ page. If it does, the target is _already correct_
-     and doesn't need to be relativized.
-
-     If the target points at a path that doesn't exist, it _probably_ comes from a page template
-     at the top level, while the current page is deeper in the directory tree.
-
-     We are checking in the target rather than source dir for two reasons:
-       1. soupault copies static assets from the site_dir before processing page files,
-          so if an asset file exists in the site_dir, it's guaranteed to also be in the target_dir
-          when this code runs;
-       2. If a file is not in the site_dir, it doesn't mean it's not in the target_dir either.
-          It may be a dynamically generated asset created by a Lua plugin or an external script.
-   *)
+    let () =
+      Logs.debug @@ fun m -> m {|Link target "%s" is excluded by regex options, not trying to make it relative|} target
+    in target
   else if check_file && (Sys.file_exists (FilePath.concat env.target_dir target)) then
+    (* Before doing any real work, we check if the link target is pointing at a file that actually exists
+       at a path relative to _this_ page. If it does, the target is _already correct_
+       and doesn't need to be relativized.
+
+       If the target points at a path that doesn't exist, it _probably_ comes from a page template
+       at the top level, while the current page is deeper in the directory tree.
+
+       We are checking in the target rather than source dir for two reasons:
+         1. soupault copies static assets from the site_dir before processing page files,
+            so if an asset file exists in the site_dir, it's guaranteed to also be in the target_dir
+            when this code runs;
+         2. If a file is not in the site_dir, it doesn't mean it's not in the target_dir either.
+            It may be a dynamically generated asset created by a Lua plugin or an external script.
+     *)
     let () = Logs.debug @@ fun m -> m {|Link target "%s" points to a file that exists at the same level, not relativizing|} target in
     (* Adding "./" isn't strictly necessary since "foo.png" works just as well as "./foo.png" if foo.png exists.
        However, not adding it and simply returning the raw target leads to different outputs in cold and warm builds.
@@ -228,28 +228,29 @@ let relativize_link_target check_file env only_regex exclude_regex target =
        It's arguably better to sacrifice minimalism for consistency and always prepend "./".
      *)
     "./" ^ (strip_leading_slashes target)
-  (* Remove the build_dir from the target path to produce a path relative to the site root. *)
-  else let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ env.settings.build_dir) ~sub:"" env.target_dir in
-  let parent_path = File_path.split_path relative_target_dir in
-  (* "Absolute" links that point to the site root (like "/favicon.ico") and "purely relative" ones (like "foo.png")
-      require different treatment.
-      Links relative to the root must be made to point at an upper-level directory when links from a template
-      are reused for nested pages, using the "../" syntax.
-      Links that are relative to the current dir must be explicitly made to point at the current level,
-      using the "./" syntax.
-      Links in the top-level page also require "./" because the top page has no parents.
-   *)
-  let target_is_absolute = Regex_utils.Internal.matches ~regex:"^/+" target in
-  let target = strip_leading_slashes target in
-  if (parent_path = []) || (not target_is_absolute) then
-    (* If true, then they are at the same level, only prepend "./" *)
-    "./" ^ target
   else
-    (* If not, prepend generated double-dot path to the original target.
-       The assumption is that the target is valid for a page at the site root.
-       Thus, for pages in sub-directories, we need to add a "../" for every nesting level.
+    (* Remove the build_dir from the target path to produce a path relative to the site root. *)
+    let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ env.settings.build_dir) ~sub:"" env.target_dir in
+    let parent_path = File_path.split_path relative_target_dir in
+    (* "Absolute" links that point to the site root (like "/favicon.ico") and "purely relative" ones (like "foo.png")
+        require different treatment.
+        Links relative to the root must be made to point at an upper-level directory when links from a template
+        are reused for nested pages, using the "../" syntax.
+        Links that are relative to the current dir must be explicitly made to point at the current level,
+        using the "./" syntax.
+        Links in the top-level page also require "./" because the top page has no parents.
      *)
-    String.concat "/" @@ ((List.map (fun _ -> "..") parent_path) @ [target])
+    let target_is_absolute = Regex_utils.Internal.matches ~regex:"^/+" target in
+    let target = strip_leading_slashes target in
+    if (parent_path = []) || (not target_is_absolute) then
+      (* If true, then they are at the same level, only prepend "./" *)
+      "./" ^ target
+    else
+      (* If not, prepend generated double-dot path to the original target.
+         The assumption is that the target is valid for a page at the site root.
+         Thus, for pages in sub-directories, we need to add a "../" for every nesting level.
+       *)
+      String.concat "/" @@ ((List.map (fun _ -> "..") parent_path) @ [target])
 
 (** Prepends a prefix (typically the base URL of the website) to link targets. *)
 let absolutize_link_target prefix check_file env only_regex exclude_regex target =
