@@ -1,7 +1,11 @@
 open Defaults
 open Soupault_common
 
-let string_of_elem strip_tags e =
+(* Converts an HTML element tree node to text.
+   If [strip_tags] is true, then it extracts all text nodes,
+   else it's like innerHTML in JS.
+ *)
+let string_of_elem ~strip_tags e =
   if strip_tags then Html_utils.get_element_text e
   else begin
     let text = Html_utils.inner_html e in
@@ -16,15 +20,16 @@ let json_of_string_opt s =
   | None -> `Null
   | Some s -> `String s
 
+(* Extract index fields from a page using selectors from the index config. *)
 let rec get_fields strip_tags fields soup =
   let get_content f elem =
     match f.extract_attribute with
-    | None -> string_of_elem strip_tags elem
+    | None -> string_of_elem ~strip_tags:strip_tags elem
     | Some attr -> begin
       match (Soup.attribute attr elem) with
       | Some _ as a -> a
       | None ->
-        if f.fallback_to_content then string_of_elem strip_tags elem
+        if f.fallback_to_content then string_of_elem ~strip_tags:strip_tags elem
         else None
     end
   in
@@ -48,6 +53,7 @@ let rec get_fields strip_tags fields soup =
     let field = (f.field_name, get_field f soup) in
     field :: (get_fields strip_tags fs soup)
 
+(* Prepares a complete entry together with built-in meta-fields. *)
 let get_entry settings env soup =
   {
     index_entry_url = env.page_url;
@@ -58,25 +64,30 @@ let get_entry settings env soup =
 
 let json_of_entry = Utils.json_of_index_entry
 
-(** Compares entries by their dates according to these rules:
-    1. Entries without known dates are equal
-    2. Entries with a known date are newer than those without
-    3. Of entries with known dates, ones with later dates are newer (who could guess!)
-  *)
+(* Compares entries for sorting, using [Defaults.sort_options] for comparison rules.. *)
 let compare_entries settings sort_options l r =
   let (>>=) = Option.bind in
   let (let*) = Option.bind in
+  (* We convert all values to strings to make the rest of comparison logic uniform. *)
   let string_of_field j =
     match j with
     | `O _ | `A _ ->
-      (* Normally shouldn't happen, just a safeguard to prevent internal logic errors
+      (* Pathological cases when a field value is an array or an object
+         rather than a primitive that has a natural string representation.
+
+         Normally shouldn't happen, just a safeguard to prevent internal logic errors
          and poor handling of values returned by post-index hooks. *)
       let () = Logs.info @@ fun m -> m "Field value is not a primitive: %s" (Ezjsonm.value_to_string j) in
       None
     | _ ->
-      (* Do not use Ezjsonm.value_to_string here because it will quote all values,
-         e.g. [`Float 4.0] will become [""4.0""], not ["4.0"].
-         That will interfere with date and number parsing at the sorting stage. *)
+      (* Everything is fine and it's a primitive value that we can convert to string,
+         but there's a pitfall.
+
+         We do not use [Ezjsonm.value_to_string] here because it quotes all values (as of 1.3.0 at least).
+         E.g., [`Float 4.0] would become [""4.0""], not ["4.0"].
+         That would interfere with date and number parsing at the sorting stage,
+         so we use a home-grown string conversion to prevent that.
+       *)
       Some (Utils.string_of_json_primitive j)
   in
   let get_sort_key_field entry =
@@ -84,7 +95,7 @@ let compare_entries settings sort_options l r =
     | None ->
       (* If [index.sort_by] option is not set, sort entries by their URLs.
          Unlike fields extracted from the page, URL is guaranteed to be present
-         and will provide a somewhat strange, but deterministic default order.
+         and provides a somewhat strange but deterministic default order.
        *)
       Some entry.index_entry_url
     | Some _ ->
@@ -127,15 +138,25 @@ let compare_entries settings sort_options l r =
   let result =
     match sort_options.sort_type with
     | Calendar ->
+      (* Compare entry dates according to these rules:
+         1. Entries without known dates are equal
+         2. Entries with a known date are newer than those without
+         3. Of entries with known dates, ones with later dates are newer (who could guess!)
+       *)
       let l_date = l_key >>= Utils.parse_date settings.index_date_input_formats |> handle_malformed_field "a date" l_key l in
       let r_date = r_key >>= Utils.parse_date settings.index_date_input_formats |> handle_malformed_field "a date" r_key r in
       compare_values ODate.Unix.compare l_date r_date
     | Numeric ->
-      (* Numbers coming from Lua are always floats because it doesn't have an integer/float distinction. *)
+      (* Numeric comparison needs to always be prepared to handle floats even if they are integers in the page.
+         Numeric fields returned by Lua plugins are always floats because Lua doesn't have an integer/float distinction. *)
       let l_num = l_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "a number" l_key l in
       let r_num = r_key >>= (fun s -> float_of_string_opt s) |> handle_malformed_field "a number" r_key r in
       compare_values compare l_num r_num
-    | Lexicographic -> compare_values compare l_key r_key
+    | Lexicographic ->
+      (* For lexicographic sort we use simple comparison from the standard library,
+         for now at least.
+       *)
+      compare_values compare l_key r_key
   in
   if sort_options.sort_descending then (~- result) else result
 
@@ -156,7 +177,18 @@ let jingoo_model_of_entry e =
     "json_of_entry returned something else than an object, which must not happen!\nThe value was:\n%s"
     (Ezjsonm.value_to_string j)
 
-(** Renders an index using built-in Mustache templates *)
+(* Renders an index using a Jingoo template.
+
+   This rendering had two modes: item template and whole-index template.
+
+   The item template mode is a legacy of the original implementation that uses Mustache templates.
+   Since Mustache templates are logicless, soupault had to iterate through all entries itself.
+   That mode is triggered by the [index_item_template] option.
+
+   Migration to Jingoo templates enabled users to write their own rendering loops and supply complete templates
+   through [index_template, but the original [index_item_template] option remains
+   for compatibility and because for some users it may be all they need.
+ *)
 let render_index ?(item_template=true) soupault_config view template settings soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
   try
@@ -189,8 +221,9 @@ let render_index ?(item_template=true) soupault_config view template settings so
     (* Just in case something else happens *)
     Error ("Index template rendering failed for an undeterminable reason")
 
+(* Renders index with help from an external executable. *)
 let run_index_processor view cmd ic index =
-  (* Minification is intentional, newline is used as end of input *)
+  (* Do not pretty-print JSON, the parser on the other end doesn't care. *)
   let json = json_string_of_entries ~minify:true index in
   let () = Logs.info @@ fun m -> m "Calling index processor %s" cmd in
   let output = (Process_utils.get_program_output ~input:(Some json) cmd) in
