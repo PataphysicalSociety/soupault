@@ -24,8 +24,8 @@ maintainer: "Daniil Baturin <daniil+opam@baturin.org>"
 authors: "Daniil Baturin <daniil+soupault@baturin.org>"
 license: "MIT"
 homepage: "https://www.soupault.app"
-bug-reports: "https://github.com/dmbaturin/soupault/issues"
-dev-repo: "git+https://github.com/dmbaturin/soupault"
+bug-reports: "https://github.com/PataphysicalSociety/soupault/issues"
+dev-repo: "git+https://github.com/PataphysicalSociety/soupault"
 build: [
   ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
