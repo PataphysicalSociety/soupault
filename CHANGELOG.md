@@ -1,3 +1,10 @@
+# 4.3.1
+
+## Bug fixes
+
+* The `relative_links` widget now handles links to pages and files at the same level correctly and adds `./` to them.
+* The `relative_links` widget now always prepends `./` to links at the same level or deeper to make the output deterministic.
+
 # 4.3.0
 
 ## New features and improvements
