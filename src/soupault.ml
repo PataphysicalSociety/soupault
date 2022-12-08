@@ -570,13 +570,14 @@ let get_args () =
   let actions = ref [] in
   let opts = ref default_cli_options in
   let args = Arg.align [
-    (* "Option" flags that change website build behavior. *)
+    (* "Action" flags that make soupault do something else than a website build. *)
     ("--build", Arg.Unit (fun () -> actions := (BuildWebsite :: !actions)), " Build a website (default action)");
     ("--init", Arg.Unit (fun () -> actions := (InitProject :: !actions)), " Set up basic directory structure");
     ("--show-default-config", Arg.Unit (fun () -> actions := (ShowDefaultConfig :: !actions)), " Print the default config and exit");
     ("--show-effective-config", Arg.Unit (fun () -> actions := (ShowEffectiveConfig :: !actions)), " Print the effective config (user-defined and default options) and exit");
     ("--version", Arg.Unit (fun () -> actions := (ShowVersion :: !actions)), " Print version and copyright information and exit");
     ("--version-number", Arg.Unit (fun () -> actions := (ShowVersionNumber :: !actions)), " Print version number and exit");
+    (* "Option" flags that change website build behavior. *)
     ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), "<PATH>  Configuration file path");
     ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=(Some true)}), " Output build progress and informational messages");
     ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=(Some true)}), " Output debug information");
@@ -587,7 +588,6 @@ let get_args () =
     ("--index-only", Arg.Unit (fun () -> opts := {!opts with index_only_opt=(Some true)}), " Extract site index without generating pages");
     ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<PATH>  Dump extracted index into a JSON file");
     ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=(Some true)}), " Force generating all target files");
-    (* "Action" flags that make soupault do something else than a website build. *)
   ]
   in
   let () = Arg.parse args (fun _ -> ()) usage_msg in
