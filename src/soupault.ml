@@ -698,6 +698,10 @@ let find_config_file cli_options =
   | None, None ->
     find_default_config_file ()
 
+let show_startup_message settings =
+  let mode = if settings.generator_mode then "website generator" else "HTML processor" in
+  Logs.info @@ fun m -> m "Starting soupault %s in %s mode" Defaults.version_string mode
+
 let initialize cli_options =
   (* Soupault itself doesn't use the PRNG in any way,
      but it exposes a random function in the plugin API,
@@ -719,6 +723,7 @@ let initialize cli_options =
   (* Inject defaults and updated values back into the TOML config
      to make the complete effective settings available to plugins. *)
   let config = Config.inject_defaults settings config in
+  let () = show_startup_message settings in
   let* plugins = Plugins.get_plugins settings (Some config) in
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
   let* hooks = Hooks.get_hooks config in
@@ -844,6 +849,7 @@ let main cli_options =
   | BuildWebsite ->
     let* config, widgets, hooks, settings = initialize cli_options in
     let () =
+      Logs.info @@ fun m -> m "Starting website build";
       check_version settings;
       setup_logging settings.verbose settings.debug;
       if settings.build_profiles <> []

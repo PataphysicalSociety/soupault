@@ -145,6 +145,7 @@ let load_widgets settings config plugins =
 
 let get_widgets settings config plugins index_deps =
   let (let*) = Stdlib.Result.bind in
+  let () = Logs.info @@ fun m -> m "Loading widgets" in
   let* wh = load_widgets settings config plugins in
   let* wo = get_widget_order wh in
   let* before_index, after_index = partition_widgets wo index_deps in

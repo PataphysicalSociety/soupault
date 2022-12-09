@@ -65,6 +65,7 @@ let get_hook config hooks_hash ident =
 
 let get_hooks config =
   try
+    let () = Logs.info @@ fun m -> m "Loading hooks" in
     let () = check_hook_tables config in
     let hooks_hash = Hashtbl.create 1024 in
     let () = List.iter (get_hook config hooks_hash) hook_types in

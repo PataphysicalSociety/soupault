@@ -37,6 +37,7 @@ let rec _load_plugins settings ps config hash =
 
 let get_plugins settings config =
   let (let*) = Stdlib.Result.bind in
+  let () = Logs.info @@ fun m -> m "Loading plugins" in
   let hash = Hashtbl.create 1024 in
   match config with
   | None -> Ok hash
