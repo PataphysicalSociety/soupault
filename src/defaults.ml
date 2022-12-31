@@ -208,6 +208,9 @@ type settings = {
   plugin_dirs : string list;
   plugin_discovery: bool;
 
+  caching: bool;
+  cache_dir : string;
+
   force : bool;
 
   pretty_print_html : bool;
@@ -236,6 +239,7 @@ let asset_processors_table = "asset_processors"
 let widgets_table = "widgets"
 let plugins_table = "plugins"
 let templates_table = "templates"
+let page_hash_file = ".page_source_hash"
 
 let default_path_options = {
   pages = [];
@@ -306,7 +310,10 @@ let default_settings = {
   plugin_dirs = ["plugins"];
   plugin_discovery = true;
 
-  force = true;
+  caching = false;
+  cache_dir = ".cache";
+
+  force = false;
   pretty_print_html = true;
 
   soupault_version = None;

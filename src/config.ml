@@ -400,7 +400,8 @@ let valid_settings = [
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "complete_page_selector"; "generator_mode"; "process_pages_first";
   "plugin_dirs"; "plugin_discovery";
-  "force"; "pretty_print_html";
+  "force"; "caching"; "cache_dir";
+  "pretty_print_html";
   "soupault_version";
 ]
 
@@ -437,6 +438,9 @@ let _update_settings settings config =
 
        plugin_dirs = find_strings_or ~default:settings.plugin_dirs st ["plugin_dirs"];
        plugin_discovery = find_bool_or ~default:settings.plugin_discovery st ["plugin_discovery"];
+
+       caching = find_bool_or ~default:settings.caching st ["caching"];
+       cache_dir = find_string_or ~default:settings.cache_dir st ["cache_dir"];
 
        force = find_bool_or ~default:settings.force st ["force"];
        pretty_print_html = find_bool_or ~default:settings.pretty_print_html st ["pretty_print_html"];

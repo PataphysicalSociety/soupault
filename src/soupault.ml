@@ -147,9 +147,40 @@ let load_html settings soupault_config hooks page_file =
     match page_preprocessor with
     | None -> Ok (Soup.read_file page_file)
     | Some prep ->
-      let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote page_file) in
-      let () = Logs.info @@ fun m -> m {|Calling page preprocessor "%s" on page %s|} (String.escaped prep) page_file in
-      Process_utils.get_program_output prep_cmd
+      if settings.caching then
+        begin
+          (* Check if we have converted HTML source cached.
+
+             Since preprocessors get page file path as an argument rather than stdin
+             (to accomodate preprocessors that do not support reading from stdin),
+             soupault does not read page files unless it knows they are not subject to preprocessing.
+
+             However, to check if we have a cached object, we need the source string for it.
+             So, if caching is enabled, we always read the page first, to check if we have a cached version.
+             This causes useless file reads when it's a cache miss and we need to run a preprocessor,
+             but reading files is still much faster than executing external programs.
+           *)
+          let page_source = Soup.read_file page_file in
+          let () = Cache.refresh_page_cache settings page_file page_source in
+          let cached = Cache.get_cached_object settings page_file page_source in
+          if Option.is_some cached then Ok (Option.get cached) else
+          (* If not, run the preprocessor to get the HTML source. *)
+          let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote page_file) in
+          let () = Logs.info @@ fun m -> m {|Calling page preprocessor "%s" on page %s|} (String.escaped prep) page_file in
+          let output = Process_utils.get_program_output prep_cmd in
+          match output with
+          | Ok output ->
+            (* Cache the object for future use. *)
+            let () = Cache.cache_object settings page_file page_source output in
+            Ok output
+          | (Error _) as e -> e
+        end
+      else
+        begin
+          let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote page_file) in
+          let () = Logs.info @@ fun m -> m {|Calling page preprocessor "%s" on page %s|} (String.escaped prep) page_file in
+          Process_utils.get_program_output prep_cmd
+        end
     with Sys_error e -> Error e
   in
   let page_preprocessor = find_preprocessor settings.page_preprocessors page_file in
@@ -450,6 +481,7 @@ let process_page page_data index index_hash widgets hooks config settings =
       load_html settings config hooks page_file
     | Some content ->
       (* This is a "fake" paginated index or taxonomy page created by an index processor. *)
+      let () = Cache.refresh_page_cache settings page_file content in
       Ok content
   in
   let* content = parse_html page_source in

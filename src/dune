@@ -18,6 +18,7 @@
    yaml
    jingoo
    base64
+   digestif
    camomile
    tsort
    lua-ml))
