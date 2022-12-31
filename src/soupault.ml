@@ -155,15 +155,15 @@ let load_html settings soupault_config hooks page_file =
   let page_preprocessor = find_preprocessor settings.page_preprocessors page_file in
   let* page_source = load_file page_preprocessor page_file in
   let pre_parse_hook = Hashtbl.find_opt hooks "pre-parse" in
-  let* page_source =
-    match pre_parse_hook with
-    | Some (file_name, source_code, hook_config) ->
-      if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
-        let () = Logs.info @@ fun m -> m {|Running the "pre-parse" hook on page %s|} page_file in
-        Hooks.run_pre_parse_hook settings soupault_config hook_config file_name source_code page_file page_source
-      else Ok page_source
-    | None -> Ok page_source
-  in
+  match pre_parse_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
+      let () = Logs.info @@ fun m -> m {|Running the "pre-parse" hook on page %s|} page_file in
+      Hooks.run_pre_parse_hook settings soupault_config hook_config file_name source_code page_file page_source
+    else Ok page_source
+  | None -> Ok page_source
+
+let parse_html page_source =
   (* As of lambdasoup 0.7.2, Soup.parse never fails, only returns empty element trees,
      so there's no need to handle errors here.
    *)
@@ -443,15 +443,16 @@ let index_insertion_should_run settings index page_name =
 let process_page page_data index index_hash widgets hooks config settings =
   let (page_file, page_content, nav_path) = (page_data.page_file_path, page_data.page_content, page_data.page_nav_path) in
   let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
-  let* content =
+  let* page_source =
     match page_content with
     | None ->
       (* This is a real page that actually exists on disk. *)
       load_html settings config hooks page_file
     | Some content ->
       (* This is a "fake" paginated index or taxonomy page created by an index processor. *)
-      Ok (Soup.parse content)
+      Ok content
   in
+  let* content = parse_html page_source in
   let page_name = FP.basename page_file |> FP.chop_extension in
   let orig_path = nav_path in
   let nav_path = fix_nav_path settings nav_path page_name in
