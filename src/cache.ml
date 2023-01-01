@@ -9,12 +9,12 @@ let hash_sum s =
 let read_file path =
   try Soup.read_file path
   with Sys_error msg ->
-    Printf.ksprintf soupault_error "Could not read a cached object at %s: %s" path msg
+    Printf.ksprintf soupault_error "Could not read a cached object: %s" msg
 
 let write_file path data =
   try Soup.write_file path data
   with Sys_error msg ->
-    Printf.ksprintf soupault_error "Could not save a cached object to %s: %s" path msg
+    Printf.ksprintf soupault_error "Could not save a cached object: %s" msg
 
 let make_cached_object_path settings page_path str =
   let hash = hash_sum str in
@@ -76,7 +76,7 @@ let refresh_page_cache settings page_path page_source =
           save_page_hash page_cache_path page_source
         end
       else
-	Logs.debug @@ fun m -> m "Cache for page %s is valid and will be used" page_path
+	Logs.debug @@ fun m -> m "Cache for page %s is considered valid and will be used" page_path
     end
   else
     begin
