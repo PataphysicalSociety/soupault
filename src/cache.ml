@@ -53,7 +53,7 @@ let is_cache_outdated settings page_path page_source =
     else
       let cached_page_hash = read_file page_hash_path |> String.trim in
       let current_page_hash = hash_sum page_source in
-      if cached_page_hash = current_page_hash then false else true
+      cached_page_hash <> current_page_hash
   with Sys_error msg ->
     Printf.ksprintf soupault_error "Could not check the hash sum file for %s: %s" page_path msg
 
