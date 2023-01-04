@@ -516,7 +516,9 @@ let inject_defaults settings config =
       inject_default ["settings"; "generator_mode"] (boolean settings.generator_mode) |>
       inject_default ["settings"; "pretty_print_html"] (boolean settings.pretty_print_html) |>
       inject_default ["settings"; "plugin_discovery"] (boolean settings.plugin_discovery) |>
-      inject_default ["settings"; "plugin_dirs"] (array @@ List.map string settings.plugin_dirs)
+      inject_default ["settings"; "plugin_dirs"] (array @@ List.map string settings.plugin_dirs) |>
+      inject_default ["settings"; "caching"] (boolean settings.caching) |>
+      inject_default ["settings"; "cache_dir"] (string settings.cache_dir)
   in
   let inject_default_index_settings settings config =
       inject_default ["index"; "index"] (boolean settings.index) config |>
