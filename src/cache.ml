@@ -23,6 +23,7 @@ let make_cached_object_path settings page_path str =
   object_path
 
 let get_cached_object settings page_path str =
+  if (not settings.caching) || (settings.force) then None else
   let object_path = make_cached_object_path settings page_path str in
   if FileUtil.test FileUtil.Exists object_path
   then
