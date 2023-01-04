@@ -498,6 +498,7 @@ let inject_defaults settings config =
       inject_default ["settings"; "verbose"] (boolean settings.verbose) config |>
       inject_default ["settings"; "debug"] (boolean settings.debug) |>
       inject_default ["settings"; "strict"] (boolean settings.strict) |>
+      inject_default ["settings"; "force"] (boolean settings.force) |>
       inject_default ["settings"; "doctype"] (string settings.doctype) |>
       inject_default ["settings"; "keep_doctype"] (boolean settings.keep_doctype) |>
       inject_default ["settings"; "build_dir"] (string settings.build_dir) |>
