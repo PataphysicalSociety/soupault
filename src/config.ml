@@ -487,47 +487,47 @@ let update_settings settings config =
   | Config_error e -> Error e
   | Otoml.Type_error e -> Error (Printf.sprintf "Incorrect config option value: %s" e)
 
-let inject_default path default config =
+let inject_option path default config =
   let value = find_opt config (fun x -> x) path in
   match value with
   | Some _ -> config
   | None -> update config path (Some default)
 
-let inject_defaults settings config =
+let inject_options settings config =
   let inject_default_settings settings config =
-      inject_default ["settings"; "verbose"] (boolean settings.verbose) config |>
-      inject_default ["settings"; "debug"] (boolean settings.debug) |>
-      inject_default ["settings"; "strict"] (boolean settings.strict) |>
-      inject_default ["settings"; "force"] (boolean settings.force) |>
-      inject_default ["settings"; "doctype"] (string settings.doctype) |>
-      inject_default ["settings"; "keep_doctype"] (boolean settings.keep_doctype) |>
-      inject_default ["settings"; "build_dir"] (string settings.build_dir) |>
-      inject_default ["settings"; "site_dir"] (string settings.site_dir) |>
-      inject_default ["settings"; "index_page"] (string settings.index_page) |>
-      inject_default ["settings"; "index_file"] (string settings.index_file) |>
-      inject_default ["settings"; "default_template"] (string settings.default_template) |>
-      inject_default ["settings"; "default_content_action"] (string settings.default_content_action) |>
-      inject_default ["settings"; "default_content_selector"] (string settings.default_content_selector) |>
-      inject_default ["settings"; "clean_urls"] (boolean settings.clean_urls) |>
-      inject_default ["settings"; "page_file_extensions"] (array @@ List.map string settings.page_extensions) |>
-      inject_default ["settings"; "ignore_extensions"] (array []) |>
-      inject_default ["settings"; "default_extension"] (string settings.default_extension) |>
-      inject_default ["settings"; "keep_extensions"] (array @@ List.map string settings.keep_extensions) |>
-      inject_default ["settings"; "complete_page_selector"] (string settings.complete_page_selector) |>
-      inject_default ["settings"; "generator_mode"] (boolean settings.generator_mode) |>
-      inject_default ["settings"; "pretty_print_html"] (boolean settings.pretty_print_html) |>
-      inject_default ["settings"; "plugin_discovery"] (boolean settings.plugin_discovery) |>
-      inject_default ["settings"; "plugin_dirs"] (array @@ List.map string settings.plugin_dirs) |>
-      inject_default ["settings"; "caching"] (boolean settings.caching) |>
-      inject_default ["settings"; "cache_dir"] (string settings.cache_dir)
+      inject_option ["settings"; "verbose"] (boolean settings.verbose) config |>
+      inject_option ["settings"; "debug"] (boolean settings.debug) |>
+      inject_option ["settings"; "strict"] (boolean settings.strict) |>
+      inject_option ["settings"; "force"] (boolean settings.force) |>
+      inject_option ["settings"; "doctype"] (string settings.doctype) |>
+      inject_option ["settings"; "keep_doctype"] (boolean settings.keep_doctype) |>
+      inject_option ["settings"; "build_dir"] (string settings.build_dir) |>
+      inject_option ["settings"; "site_dir"] (string settings.site_dir) |>
+      inject_option ["settings"; "index_page"] (string settings.index_page) |>
+      inject_option ["settings"; "index_file"] (string settings.index_file) |>
+      inject_option ["settings"; "default_template"] (string settings.default_template) |>
+      inject_option ["settings"; "default_content_action"] (string settings.default_content_action) |>
+      inject_option ["settings"; "default_content_selector"] (string settings.default_content_selector) |>
+      inject_option ["settings"; "clean_urls"] (boolean settings.clean_urls) |>
+      inject_option ["settings"; "page_file_extensions"] (array @@ List.map string settings.page_extensions) |>
+      inject_option ["settings"; "ignore_extensions"] (array []) |>
+      inject_option ["settings"; "default_extension"] (string settings.default_extension) |>
+      inject_option ["settings"; "keep_extensions"] (array @@ List.map string settings.keep_extensions) |>
+      inject_option ["settings"; "complete_page_selector"] (string settings.complete_page_selector) |>
+      inject_option ["settings"; "generator_mode"] (boolean settings.generator_mode) |>
+      inject_option ["settings"; "pretty_print_html"] (boolean settings.pretty_print_html) |>
+      inject_option ["settings"; "plugin_discovery"] (boolean settings.plugin_discovery) |>
+      inject_option ["settings"; "plugin_dirs"] (array @@ List.map string settings.plugin_dirs) |>
+      inject_option ["settings"; "caching"] (boolean settings.caching) |>
+      inject_option ["settings"; "cache_dir"] (string settings.cache_dir)
   in
   let inject_default_index_settings settings config =
-      inject_default ["index"; "index"] (boolean settings.index) config |>
-      inject_default ["index"; "ignore_template_errors"] (boolean settings.ignore_template_errors) |>
-      inject_default ["index"; "extract_after_widgets"] (array []) |>
-      inject_default ["index"; "strip_tags"] (boolean settings.index_strip_tags) |>
-      inject_default ["index"; "date_formats"] (array @@ List.map string settings.index_date_input_formats) |>
-      inject_default ["index"; "force_indexing_path_regex"] (array [])
+      inject_option ["index"; "index"] (boolean settings.index) config |>
+      inject_option ["index"; "ignore_template_errors"] (boolean settings.ignore_template_errors) |>
+      inject_option ["index"; "extract_after_widgets"] (array []) |>
+      inject_option ["index"; "strip_tags"] (boolean settings.index_strip_tags) |>
+      inject_option ["index"; "date_formats"] (array @@ List.map string settings.index_date_input_formats) |>
+      inject_option ["index"; "force_indexing_path_regex"] (array [])
   in
   let res = inject_default_settings settings config |> inject_default_index_settings settings in
   res

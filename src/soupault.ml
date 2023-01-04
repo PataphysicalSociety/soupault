@@ -754,8 +754,8 @@ let initialize cli_options =
   let () = check_project_dir settings in
   let* config = Ok (config |> Option.get) in
   (* Inject defaults and updated values back into the TOML config
-     to make the complete effective settings available to plugins. *)
-  let config = Config.inject_defaults settings config in
+     to make the complete effective settings available to plugins and visible in --show-effective-config. *)
+  let config = Config.inject_options settings config in
   let () = show_startup_message settings in
   let* plugins = Plugins.get_plugins settings (Some config) in
   let* widgets = Widgets.get_widgets settings (Some config) plugins settings.index_extract_after_widgets in
