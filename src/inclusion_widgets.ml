@@ -100,19 +100,29 @@ let make_node_env node =
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
 let preprocess_element env config soup =
-  let run_command command action parse body_context node =
-    let input = Some (Html_utils.inner_html ~escape_html:false node) in
-    let () = Logs.info @@ fun m -> m "Executing command: %s" command in
-    let node_env = make_node_env node in
-    let program_env = make_program_env env in
-    let env_array = Array.append program_env node_env in
-    let result = Process_utils.get_program_output ~input:input ~env:env_array ~debug:env.settings.debug command in
-    match result with
-    | Ok output ->
+  let run_command env command action parse body_context node =
+    let input = Html_utils.inner_html ~escape_html:false node in
+    let cached_result = Cache.get_cached_object env.settings env.page_file input in
+    match cached_result with
+    | Some output ->
+      let () = Logs.info @@ fun m -> m {|The result of executing command "%s" was found in cache|} command in
       let content = html_of_string ~parse:parse ~body_context:body_context output in
       Html_utils.insert_element action node content
-    | Error e ->
-        raise (Failure e)
+    | None ->
+      let () = Logs.info @@ fun m -> m "Executing command: %s" command in
+      let node_env = make_node_env node in
+      let program_env = make_program_env env in
+      let env_array = Array.append program_env node_env in
+      let result = Process_utils.get_program_output ~input:(Some input) ~env:env_array ~debug:env.settings.debug command in
+      begin
+        match result with
+        | Ok output ->
+          let () = Cache.cache_object env.settings env.page_file input output in
+          let content = html_of_string ~parse:parse ~body_context:body_context output in
+          Html_utils.insert_element action node content
+        | Error e ->
+          raise (Failure e)
+      end
   in
   (* Retrieve configuration options *)
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
@@ -125,5 +135,5 @@ let preprocess_element env config soup =
   let* command = Config.find_string_result config ["command"] in
   let nodes = Html_utils.select_all selectors soup in
   try
-    Ok (List.iter (run_command command (Some action) parse html_body_context) nodes)
+    Ok (List.iter (run_command env command (Some action) parse html_body_context) nodes)
   with Failure e -> Error e
