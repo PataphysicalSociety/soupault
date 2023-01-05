@@ -145,7 +145,10 @@ let load_html settings soupault_config hooks page_file =
   let load_file page_preprocessor page_file =
     try
     match page_preprocessor with
-    | None -> Ok (Soup.read_file page_file)
+    | None ->
+      let page_source = Soup.read_file page_file in
+      let () = Cache.refresh_page_cache settings page_file page_source in
+      Ok page_source
     | Some prep ->
       if settings.caching then
         begin
