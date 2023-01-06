@@ -100,6 +100,7 @@ let make_node_env node =
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
 let preprocess_element env config soup =
+  let exception Command_error of string in
   let run_command env command action parse body_context node =
     let input = Html_utils.inner_html ~escape_html:false node in
     let cached_result = Cache.get_cached_object env.settings env.page_file input in
@@ -121,7 +122,7 @@ let preprocess_element env config soup =
           let content = html_of_string ~parse:parse ~body_context:body_context output in
           Html_utils.insert_element action node content
         | Error e ->
-          raise (Failure e)
+          raise (Command_error e)
       end
   in
   (* Retrieve configuration options *)
@@ -136,4 +137,4 @@ let preprocess_element env config soup =
   let nodes = Html_utils.select_all selectors soup in
   try
     Ok (List.iter (run_command env command (Some action) parse html_body_context) nodes)
-  with Failure e -> Error e
+  with Command_error e -> Error e
