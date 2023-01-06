@@ -100,7 +100,6 @@ let make_node_env node =
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
 let preprocess_element env config soup =
-  let exception Command_error of string in
   let run_command env command action parse body_context node =
     let input = Html_utils.inner_html ~escape_html:false node in
     let cached_result = Cache.get_cached_object env.settings env.page_file input in
@@ -108,7 +107,8 @@ let preprocess_element env config soup =
     | Some output ->
       let () = Logs.info @@ fun m -> m {|The result of executing command "%s" was found in cache|} command in
       let content = html_of_string ~parse:parse ~body_context:body_context output in
-      Html_utils.insert_element action node content
+      let () = Html_utils.insert_element action node content in
+      Ok ()
     | None ->
       let () = Logs.info @@ fun m -> m "Executing command: %s" command in
       let node_env = make_node_env node in
@@ -120,9 +120,9 @@ let preprocess_element env config soup =
         | Ok output ->
           let () = Cache.cache_object env.settings env.page_file input output in
           let content = html_of_string ~parse:parse ~body_context:body_context output in
-          Html_utils.insert_element action node content
-        | Error e ->
-          raise (Command_error e)
+          let () = Html_utils.insert_element action node content in
+          Ok ()
+        | (Error _) as e -> e
       end
   in
   (* Retrieve configuration options *)
@@ -135,6 +135,4 @@ let preprocess_element env config soup =
   let* selectors = Config.find_strings_result config ["selector"] in
   let* command = Config.find_string_result config ["command"] in
   let nodes = Html_utils.select_all selectors soup in
-  try
-    Ok (List.iter (run_command env command (Some action) parse html_body_context) nodes)
-  with Command_error e -> Error e
+  Utils.iter_result (run_command env command (Some action) parse html_body_context) nodes
