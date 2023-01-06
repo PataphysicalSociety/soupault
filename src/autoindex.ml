@@ -306,7 +306,7 @@ let insert_indices env soupault_config soup =
     let* pages = insert_index env soupault_config soup view in
     Ok (List.append pages acc)
   in
-  Utils.fold_left ~ignore_errors:(not env.settings.strict)
+  Utils.fold_left_result ~ignore_errors:(not env.settings.strict)
     (insert_index_get_pages env soupault_config soup) [] env.settings.index_views
 
 let index_extraction_should_run settings page_file =

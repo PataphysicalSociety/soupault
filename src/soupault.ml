@@ -808,7 +808,7 @@ let check_version settings =
     end
 
 let process_page_files index_hash widgets hooks config settings files =
-  Utils.fold_left
+  Utils.fold_left_result
     (fun acc p ->
       let ie = process_page [] index_hash widgets hooks config settings p in
        match ie with Ok (None, _) -> Ok acc | Ok (Some ie', _) -> Ok (ie' :: acc) | Error _ as err -> err)
@@ -816,7 +816,7 @@ let process_page_files index_hash widgets hooks config settings files =
     files
 
 let process_index_files index index_hash widgets hooks config settings files =
-  Utils.fold_left
+  Utils.fold_left_result
     (fun acc p ->
       let ie = process_page index index_hash widgets hooks config settings p in
        match ie with
@@ -855,7 +855,7 @@ let process_asset_file settings src_path dst_path =
       |
         (* XXX: This seemingly useless destructuring is there to keep the compiler happy
            because the type of Process_utils.get_program_output is p(string, string) result],
-           while the type that Utils.iter expects is [(unit, string) result].
+           while the type that Utils.iter_result expects is [(unit, string) result].
            Since [res] is [(string, string) result], we have to extract its error part
            and nominally "re-box" it.
          *)
@@ -903,7 +903,7 @@ let main cli_options =
     in
     let* () =
       if not settings.index_only
-      then Utils.iter (fun (src, dst) -> process_asset_file settings src dst) asset_files
+      then Utils.iter_result (fun (src, dst) -> process_asset_file settings src dst) asset_files
       else Ok ()
     in
     (* A bit of code duplication ahead, for now at least...
@@ -954,7 +954,7 @@ let main cli_options =
            new "fake" pages from generated pages and creating infinite loops.
          *)
         let settings = {settings with index=false} in
-        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) new_pages in
+        let* () = Utils.iter_result (process_page index index_hash widgets hooks config settings) new_pages in
         (* Finally, dump the index file, if requested. *)
         let* () = dump_index_json settings index in
         Ok ()
@@ -988,7 +988,7 @@ let main cli_options =
            new "fake" pages from generated pages and creating infinite loops.
          *)
         let settings = {settings with index=false} in
-        let* () = Utils.iter (process_page index index_hash widgets hooks config settings) new_pages in
+        let* () = Utils.iter_result (process_page index index_hash widgets hooks config settings) new_pages in
         (* Finally, dump the index file, if requested. *)
         let* () = dump_index_json settings index in
         Ok ()

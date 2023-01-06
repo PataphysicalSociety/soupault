@@ -41,32 +41,32 @@ let copy_file fs d =
  *)
 
 (* Result-aware iteration that can either stop on errors or ignore them. *)
-let rec iter ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> ('b, string) result) xs =
+let rec iter_result ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> ('b, string) result) xs =
   match xs with
   | [] -> Ok ()
   | x :: xs ->
     let res = f x in
     begin
       match res with
-      | Ok _ -> iter ~ignore_errors:ignore_errors ~fmt:fmt f xs
+      | Ok _ -> iter_result ~ignore_errors:ignore_errors ~fmt:fmt f xs
       | Error msg as e ->
         if ignore_errors then let () = Logs.warn @@ fun m -> m "%s" (fmt msg) in Ok ()
         else e
     end
 
 (* Result-aware fold that can either stop on errors or ignore them. *)
-let rec fold_left ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> 'b -> ('c, string) result) acc xs =
+let rec fold_left_result ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> 'b -> ('c, string) result) acc xs =
   match xs with
   | [] -> Ok acc
   | x :: xs ->
     let acc' = f acc x in
     begin
       match acc' with
-      | Ok acc' -> fold_left ~ignore_errors:ignore_errors ~fmt:fmt f acc' xs
+      | Ok acc' -> fold_left_result ~ignore_errors:ignore_errors ~fmt:fmt f acc' xs
       | Error msg as e ->
         if ignore_errors then
           let () = Logs.warn @@ fun m -> m "%s" (fmt msg) in
-          fold_left ~ignore_errors:ignore_errors ~fmt:fmt f acc xs
+          fold_left_result ~ignore_errors:ignore_errors ~fmt:fmt f acc xs
         else e
     end
 

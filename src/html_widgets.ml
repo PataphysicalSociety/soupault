@@ -70,6 +70,6 @@ let wrap _ config soup =
         let () = no_container_action selectors in Ok ()
       | _ ->
         let* wrapper_str = Config.find_string_result config ["wrapper"] in
-        let* () = Utils.iter (wrap_elem wrapper_selector wrapper_str) containers in
+        let* () = Utils.iter_result (wrap_elem wrapper_selector wrapper_str) containers in
         Ok ()
     end
