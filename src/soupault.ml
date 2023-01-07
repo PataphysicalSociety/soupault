@@ -165,7 +165,7 @@ let load_html settings soupault_config hooks page_file =
            *)
           let page_source = Soup.read_file page_file in
           let () = Cache.refresh_page_cache settings page_file page_source in
-          let cached = Cache.get_cached_object settings page_file page_source in
+          let cached = Cache.get_cached_object settings page_file prep page_source in
           if Option.is_some cached then Ok (Option.get cached) else
           (* If not, run the preprocessor to get the HTML source. *)
           let prep_cmd = Printf.sprintf "%s %s" prep (Filename.quote page_file) in
@@ -174,7 +174,7 @@ let load_html settings soupault_config hooks page_file =
           match output with
           | Ok output ->
             (* Cache the object for future use. *)
-            let () = Cache.cache_object settings page_file page_source output in
+            let () = Cache.cache_object settings page_file prep page_source output in
             Ok output
           | (Error _) as e -> e
         end

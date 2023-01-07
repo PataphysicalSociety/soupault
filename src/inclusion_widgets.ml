@@ -102,7 +102,7 @@ let make_node_env node =
 let preprocess_element env config soup =
   let run_command env command action parse body_context node =
     let input = Html_utils.inner_html ~escape_html:false node in
-    let cached_result = Cache.get_cached_object env.settings env.page_file input in
+    let cached_result = Cache.get_cached_object env.settings env.page_file command input in
     match cached_result with
     | Some output ->
       let () = Logs.info @@ fun m -> m {|The result of executing command "%s" was found in cache|} command in
@@ -118,7 +118,7 @@ let preprocess_element env config soup =
       begin
         match result with
         | Ok output ->
-          let () = Cache.cache_object env.settings env.page_file input output in
+          let () = Cache.cache_object env.settings env.page_file command input output in
           let content = html_of_string ~parse:parse ~body_context:body_context output in
           let () = Html_utils.insert_element action node content in
           Ok ()
