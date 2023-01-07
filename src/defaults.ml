@@ -311,7 +311,7 @@ let default_settings = {
   plugin_discovery = true;
 
   caching = false;
-  cache_dir = ".cache";
+  cache_dir = ".soupault-cache";
 
   force = false;
   pretty_print_html = true;
