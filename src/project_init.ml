@@ -115,6 +115,12 @@ let make_default_config settings = Printf.sprintf {|
   # E.g., a file at plugins/my-plugin.lua will be registered as a widget named "my-plugin".
   plugin_discovery = true
   plugin_dirs = ["plugins"]
+
+  # Soupault can cache outputs of external programs
+  # (page preprocessors and preprocess_element widget commands).
+  # It's disabled by default but you can enable it and configure the cache directory name/path
+  caching = false
+  cache_dir = ".soupault-cache"
 |}
 
 Defaults.version_string settings.site_dir settings.build_dir
