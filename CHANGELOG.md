@@ -1,3 +1,14 @@
+# 4.4.0 (2023-01-19)
+
+## New features and improvements
+
+* Support for caching the output of page preprocessors and `preprocess_element` widget commands (off by default, enabled with `settings.caching = true`).
+* More detailed startup logs (stages, version, and generator/post-processor mode indication).
+
+## Bug fixes
+
+* `settings.force` is now correctly reflected in `--show-effective-config` (relevant if overridden by `--force`).
+
 # 4.3.1 (2022-11-16)
 
 ## Bug fixes
@@ -22,6 +33,10 @@
 * Improved error reporting in certain unlikely situations (mainly internal errors).
 * When index entry comparison failure fails due to bad field values, offending entries are logged in JSON to simplify debugging.
 * Corrected a mistake in option spell checking logic that could sometimes lead to useless suggestions.
+
+## Compatibility
+
+Soupault now requires OCaml 4.13 to build.
 
 # 4.2.0 (2022-09-22)
 
