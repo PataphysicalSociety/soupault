@@ -39,7 +39,7 @@ let cache_object settings page_path identifier source_str output_str =
      [<cache dir>/<path path>/<identifier hash>_<data hash>],
    *)
   let target_path = make_cached_object_path settings page_path identifier source_str in
-  Logs.debug @@ fun m -> m "Saving a cached object to %s" target_path;
+  let () = Logs.debug @@ fun m -> m "Saving a cached object to %s" target_path in
   write_file target_path output_str
 
 let is_cache_outdated settings page_path page_source =
@@ -63,7 +63,7 @@ let refresh_page_cache settings page_path page_source =
   let save_page_hash page_cache_path page_source =
     let page_hash = hash_sum page_source in
     let target_file = FilePath.concat page_cache_path Defaults.page_hash_file in
-    Logs.debug @@ fun m -> m "Saving new page hash to %s" target_file;
+    let () = Logs.debug @@ fun m -> m "Saving new page hash to %s" target_file in
     write_file target_file page_hash
   in
   if not settings.caching then () else
@@ -72,7 +72,7 @@ let refresh_page_cache settings page_path page_source =
     begin
       if is_cache_outdated settings page_path page_source then
         begin
-	  Logs.debug @@ fun m -> m "Cleaning outdated cache for page %s" page_path;
+	  let () = Logs.debug @@ fun m -> m "Cleaning outdated cache for page %s" page_path in
           FileUtil.rm ~force:FileUtil.Force ~recurse:true [page_cache_path];
           FileUtil.mkdir ~parent:true page_cache_path;
           save_page_hash page_cache_path page_source
