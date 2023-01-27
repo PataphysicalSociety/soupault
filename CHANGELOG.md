@@ -1,4 +1,4 @@
-# 4.4.0 (2023-01-19)
+# 4.4.0 (2023-01-26)
 
 ## New features and improvements
 
