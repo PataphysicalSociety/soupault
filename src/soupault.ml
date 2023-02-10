@@ -568,6 +568,7 @@ type cli_options = {
   index_only_opt: bool option;
   dump_index_json_opt: string option;
   force_opt: bool option;
+  caching_opt : bool option;
 }
 
 let default_cli_options = {
@@ -586,6 +587,7 @@ let default_cli_options = {
   index_only_opt = None;
   dump_index_json_opt = None;
   force_opt = None;
+  caching_opt = None;
 }
 
 let usage_msg = Printf.sprintf {|Usage: %s [OPTIONS]
@@ -624,6 +626,7 @@ let get_args () =
     ("--index-only", Arg.Unit (fun () -> opts := {!opts with index_only_opt=(Some true)}), " Extract site index without generating pages");
     ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<PATH>  Dump extracted index into a JSON file");
     ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=(Some true)}), " Force generating all target files");
+    ("--no-caching", Arg.Unit (fun () -> opts := {!opts with caching_opt=(Some false)}), " Disable caching (overrides settings.caching)");
   ]
   in
   let () = Arg.parse args (fun _ -> ()) usage_msg in
@@ -660,6 +663,7 @@ let update_settings settings cli_options =
     if Option.is_some cli_options.build_dir_opt then sr := {!sr with build_dir=(Option.get cli_options.build_dir_opt)};
     if Option.is_some cli_options.index_only_opt then sr := {!sr with index_only=(Option.get cli_options.index_only_opt)};
     if Option.is_some cli_options.dump_index_json_opt then sr := {!sr with dump_index_json=cli_options.dump_index_json_opt};
+    if Option.is_some cli_options.caching_opt then sr := {!sr with caching=(Option.get cli_options.caching_opt)};
     sr := {!sr with build_profiles=cli_options.build_profiles_opt}
   in !sr
 
