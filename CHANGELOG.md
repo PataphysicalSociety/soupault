@@ -1,3 +1,13 @@
+# 4.5.0 (TBD)
+
+## New features
+
+* `--no-caching` option allows the user to disable caching even if  `settings.caching` is true in the config.
+
+## Bug fixes
+
+* `soupault --version` correctly prints a trailing newline again.
+
 # 4.4.0 (2023-01-26)
 
 ## New features and improvements
