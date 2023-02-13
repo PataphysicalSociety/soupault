@@ -276,7 +276,7 @@ let run_post_save_hook settings soupault_config hook_config file_name lua_code e
 
 (* Lua index processors aren't actually hooks but their execution process is similar. *)
 
-let run_lua_index_processor soupault_config index_view_config file_name lua_code env soup =
+let run_lua_index_processor soupault_config index_view_config view_name file_name lua_code env soup =
   let page_from_lua p =
     let page_json = match Plugin_api.json_of_lua p with Ok p -> p | Error msg -> failwith msg in
     match page_json with
@@ -314,7 +314,9 @@ let run_lua_index_processor soupault_config index_view_config file_name lua_code
     I.register_globals ["pages", table_list.embed []] state;
   in
   let (let*) = Result.bind in
-  let () = Logs.info @@ fun m -> m "Running Lua index processor on page %s" env.page_file in
+  let () = Logs.info @@ fun m -> m {|Running Lua index processor %s for index view "%s" on page %s|}
+    file_name view_name env.page_file
+  in
   let* () = Plugin_api.run_lua file_name state lua_code in
   let res = I.getglobal state (I.Value.string.embed "pages") in
   if not (table_list.is res) then Error "Index processor has not assigned a list of tables to the pages variable" else
