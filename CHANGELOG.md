@@ -1,8 +1,9 @@
 # 4.5.0 (TBD)
 
-## New features
+## New features and improvements
 
 * `--no-caching` option allows the user to disable caching even if  `settings.caching` is true in the config.
+* The name of the Lua index processor file and the index view that calls it are displayed in the logs now.
 
 ## Bug fixes
 
