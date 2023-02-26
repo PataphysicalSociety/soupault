@@ -76,8 +76,12 @@ let take_section get_level hs =
 module Path_tree = struct
 
   type ('a, 'b) path_tree = {
-    id: 'a; (* Unique identifier for the purpose of having a unique identifier. *)
-    data: 'b; (* Actual data attached to a node. *)
+    (* Unique identifier for unambiguous references to nodes. *)
+    id: 'a;
+
+    (* Actual data of the node. *)
+    data: 'b;
+
     children: ('a, 'b) path_tree list
   }
 
@@ -92,24 +96,24 @@ module Path_tree = struct
   let data_of_node n = n.data
   let children_of_node n = n.children
 
-  (* Inserts an "immediate child node", that is,
-     a node exactly one level below where no recursion is needed.
+  (* Inserts an "immediate child node", that is, a node exactly one level below.
+     For that reason, this function needs no recursion and serves as the terminal case.
 
-     The reason it takes parameters of a node (id, data, child list)
+     The reason it takes parameters of a node [(id, data, child list)]
      rather than a node record is that for inserting deep into the tree,
      we have ids from the path and may need to create nodes as we go.
    *)
   let insert_immediate node id data children =
       let new_node = make_full id data children in
       let children' = node.children @ [new_node] in
-      { node with children = children' }
+      {node with children = children'}
 
   (* Replaces an immediate child *)
   let replace node child =
     let children = node.children in
     let id = child.id in
     let children' = List_utils.replace (fun x -> x.id = id) child children in
-    { node with children = children' }
+    {node with children = children'}
 
   let find node id =
     List.find_opt (fun x -> x.id = id) node.children
@@ -184,7 +188,7 @@ let rec from_path_tree t =
   | cs -> {value=data; children=(List.map from_path_tree cs)}
 
 let from_list get_level hs =
-  let get_level(_, x) = get_level x in
+  let get_level (_, x) = get_level x in
   let sections = number_elements hs |> break_into_sections get_level in
   List.map (fun ((id, h), cs) -> Path_tree.from_list get_level (Path_tree.make id h) cs) sections |>
   List.map from_path_tree   
