@@ -31,7 +31,7 @@ let make_breadcrumbs nav_path bc_tmpl prepend append between =
 
 let check_breadcrumb_template tmpl_str =
   try let _ = Template.of_string tmpl_str in Ok ()
-  with _ -> Error "Failed to parse a breadcrumb template"
+  with _ -> Error "Failed to parse breadcrumb template (consult Jingoo documentation for a syntax reference)"
 
 let breadcrumbs env config soup =
   let valid_options = List.append Config.common_widget_options
