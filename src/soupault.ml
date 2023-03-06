@@ -866,10 +866,20 @@ let process_asset_file settings src_path dst_path =
         Error msg -> Error msg
     end
 
+(* Prints a version message. *)
+let print_version () =
+  Printf.printf "soupault %s\n\n" Defaults.version_string;
+  print_endline "Copyright 2023 Daniil Baturin et al.";
+  print_endline "soupault is free software distributed under the MIT license.";
+  print_endline "Visit https://www.soupault.app for news and documentation.";
+  print_newline ();
+  Printf.printf "Compiled with OCaml %s" Sys.ocaml_version;
+  print_newline ()
+
 let main cli_options =
   match cli_options.action with
   | ShowVersion ->
-    let () = Version.print_version () in
+    let () = print_version () in
     exit 0
   | ShowVersionNumber ->
     let () = print_endline Defaults.version_string in

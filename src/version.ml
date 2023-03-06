@@ -42,12 +42,3 @@ let require_version vstr =
     (compare_versions current_version required_version) >= 0
   | Error msg -> failwith msg
 
-(* Prints a version message. *)
-let print_version () =
-  Printf.printf "soupault %s\n\n" Defaults.version_string;
-  print_endline "Copyright 2023 Daniil Baturin et al.";
-  print_endline "soupault is free software distributed under the MIT license.";
-  print_endline "Visit https://www.soupault.app for news and documentation.";
-  print_newline ();
-  Printf.printf "Compiled with OCaml %s" Sys.ocaml_version;
-  print_newline ()
