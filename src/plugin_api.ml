@@ -340,6 +340,11 @@ module Html = struct
     let child = to_general child in
     Soup.append_root node child
 
+  let prepend_root node child =
+    let node = to_soup node in
+    let child = to_general child in
+    Soup.prepend_root node child
+
   let delete_content node =
     match node with
     | None -> ()
@@ -737,6 +742,7 @@ struct
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "inner_text", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "append_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_root;
+        "prepend_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_root;
         "unwrap", V.efunc (V.option Map.html **->> V.unit) Html.unwrap;
         "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
