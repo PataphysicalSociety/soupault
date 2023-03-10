@@ -1,10 +1,21 @@
-(** A home-grown alternative to https://opam.ocaml.org/packages/text/
-    based on Camomile (https://opam.ocaml.org/packages/camomile/).
+(** This module mostly provides UTF8 string functions
+    that support fallback to ASCII for strings that aren't valid UTF-8.
 
-    The problem with the text package for soupault's use case
-    is that text depends on libiconv, which makes statically-linked builds impossible.
-    Soupault intentionally avoids any dependencies on shared libraries
-    so that it can be a self-contained executable that is trivial to distribute.
+    In a sense, it's a home-grown alternative to https://opam.ocaml.org/packages/text/
+    That package works well, the only problem with it for soupault is that it depends on libiconv
+    and doesn't provide a static linking option.
+
+    One of soupault's goals is to provide official self-contained, "eternal" binaries,
+    and any dependency on a dynamically linked library would make that impossible.
+
+    This module is based on Camomile (https://opam.ocaml.org/packages/camomile/),
+    which is pure OCaml, so static linking with it is effortless.
+    However, Camomile's API is somewhat unwieldy, so this module provides
+    convenient wrappers and automatic fallback to ASCII functions
+    for strings that contain invalid UTF-8 sequences.
+
+    It also containes a few more string handling functions —
+    they had to go somewhere, you know. ;)
  *) 
 
 open CamomileLibraryDefault
