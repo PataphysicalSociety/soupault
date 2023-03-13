@@ -1,12 +1,21 @@
+(* Hooks are extension points that allow the user to take inject logic between page processing steps
+   or take over a processing step with custom logic.
+   They are configured in the [hooks] table.
+
+   This module also has code for executing Lua index processors, which are configured differently
+   but their internal execution process is very similar.
+
+ *)
+
 open Defaults
 open Soupault_common
 
 module OH = Otoml.Helpers
 module I = Plugin_api.I
 
-let (let*) = Result.bind
-
 let lua_of_toml = Plugin_api.lua_of_toml
+
+(* Auxilliary functions *)
 
 let hook_types = [
   "pre-parse";
@@ -17,28 +26,7 @@ let hook_types = [
   "post-save"
 ]
 
-(* Auxilliary functions *)
-
-let hook_should_run settings hook_config hook_type page_file =
-  let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
-  if disabled then
-    let () = Logs.debug @@ fun m -> m "%s hook is disabled in the configuration" hook_type in false
-  else
-  let options = Config.get_path_options hook_config in
-  let profile = OH.find_string_opt hook_config ["profile"] in
-  if not (Utils.build_profile_matches profile settings.build_profiles) then
-    let () = Logs.debug @@ fun m -> m "%s hook is not used: not enabled in the current build profile (%s)"
-      hook_type (Option.value ~default:"default" profile)
-    in false
-  else begin
-    if Path_options.page_included settings options settings.site_dir page_file then true
-    else
-      let () = Logs.debug @@ fun m -> m "%s hook is not used: page %s is excluded by its page/section/regex options"
-        hook_type page_file
-      in false
-  end
-
-(* Check if the user didn't try to add hooks of non-existent types.
+(* Checks if the user didn't try to add hooks of non-existent types.
    The set of hooks is fixed and their names must be from the [hook_types] list.
  *)
 let check_hook_tables config =
@@ -47,6 +35,32 @@ let check_hook_tables config =
   | None -> ()
   | Some tbl -> Config.check_subsections ~parent_path:["hooks"] tbl hook_types "hooks"
 
+(* Checks if a hook should run on a specific page:
+   it isn't disabled entirely for the current run
+   and the page is not specifically excluded from it.
+  *)
+let hook_should_run settings hook_config hook_type page_file =
+  let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
+  if disabled then
+    let () = Logs.debug @@ fun m -> m "%s hook is disabled in the configuration" hook_type in
+    false
+  else
+    let options = Config.get_path_options hook_config in
+    let profile = OH.find_string_opt hook_config ["profile"] in
+    if not (Utils.build_profile_matches profile settings.build_profiles) then
+      let () = Logs.debug @@ fun m -> m "%s hook is not used: not enabled in the current build profile (%s)"
+        hook_type (Option.value ~default:"default" profile)
+      in false
+    else begin
+      if Path_options.page_included settings options settings.site_dir page_file then true
+      else
+        let () = Logs.debug @@ fun m -> m "%s hook is not used: page %s is excluded by its page/section/regex options"
+          hook_type page_file
+        in
+        false
+    end
+
+(* Loads hook code from an inline snippet in the config or from a file. *)
 let load_hook hook_config ident =
   let default_filename = Printf.sprintf {|<inline Lua source for hook "%s">|} ident in
   let ident = Printf.sprintf {|hook "%s"|} ident in
@@ -55,6 +69,7 @@ let load_hook hook_config ident =
   | Ok (file_name, source_code) -> (file_name, source_code)
   | Error msg -> Config.config_error msg
 
+(* Loads a single hook from its configuration. *)
 let get_hook config hooks_hash ident =
   let hook_config = Config.find_table_opt ["hooks"; ident] config in
   match hook_config with
@@ -63,6 +78,7 @@ let get_hook config hooks_hash ident =
     let (file_name, source) = load_hook hook_config ident in
     Hashtbl.add hooks_hash ident (file_name, source, hook_config)
 
+(* Loads all hooks from the config. *)
 let get_hooks config =
   try
     let () = Logs.info @@ fun m -> m "Loading hooks" in
@@ -322,5 +338,3 @@ let run_lua_index_processor soupault_config index_view_config view_name file_nam
   if not (table_list.is res) then Error "Index processor has not assigned a list of tables to the pages variable" else
   try Ok ((I.Value.list I.Value.value).project res |> List.map page_from_lua)
   with Failure msg -> Error (Printf.sprintf "Index processor generated a page incorrectly: %s" msg)
-
-
