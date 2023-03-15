@@ -1,6 +1,24 @@
+(* This module provides utilities for caching outputs
+   that can be associated with unique string keys.
+
+   As of soupault 4.5.0, the only cached things
+   are outputs of external commands for preprocess_element widgets
+   and page preprocessors.
+*)
+
 open Soupault_common
 open Defaults
 
+(* Cached objects are identified by hash sums.
+   The choise of the hash function for this purpose is arbitrary:
+   it must not be intentionally slow like scrypt,
+   but otherwise even MD5 would be acceptable
+   since accidental collisions are incredibly rare.
+
+   I chose BLAKE2 because it was reportedly the fastest hash function as of 2022
+   and also because almost no one uses it — and I like to be contrarian
+   when it doesn't harm anyone else. ;)
+ *)
 let hash_sum s =
   let ctx = Digestif.BLAKE2S.empty in
   let ctx = Digestif.BLAKE2S.feed_string ctx s in
