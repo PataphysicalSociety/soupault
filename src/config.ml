@@ -164,7 +164,7 @@ let _get_asset_processors config =
       Template.of_string template_string
     with Soupault_error msg ->
       (* XXX: maybe Template.render should use a special exception rather than Soupault_error.
-         In the config parsing stage, Soupault_error is not handled,
+         At the config parsing stage, Soupault_error is not handled,
          which is why we have to catch it and re-raise it as Config_error instead,
        *)
       let () = Logs.err @@ fun m -> m {|Could not compile template from asset_processors.%s|} extension in
@@ -227,9 +227,12 @@ let valid_index_options = [
 ] @ valid_path_options
 
 (* Retrieve sort options.
-   The tricky part is that we need to distinguish between two situations:
-   1. none of the options are set in a view, in that case we just use global settings
-   2. some or all options are set, possibly all options are explicitly set to their default values
+   The tricky part is that any setting may match its default for two distinct reasons:
+   1. It's not set at all and that's why the default is used.
+   2. It's explicitly set in the config but its value happens to be the same as the default.
+
+   That is why we have to check if any of those options exist in the config or not.
+   If none are set explicitly, then we use the global sorting settings.
  *)
 let get_sort_options toml =
   let sort_by = OH.find_string_opt toml ["sort_by"] in
@@ -357,7 +360,9 @@ let _get_index_settings settings config =
 
 let update_page_template_settings settings config =
   let get_template name settings config =
-    (* Retrieve a subtable for given template *)
+    (* Retrieve the config subtable for the template by its name,
+       like [templates.main]
+     *)
     let config = find_table_opt [name] config in
     match config with
     | None -> settings
@@ -469,7 +474,7 @@ let check_subsections ?(parent_path=[]) config valid_tables table_name =
       | Some s -> Printf.sprintf {|Did you mean "%s"?|} s)
     in
     let path = List.append parent_path [tbl] |> Otoml.string_of_path in
-    Printf.sprintf "[%s] is not a valid config section. %s" path suggestion_msg
+    Printf.sprintf "[%s] is not a valid config section. %s" path suggestion_msg |> String.trim
   in
   check_options ~fmt:bad_section_msg valid_tables config (Printf.sprintf {|table "%s"|} table_name)
 
