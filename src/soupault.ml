@@ -18,7 +18,8 @@ let mkdir dir =
 
 (* Determines whether log coloring is appropriate in the environment where soupault is running.
 
-   As of 4.2.0, soupault officially supports two kinds of OSes: UNIX-like and Windows.
+   As of now, soupault officially supports two kinds of OSes: UNIX-like and Windows.
+
    On UNIX-like systems, most terminals support ANSI colors,
    so we enable color by default but give the user an option to disable it
    by using the NO_COLOR environment variable (see https://no-color.org).
@@ -64,8 +65,9 @@ let color_level ppf l =
 
 (* Sets the log format to "[$level] $msg".
 
-   The default log format of Daniel Bünzli's Logs includes executable name in the message,
-   which is useful in some situations, but I doubt it's helpful for typical soupault use.
+   The default log format of the Daniel Bünzli's Logs library includes the name of the executable file in the message,
+   which is useful in some situations, but I doubt it's helpful for typical soupault use cases —
+   users knows what executable they run, or its full path is logged elsewhere.
  *)
 let pp_header ppf (l, h) =
   match h with
@@ -89,7 +91,8 @@ let setup_logging verbose debug =
   Logs.set_level (Some level);
   Fmt_tty.setup_std_outputs ~style_renderer:style ();
   Logs.set_reporter @@ Logs.format_reporter ~pp_header:pp_header ();
-  (* Enable exception tracing if debug=true *)
+  (* Enable exception tracing if debug=true,
+     by default it's disabled in the OCaml runtime *)
   if debug then Printexc.record_backtrace true
 
 (*** Filesystem stuff ***)
@@ -121,12 +124,13 @@ let make_page_dir_name settings target_dir page_name =
   if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
   else target_dir +/ page_name
 
-(* Finds a preprocessor for specific file name,
+(* Finds a preprocessor for given file name,
    if a preprocessor for its extension is configured.
 
-   If a file has multiple extensions, soupault only consideres the last one.
+   If a file has multiple extensions, soupault only consideres the last one
+   (i.e., the extension of "index.en.md" for this purpose is "md", not "en").
 
-   This function is used for both page preprocessors (in the "[preprocessors]" config section)
+   This function is used for determining both page preprocessors (in the "[preprocessors]" config section)
    and asset processors ("[asset_processors]").
  *)
 let find_preprocessor preprocessors file_name =
@@ -152,9 +156,9 @@ let load_html settings soupault_config hooks page_file =
     | Some prep ->
       if settings.caching then
         begin
-          (* Check if we have converted HTML source cached.
+          (* Check if we have converted HTML source in cache.
 
-             Since preprocessors get page file path as an argument rather than stdin
+             Since preprocessors get a page file path as an argument rather than receive HTML through stdin
              (to accomodate preprocessors that do not support reading from stdin),
              soupault does not read page files unless it knows they are not subject to preprocessing.
 
@@ -234,14 +238,13 @@ let render_html_builtin settings soup =
     end
   else
     begin
-      (* If we are to discard the original doctype and completely replace it,
-         we need to remove the original one.
+      (* If we are asked to always completely replace the doctype,
+         we need to remove the original doctype declaration from the document.
 
          XXX: As of lambdasoup 0.7.2, there's no way to delete the doctype "element"
          (which isn't actually an element anyway),
-         so we extract the <html> from the document tree,
-         and prepend a doctype to it.
-         That is, if the document even has <html> to begin with--see below. *)
+         so we extract the <html> from the document tree and prepend a new doctype to it.
+         That is, if the document even has <html> element to begin with — see below. *)
       let html = Soup.select_one "html" soup in
       match html with
       | Some html ->
@@ -258,7 +261,7 @@ let render_html_builtin settings soup =
     end
 
 (* The high-level render call that will either run the "render" hook or use the built-in renderer
-   if the hook is not configured or page is excluded from it.
+   if the render hook is not configured or the page is excluded from it.
  *)
 let render_html settings config hooks env soup =
   let hook = Hashtbl.find_opt hooks "render" in
@@ -274,7 +277,7 @@ let render_html settings config hooks env soup =
   | None -> Ok (render_html_builtin settings soup)
 
 (* Injects page content into a template.
-   Where exactly it will insert it is defined by the [content_selector] option in the template config,
+   Where exactly it will insert the content is defined by the [content_selector] option in the template config,
    or by [settings.default_content_selector] if the default template is used.
  *)
 let include_content action selector html content =
@@ -301,7 +304,7 @@ let make_page settings page_file_path content =
     let () =
       if settings.generator_mode then
       Logs.debug @@ fun m -> m "File appears to be a complete page, not using the page template"
-      (* in HTML processor mode that's implied *)
+      (* In the HTML processor mode there's no question — everything is treated as a complete page *)
     in Ok content
   | None ->
     let tmpl = List.find_opt
@@ -342,7 +345,7 @@ let rec process_widgets env settings ws wh config soup =
         | Soupault_error s -> Error s
         | Config.Config_error s -> Error s
       in
-      (* In non-strict mode, widget processing errors are tolerated *)
+      (* In non-strict mode, widget processing errors do not fail the build *)
       match res, settings.strict with
       | Ok _, _ -> process_widgets env settings ws' wh config soup
       | Error _ as err, true -> err
@@ -353,11 +356,16 @@ let rec process_widgets env settings ws wh config soup =
 
 (** Removes index page's parent dir from its navigation path
 
-    When clean URLs are used, the "navigation path" as in the path
-    before the page doesn'a match the "real" path for index pages,
-    and if you try to use it for breadcrumbs for example,
-    section index pages will have links to themselves,
-    since the parent of foo/bar/index.html is technically "bar".
+    When clean URLs are used, the "navigation path" —
+    the list of directories/sections that precede the page —
+    is different from the real directory path for index pages.
+
+    For example, the parent of the page at foo/bar/index.html is technically "bar".
+    However, if the intended way to access that page is just
+    https://example.com/foo/bar,
+    then trying to use that definition for generating breadcrumbs and similar
+    will create pages with references to themselves.
+   
     The only way to deal with it I could find is to remove the
     last parent if the page is an index page.
  *)
@@ -509,7 +517,9 @@ let process_page page_data index index_hash widgets hooks config settings =
   }
   in
   let* html = make_page settings page_file content in
-  (* Section index injection always happens before any widgets have run *)
+  (* Section index injection always happens before any widgets have run —
+     otherwise generated content would be impossible to process with widgets.
+   *)
   let* new_pages =
     (* Section index is inserted only in index pages *)
     if not (index_insertion_should_run settings index page_name) then Ok []
@@ -543,7 +553,20 @@ let process_page index index_hash widgets hooks config settings page_data =
     let () = Logs.warn @@ fun m -> m "%s" msg in
     Ok (None, [])
 
-(* Option parsing and initialization *)
+(* Option parsing and initialization.
+
+   One difficulty is that many CLI options can override values from the config file.
+   Soupault stores the config internally as a record instead of querying a TOML datastructure all the time,
+   since it's faster and more convenient. The TOML datastructure is only used by built-in widgets and Lua code.
+
+   However, it also gives the user a way to view the effective config with --show-effective-config —
+   that is, view all values as they are in the real soupault state: defaults, values from the config,
+   and CLI overrides.
+   It also strives to make overrides available to Lua code so that there is no disparity:
+   built-in functionality and Lua code must see the same values.
+
+   That requires a way to inject overrides into the TOML config.
+ *)
 
 type soupault_action =
   | BuildWebsite
