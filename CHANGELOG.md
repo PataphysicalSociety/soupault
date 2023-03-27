@@ -1,9 +1,11 @@
-# 4.5.0 (TBD)
+# 4.5.0 (2023-03-27)
 
 ## New features and improvements
 
-* `--no-caching` option allows the user to disable caching even if  `settings.caching` is true in the config.
+* `--no-caching` option allows the user to disable caching even if `settings.caching` is true in the config.
+* [Plugin API] New `HTML.prepend_root(node, child)` function for inserting new nodes in HTML documents before all existing nodes.
 * The name of the Lua index processor file and the index view that calls it are displayed in the logs now.
+* Clearer breadcrumb template parse error message (mentions Jingoo now).
 
 ## Bug fixes
 
