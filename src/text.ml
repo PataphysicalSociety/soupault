@@ -18,8 +18,6 @@
     they had to go somewhere, you know. ;)
  *) 
 
-open CamomileLibraryDefault
-
 (* Checks if a string is valid UTF-8 or not.
    Other functions rely on it to provide an ASCII fallback
    for strings that cannot be treated as UTF-8 due to invalid characters in them. *)

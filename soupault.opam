@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "soupault"
-version: "4.4.0"
+version: "4.5.0"
 synopsis: "Static website generator based on HTML rewriting"
 description: """
 A website generator that works with page element tree rather than text
@@ -49,7 +49,7 @@ depends: [
   "jingoo" {>= "1.4.2"}
   "tsort" {>= "2.1.0"}
   "lua-ml" {>= "0.9.3"}
-  "camomile" {>= "1.0.0"}
+  "camomile" {>= "2.0.0"}
   "digestif" {>= "0.7.3"}
 ]
 
