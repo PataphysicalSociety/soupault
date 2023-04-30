@@ -83,6 +83,13 @@ let read_config path =
     let msg = Printf.sprintf "Could not parse config file %s: %s"
       path (Otoml.Parser.format_parse_error pos msg)
     in Error msg
+  | Otoml.Duplicate_key msg ->
+    (* As of OTOML 1.0.4, parsing a syntactically correct config
+       that contains duplicate table names raises Duplicate_key rather than Parse_error,
+       so we need to handle it separately.
+     *)
+     let msg = Printf.sprintf "Config file %s is malformed: %s" path msg in
+     Error msg
 
 (* Convenience accessor wrappers *)
 
