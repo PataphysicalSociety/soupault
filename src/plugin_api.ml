@@ -322,28 +322,28 @@ module Html = struct
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.insert_before n child
-    | SoupNode _ -> plugin_error "Cannot use insert_before with a document node"
+    | SoupNode _ -> plugin_error "Cannot use HTML.insert_before with a document node"
     | GeneralNode _ as n -> Soup.insert_before (to_element n) child
 
   let insert_after node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.insert_after n child
-    | SoupNode _ -> plugin_error "Cannot use insert_after with a document node"
+    | SoupNode _ -> plugin_error "Cannot use HTML.insert_after with a document node"
     | GeneralNode _ as n -> Soup.insert_after (to_element n) child
 
   let replace node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Soup.replace n child
-    | SoupNode _ -> plugin_error "Cannot use replace with a document node"
+    | SoupNode _ -> plugin_error "Cannot use HTML.replace with a document node"
     | GeneralNode _ as n -> Soup.replace (to_element n) child
 
   let replace_content node child =
     let child = to_general child in
     match node with
     | ElementNode n -> Html_utils.replace_content n child
-    | SoupNode _ -> plugin_error "Cannot use replace_content with a document node"
+    | SoupNode _ -> plugin_error "Cannot use HTML.replace_content with a document node"
     | GeneralNode _ as n -> Html_utils.replace_content (to_element n) child
 
   let append_root node child =
@@ -480,7 +480,7 @@ struct
       let exception Found in
       try
         V.Luahash.iter (fun _ v -> if v = value then raise Found) hash;
-        (* If we got this far, item was not found. *)
+        (* If we got this far, the item was not found. *)
         false
       with Found -> true
 
@@ -559,9 +559,9 @@ struct
       else if V.string.is v then `String (V.string.project v)
       else if V.table.is v then project_lua_table v
       else if V.unit.is v then `Null
-      (* Everything in Lua has a truth value, so V.bool.is appears to never fail *)
+      (* Everything in Lua has a truth value, so V.bool.is appears to never fail. *)
       else if V.bool.is v then `Bool (V.bool.project v)
-      (* Not sure if this actually can happen *)
+      (* Not sure if this can actually happen but better have a distinctive error if it does. *)
       else internal_error  "Unimplemented Lua to OCaml value projection"
     and project_lua_table t =
       let ts = t |> V.table.project |> V.Luahash.to_seq |> List.of_seq in
@@ -786,6 +786,7 @@ struct
      ] g;
 
      C.register_module "Sys" [
+       (* File operations. *)
        "mkdir", V.efunc (V.string **->> V.unit) (fun d -> try FileUtil.mkdir ~parent:true d with FileUtil.MkdirError msg -> plugin_error msg);
        "read_file", V.efunc (V.string **->> V.option V.string) (Sys_wrappers.read_file);
        "write_file", V.efunc (V.string **-> V.string **->> V.unit) (Sys_wrappers.write_file);
@@ -855,11 +856,15 @@ struct
     C.register_module "YAML" [
       "from_string", V.efunc (V.string **->> V.value) parse_yaml;
       "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_yaml_unsafe;
+      (* We don't provide a to_string function for YAML
+         because YAML parsing into Lua is done with type information loss. *)
     ] g;
 
     C.register_module "TOML" [
       "from_string", V.efunc (V.string **->> V.value) parse_toml;
       "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_toml_unsafe;
+      (* We don't provide printing for TOML either
+         because type information loss between TOML and Lua is even worse than with YAML. *)
     ] g;
 
     C.register_module "Date" [
@@ -876,6 +881,10 @@ struct
       "get_nested_value", V.efunc (V.table **-> V.list V.value **->> V.value) hash_get_nested_value;
       "get_nested_value_default", V.efunc (V.table **-> V.list V.value **-> V.value **->> V.value)
         (fun t p d -> let v = hash_get_nested_value t p in if V.unit.is v then d else v);
+      (* Reasons to have these iteration primitives include not just convenience,
+         but also the fact that for-loops in Lua can't handle lists with gaps in item numbering.
+         These functions handle it just fine since they just iterate through all keys.
+       *)
       "iter", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit) V.Luahash.iter;
       "iter_values", V.efunc ((V.func (V.value **->> V.unit)) **-> V.table **->> V.unit) (fun f t -> V.Luahash.iter (fun _ v -> f v) t);
       "iter_ordered", V.efunc ((V.func (V.value **-> V.value **->> V.unit)) **-> V.table **->> V.unit)
@@ -895,14 +904,26 @@ struct
     ] g;
 
     C.register_module "Value" [
+      (* Lua(-ML) refuses to print certain values like nil,
+         repr makes it safe to pass values to printers and formatters. *)
       "repr", V.efunc (V.value **->> V.string) V.to_string;
+      (* Lua officially only has a single number type.
+         However, in Lua-ML integers and floats are distinct,
+         so we can offer the user a way to tell them apart. *)
       "is_int", V.efunc (V.value **->> V.bool) V.int.is;
       "is_float", V.efunc (V.value **->> V.bool) V.float.is;
       "is_string", V.efunc (V.value **->> V.bool) V.string.is;
+      (* There are no true, ordered arrays in Lua,
+         so they have to be fakes with number-indexed tables
+         and ordered iteration methods.
+         We give the user a way to find out if something is a table (of any kind)
+         or an integer-indexed table that can be handled as a list. *)
       "is_table", V.efunc (V.value **->> V.bool) V.table.is;
-      "is_list", V.efunc (V.value **->> V.bool) (fun t -> if not (V.table.is t) then false else
-                           t |> V.table.project |> V.Luahash.to_seq |> List.of_seq |>
-                                CCList.Assoc.keys |> List.for_all V.int.is);
+      "is_list", V.efunc (V.value **->> V.bool)
+        (* A table is considered a list if all its keys are numeric. *)
+        (fun t -> if not (V.table.is t) then false
+                  else t |> V.table.project |> V.Luahash.to_seq |> List.of_seq |>
+                            CCList.Assoc.keys |> List.for_all V.int.is);
       "is_nil", V.efunc (V.value **->> V.bool) V.unit.is;
     ] g;
   end (* M *)
