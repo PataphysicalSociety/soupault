@@ -84,6 +84,17 @@ module Sys_wrappers = struct
       let () = Logs.err @@ fun m -> m "%s" (Process_utils.format_error cmd status) in
       Process_utils.exit_code_of_status status
 
+  let getenv name default =
+    let res = Sys.getenv_opt name in
+    match res with
+    | Some _ -> res
+    | None ->
+      begin
+        match default with
+        | Some _ -> default 
+        | None -> None
+      end
+
   let delete_file ?(r=false) path =
     try FileUtil.rm ~recurse:r [path]
     with Unix.Unix_error (e, _, _) ->
@@ -811,6 +822,7 @@ struct
        "random", V.efunc (V.int **->> V.int) Random.int;
        "is_windows", V.efunc (V.unit **->> V.bool) (fun () -> Sys.win32);
        "is_unix", V.efunc (V.unit **->> V.bool) (fun () -> Sys.unix);
+       "getenv", V.efunc (V.string **-> V.option V.string **->> V.option V.string) Sys_wrappers.getenv;
      ] g;
 
      C.register_module "String" [
