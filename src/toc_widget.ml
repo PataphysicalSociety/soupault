@@ -125,8 +125,8 @@ let ignored_heading settings soup h =
   | false -> false
 
 let rec _make_toc settings depth counter parent tree =
-  let heading = Rose_tree.(tree.value) in
-  let children = Rose_tree.(tree.children) in
+  let heading = Toc_tree.(tree.value) in
+  let children = Toc_tree.(tree.children) in
   let level = Html_utils.get_heading_level heading in
   if level > settings.max_level then
     Logs.debug @@ fun m -> m "Heading %s is ignored because its level exceeds max_level (%d)"
@@ -144,7 +144,7 @@ let rec _make_toc settings depth counter parent tree =
        because all child headings are deeper than the max_level.
        Better keep the HTML clean.
      *)
-    if not (List.exists (level_matches settings) (List.map (fun c -> Rose_tree.(c.value)) children)) then () else
+    if not (List.exists (level_matches settings) (List.map (fun c -> Toc_tree.(c.value)) children)) then () else
     let container = make_toc_container settings depth in
     (* According to the HTML specs, and contrary to the popular opinion,
        a <ul> or <ol> cannot contain another <ul> or <ol>.
@@ -224,7 +224,7 @@ let toc _ config soup =
           (* Don't do anything if the page has fewer headings than set by the min_headings option. *)
           if ((List.length headings) < settings.min_headings) then Ok () else
           let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
-          let headings_tree = headings |> Rose_tree.from_list Html_utils.get_heading_level in
+          let headings_tree = headings |> Toc_tree.from_list Html_utils.get_heading_level in
           match headings_tree with
           | [] ->
             let () = Logs.debug @@ fun m -> m "Page has no headings, nothing to build a ToC from" in

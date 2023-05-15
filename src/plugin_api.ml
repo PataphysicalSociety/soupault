@@ -531,13 +531,13 @@ struct
       | _ -> aux h path
 
     let get_headings_tree soup =
+      let open Toc_tree in
       match soup with
       | None -> []
       | Some soup -> begin
-        let open Rose_tree in
         let trees =
           Html_utils.find_headings (Html.to_general soup) |>
-          Rose_tree.from_list Html_utils.get_heading_level
+          Toc_tree.from_list Html_utils.get_heading_level
         in
         let rec lua_of_tree t =
           let value = Map.html.embed (Html.from_element t.value) in
