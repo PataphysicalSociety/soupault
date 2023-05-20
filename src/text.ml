@@ -21,7 +21,7 @@
 (* Checks if a string is valid UTF-8 or not.
    Other functions rely on it to provide an ASCII fallback
    for strings that cannot be treated as UTF-8 due to invalid characters in them. *)
-let is_valid s =
+let is_valid_utf8 s =
   try
     let () = Camomile.UTF8.validate s in
     true
@@ -40,7 +40,7 @@ let sub s min max =
     let () = UTF8.Buf.add_char buf c in
     aux buf s (pos + 1) max
   in
-  if not (is_valid s) then String.sub s min max else
+  if not (is_valid_utf8 s) then String.sub s min max else
   let buf = UTF8.Buf.create (max - min) in
   let () = aux buf s min max in
   UTF8.Buf.contents buf
@@ -50,7 +50,7 @@ let sub s min max =
     In other cases it's length in bytes.
  *)
 let length s =
-  if not (is_valid s) then String.length s else
+  if not (is_valid_utf8 s) then String.length s else
   Camomile.UTF8.length s
 
 (** Percent-encodes strings for URLs.
