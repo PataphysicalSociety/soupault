@@ -844,6 +844,7 @@ struct
        "url_encode", V.efunc (V.string **-> V.option (V.list V.string) **->> V.string) url_encode;
        "url_decode", V.efunc (V.string **->> V.string) Text.url_decode;
        "starts_with", V.efunc (V.string **-> V.string **->> V.bool) (fun s pat -> String.starts_with ~prefix:pat s);
+       "ends_with", V.efunc (V.string **-> V.string **->> V.bool) (fun s pat -> String.ends_with ~suffix:pat s);
      ] g;
 
     C.register_module "JSON" [
