@@ -49,7 +49,7 @@ Extracted metadata can then be rendered and injected into pages:
 
 Soupault is...
 
-* Eternal: it comes as a statically-linked binary with no dependencies.
+* Durable and easy to upgrade or roll back: it's available as a statically-linked binary with no dependencies.
 * Extensible: you can bring your own [page preprocessors](https://soupault.app/reference-manual/#page-preprocessors) (e.g. Markdown to HTML convertors), pipe HTML elements through [external programs](https://soupault.app/reference-manual/#preprocess-element-widget), and load [Lua plugins](https://soupault.app/plugins/).
 * Flexible: most options are configurable, most built-in features can be reimplemented as Lua plugins, and there are [page processing hooks](https://soupault.app/reference-manual/#page-processing-hooks).
 
