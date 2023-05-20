@@ -845,6 +845,8 @@ struct
        "url_decode", V.efunc (V.string **->> V.string) Text.url_decode;
        "starts_with", V.efunc (V.string **-> V.string **->> V.bool) (fun s pat -> String.starts_with ~prefix:pat s);
        "ends_with", V.efunc (V.string **-> V.string **->> V.bool) (fun s pat -> String.ends_with ~suffix:pat s);
+       "is_valid_utf8", V.efunc (V.string **->> V.bool) Text.is_valid_utf8;
+       "is_valid_ascii", V.efunc (V.string **->> V.bool) Text.is_valid_ascii;
      ] g;
 
     C.register_module "JSON" [

@@ -28,6 +28,10 @@ let is_valid_utf8 s =
   with Camomile.UTF8.Malformed_code ->
     false
 
+(* Checks if a string is valid 7-bit ASCII or not. *)
+let is_valid_ascii s =
+  String.for_all (fun c -> (Char.code c) <= 0x7F) s
+
 (** Extracts substrings.
    If a string is valid UTF-8, extracts a range of Unicode characters.
    If not, extracts a range of bytes.
