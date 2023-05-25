@@ -1,3 +1,15 @@
+# 4.6.0 (TBD)
+
+## New features and improvements
+
+* [Plugin API] New `Sys.getenv(name, default_value)` function (`default_value` is optional).
+* [Plugin API] New `String.ends_with(string, suffix)`.
+* [Plugin API] New `String.is_valid_utf8(string)` and `String.is_valid_ascii(string)` functions.
+
+## Bug fixes
+
+* Fixed an unhandled OTOML exception when loading configs with duplicate key names (such issues generate proper parse errors now).
+
 # 4.5.0 (2023-03-27)
 
 ## New features and improvements
