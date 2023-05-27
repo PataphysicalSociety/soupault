@@ -1,16 +1,21 @@
 (* Soupault allows the user to restrict widgets and hooks to a subset of all pages:
-   the user can tell them to run only on certain pages, exclude certain pages,
+   the user can tell widgets to run only on certain pages, exclude certain pages,
    or mix those criteria.
 
-   - page/exclude page — for matching exact pages.
-   - section/exclude_section — for matching all pages within a directory
-   - path_regex/exclude_path_regex — for matching arbitrary sets of pages using a regular expression
+   There are following options:
 
-   Those options can be combined, and if they all are present in the same widget/hook,
-   then the page is checked against every option,
-   i.e., the page is excluded if it matches any exclude_* option
-   and considered included if it matches any inclusion option
-   (in other words, there is no inclusion option precedence).
+   - page/exclude page — for matching exact pages.
+   - section/exclude_section — for matching all pages within a directory.
+   - path_regex/exclude_path_regex — for matching arbitrary sets of pages using a regular expression.
+
+   Those options can appear in the same widget/hook together in any combinations.
+   If [exclude_*] options are present, they are checked first, and if any of them matches,
+   the page is excluded.
+
+   If [exclude_*] options are not present or don't match, the page is checked against inclusion options,
+   if they are present. If they are present, the page is included iff at least one matches.
+
+   If no exclusion/inclusion options are present, the widget/hook runs on all pages.
 
    One more thing to note is that the [section] option only applies to files in a directory
    but not to its subdirectories.
@@ -28,11 +33,11 @@ let page_matches site_dir actual_path conf_path =
   let conf_path = FilePath.concat site_dir conf_path in
   (=) conf_path actual_path
 
-(* The underlying function of the [pathregex/exclude_path_regex] option. *)
+(* The underlying function of the [path_regex/exclude_path_regex] option. *)
 let regex_matches actual_path path_re =
   try Regex_utils.Raw.matches ~regex:path_re actual_path
   with Regex_utils.Bad_regex ->
-    soupault_error @@ Printf.sprintf {|Could not check a path regex option: malformed regex "%s"|} path_re
+    soupault_error @@ Printf.sprintf {|Could not check a path regex option: malformed regex: %s|} path_re
 
 (* The underlying function of the [section/exclude_section] option.
 
@@ -47,7 +52,6 @@ let regex_matches actual_path path_re =
    Soupault provides two ways to mark a directory as a leaf rather than a branch.
    The first way is to use a "leaf file".
    If that file is present, the directory is treated as a hand-made clean URL.
-   By default the leaf file is ".leaf" but it's configurable in [index.leaf_file].
 
    The second way is to add a regex for pages that must be treated as content pages rather than section index pages
    to [index.force_indexing_path_regex].
@@ -83,7 +87,8 @@ let section_matches ?(include_subsections=false) settings site_dir actual_path c
      then FilePath.dirname page_dir
      else page_dir
    in
-   (* FilePath.is_subdir doesn't consider a dir its own subdir, so we need to handle that case explicitly. *)
+   (* As of fileutils 0.6.4, FilePath.is_subdir doesn't consider a dir its own subdir,
+      so we need to handle that case explicitly. *)
    (include_subsections && (FilePath.is_subdir page_dir conf_path)) || (conf_path = page_dir)
 
 (* The high-level page check function that handles all path options. *)
