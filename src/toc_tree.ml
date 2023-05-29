@@ -1,4 +1,6 @@
-(* Multi-way tree used by the ToC module *)
+(* Multi-way tree used by the ToC module and the plugin API
+   to build a tree of page sections from its headings.
+ *)
 
 (* List helper functions *)
 
