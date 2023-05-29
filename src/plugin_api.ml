@@ -493,6 +493,24 @@ struct
       let keys = get_hash_keys h in
       List.fold_left (add_matching_value h p) [] keys |> List.rev
 
+    let hash_for_all p h =
+      let exception Not_for_all in
+      try
+        V.Luahash.iter (fun _ v -> if not (p v) then raise Not_for_all) h;
+        (* If we got this far and [Not_for_all] was not raised,
+           it means property [p] holds for all items. *)
+        true
+      with Not_for_all -> false
+
+    let hash_for_any p h =
+      let exception For_some in
+      try
+        V.Luahash.iter (fun _ v -> if (p v) then raise For_some) h;
+        (* If we got this far and [For_some] was not raised,
+           there are no elements for which property [p] holds. *)
+        false
+      with For_some -> true
+
     let hash_get_nested_value h path =
       let rec aux h path =
         match path with
@@ -901,6 +919,8 @@ struct
       "fold_values", V.efunc ((V.func (V.value **-> V.value **->> V.value)) **-> V.table **-> V.value **->> V.value)
         (fun f t i -> V.Luahash.fold (fun _ v acc -> f v acc) t i);
       "find_values", V.efunc ((V.func (V.value **->> V.bool)) **-> V.table **->> V.list V.value) hash_find_values;
+      "for_all", V.efunc ((V.func (V.value **->> V.bool)) **-> V.table **->> V.bool) hash_for_all;
+      "for_any", V.efunc ((V.func (V.value **->> V.bool)) **-> V.table **->> V.bool) hash_for_any;
       "take", V.efunc (V.table **-> V.int **->> V.table) hash_take;
       "chunks", V.efunc (V.table **-> V.int **->> V.list V.table) hash_chunks;
       "keys", V.efunc (V.table **->> V.list V.value) get_hash_keys;
