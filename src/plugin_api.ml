@@ -904,6 +904,7 @@ struct
       "take", V.efunc (V.table **-> V.int **->> V.table) hash_take;
       "chunks", V.efunc (V.table **-> V.int **->> V.list V.table) hash_chunks;
       "keys", V.efunc (V.table **->> V.list V.value) get_hash_keys;
+      "length", V.efunc (V.table **->> V.int) V.Luahash.length;
     ] g;
 
     C.register_module "Value" [
