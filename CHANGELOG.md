@@ -2,9 +2,14 @@
 
 ## New features and improvements
 
-* [Plugin API] New `Sys.getenv(name, default_value)` function (`default_value` is optional).
-* [Plugin API] New `String.ends_with(string, suffix)`.
-* [Plugin API] New `String.is_valid_utf8(string)` and `String.is_valid_ascii(string)` functions.
+### New plugin API functions
+
+* `Sys.getenv(name, default_value)` function (`default_value` is optional).
+* `String.ends_with(string, suffix)`.
+* `String.is_valid_utf8(string)` and `String.is_valid_ascii(string)` functions.
+* `Table.length(table)` — returns the number of items in a table.
+* `Table.for_all(func, table)` — checks if boolean function `func` is true for all items in a table.
+* `Table.for_any(func, table)` — checks	if boolean function `func` is true for at least one item in a table.
 
 ## Bug fixes
 
