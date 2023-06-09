@@ -418,6 +418,12 @@ module Html = struct
     | None -> None
     | Some node -> Some (to_general node |> Soup.children |> Soup.count)
 
+let is_empty node =
+  let n = child_count node in
+  match n with
+  | None -> None
+  | Some n -> Some (n = 0)
+
   let get_heading_level node =
     let* node = node in
     if not (is_element node) then None else
@@ -774,6 +780,7 @@ struct
         "prepend_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_root;
         "unwrap", V.efunc (V.option Map.html **->> V.unit) Html.unwrap;
         "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
+        "is_empty", V.efunc (V.option Map.html **->> V.option V.bool) Html.is_empty;
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
         "get_headings_tree", V.efunc (V.option Map.html **->> V.list V.value) get_headings_tree;
         "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
