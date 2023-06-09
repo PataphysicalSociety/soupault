@@ -932,6 +932,7 @@ struct
       "chunks", V.efunc (V.table **-> V.int **->> V.list V.table) hash_chunks;
       "keys", V.efunc (V.table **->> V.list V.value) get_hash_keys;
       "length", V.efunc (V.table **->> V.int) V.Luahash.length;
+      "is_empty", V.efunc (V.table **->> V.bool) (fun t -> (V.Luahash.length t) = 0);
     ] g;
 
     C.register_module "Value" [
