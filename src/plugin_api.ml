@@ -957,6 +957,7 @@ struct
                   else t |> V.table.project |> V.Luahash.to_seq |> List.of_seq |>
                             CCList.Assoc.keys |> List.for_all V.int.is);
       "is_nil", V.efunc (V.value **->> V.bool) V.unit.is;
+      "is_html", V.efunc (V.value **->> V.bool) Map.html.is;
     ] g;
   end (* M *)
 end (* MakeLib *)
