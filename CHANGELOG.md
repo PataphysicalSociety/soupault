@@ -12,6 +12,8 @@
 * `Table.for_any(func, table)` — checks	if boolean function `func` is true for at least one item in a table.
 * `Table.is_empty(t)` — returns true if `t` has no items in it.
 * `HTML.is_empty(e)` — returns true if `e` has zero child nodes.
+* `HTML.is_root(e)` — returns true if `e` has no parent node.
+* `HTML.is_document(e)` — returns true if `e` is a soup (document) node rather than an element or a text.
 * `Value.is_html(v)` — returns true is `v` is an HTML document or node.
 
 ## Bug fixes

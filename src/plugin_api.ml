@@ -180,6 +180,14 @@ module Html = struct
     | SoupNode n -> n
     | _ -> plugin_error "Expected an HTML document but found an element or a text node"
 
+  let is_root n =
+    to_general n |> Soup.is_root
+
+  let is_document n =
+    match n with
+    | SoupNode _ -> true
+    | _ -> false
+
   let select soup selector =
     let* soup = soup in
     let* elems =
@@ -782,6 +790,8 @@ struct
         "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
         "is_empty", V.efunc (V.option Map.html **->> V.option V.bool) Html.is_empty;
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
+        "is_root", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_root n);
+        "is_document", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_root n);
         "get_headings_tree", V.efunc (V.option Map.html **->> V.list V.value) get_headings_tree;
         "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
       ] g;
