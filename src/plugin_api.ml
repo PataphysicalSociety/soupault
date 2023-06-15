@@ -943,6 +943,7 @@ struct
       "keys", V.efunc (V.table **->> V.list V.value) get_hash_keys;
       "length", V.efunc (V.table **->> V.int) V.Luahash.length;
       "is_empty", V.efunc (V.table **->> V.bool) (fun t -> (V.Luahash.length t) = 0);
+      "copy", V.efunc (V.table **->> V.table) V.Luahash.copy;
     ] g;
 
     C.register_module "Value" [
