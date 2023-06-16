@@ -1,4 +1,4 @@
-# 4.6.0 (TBD)
+# 4.6.0 (2023-06-16)
 
 ## New features and improvements
 
