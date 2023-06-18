@@ -56,7 +56,7 @@ let make_default_config settings = Printf.sprintf {|
   # for converting them to HTML (see below).
   page_file_extensions = ["htm", "html", "md", "rst", "adoc"]
 
-  # By default, soupault uses "clean ULRs",
+  # By default, soupault uses "clean URLs",
   # that is, $site_dir/page.html is converted to $build_dir/page/index.html
   # You can make it produce $build_dir/page.tml instead by changing this option to false
   clean_urls = true
