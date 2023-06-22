@@ -48,6 +48,7 @@ type index_view = {
   index_processor : index_processor;
   index_view_path_options : path_options;
   index_view_sort_options : sort_options option;
+  max_items : int option;
 }
 
 type index_entry = {

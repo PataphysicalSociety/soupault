@@ -177,6 +177,13 @@ let jingoo_model_of_entry e =
     "json_of_entry returned something else than an object, which must not happen!\nThe value was:\n%s"
     (Ezjsonm.value_to_string j)
 
+(* If the user set [max_items] to limit the number of displayed entries for a view,
+   take that number from the full list. *)
+let take_entries view entries =
+  match view.max_items with
+  | None -> entries
+  | Some n -> CCList.take n entries
+
 (* Renders an index using a Jingoo template.
 
    This rendering had two modes: item template and whole-index template.
@@ -191,6 +198,7 @@ let jingoo_model_of_entry e =
  *)
 let render_index ?(item_template=true) soupault_config view template settings soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
+  let entries = take_entries view entries in
   try
     let () =
       (* Debug output *)

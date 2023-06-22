@@ -307,6 +307,7 @@ let _get_index_view st view_name =
   let selector = OH.find_string st ["index_selector"] in
   let action = OH.find_string_opt st ["action"] in
   let index_processor = _get_index_processor view_name st in
+  let max_items = OH.find_integer_opt ~strict:true st ["max_items"] in
   {
     index_view_name = view_name;
     index_selector = selector;
@@ -314,6 +315,7 @@ let _get_index_view st view_name =
     index_processor = index_processor;
     index_view_path_options = (get_path_options st);
     index_view_sort_options = get_sort_options st;
+    max_items = max_items;
   }
 
 let _get_index_views index_table =
