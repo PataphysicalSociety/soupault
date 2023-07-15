@@ -690,6 +690,37 @@ struct
         let () = Logs.debug @@ fun m -> m "YAML string was:\n %s" ys in
         None
 
+    (* For the CSV module. *)
+
+    let format_csv_error (line, col, msg) =
+      Printf.sprintf "error on line %d, column %d: %s" line col msg
+
+    let make_csv_sep sep =
+      match sep with
+      | None -> ','
+      | Some sep ->
+        if String.length sep > 1 then Printf.ksprintf plugin_error "CSV separator argument must be a single character" else
+        if sep = "" then Printf.ksprintf plugin_error "CSV separator must be a non-empty, single character string" else
+        (* Those checks should be enough to make sure [String.get] is safe to use.
+           If an exception occurs, it's better to have it bubble up to the user for a bug report.
+         *)
+        String.get sep 0
+
+    let csv_from_string csv sep =
+      let sep = make_csv_sep sep in
+      try Csv.of_string ~separator:sep csv |> Csv.input_all
+      with
+      | Csv.Failure (l, c, msg) -> Printf.ksprintf plugin_error "CSV.from_string failed: %s" (format_csv_error (l, c, msg))
+
+    let csv_from_string_unsafe csv sep =
+      let sep = make_csv_sep sep in
+      try Some (Csv.of_string ~separator:sep csv |> Csv.input_all)
+      with
+      | Csv.Failure (l, c, msg) ->
+        let () = Logs.warn @@ fun m -> m "CSV.from_string failed to parse CSV, returning nil: %s" (format_csv_error (l, c, msg)) in
+        let () = Logs.debug @@ fun m -> m "CSV string was:\n%s" csv in
+        None
+
     (* For the Base64 module. *)
 
     let base64_decode s =
@@ -903,6 +934,11 @@ struct
       "unsafe_from_string", V.efunc (V.string **->> V.option V.value) parse_toml_unsafe;
       (* We don't provide printing for TOML either
          because type information loss between TOML and Lua is even worse than with YAML. *)
+    ] g;
+
+    C.register_module "CSV" [
+      "from_string", V.efunc (V.string **-> V.option V.string **->> V.list (V.list V.string)) csv_from_string;
+      "unsafe_from_string", V.efunc (V.string **-> V.option V.string **->> V.option (V.list (V.list V.string))) csv_from_string_unsafe;
     ] g;
 
     C.register_module "Date" [
