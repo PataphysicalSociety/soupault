@@ -42,6 +42,7 @@ depends: [
   "re" {>= "1.9.0"}
   "ezjsonm" {>= "1.2.0"}
   "yaml" {>= "2.0.0"}
+  "csv" {>= "2.4"}
   "containers" {>= "3.9"}
   "odate" {>= "0.6"}
   "spelll" {>= "0.4"}
