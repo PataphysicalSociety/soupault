@@ -721,6 +721,36 @@ struct
         let () = Logs.debug @@ fun m -> m "CSV string was:\n%s" csv in
         None
 
+    let csv_to_table_list csv_data =
+      let convert header row =
+        let row = List.map (fun v -> `String v) row in
+        let kvs =
+          try List.combine header row
+          with Invalid_argument _ ->
+            (* [List.combine] raises [Invalid_argument] when list lengths don't match.
+               That's the only known reason why that function may fail.
+
+               If a row has more fields than the header, obviously that CSV is bad.
+               But that's not the only possible reason.
+
+               The csv library, as of version 2.4, does not attempt to correct rows
+               with fewer fields than the header (i.e., the first row),
+               so missing fields at the end can also cause this error.
+
+               For this reason, we have to use a generic error message,
+               since there are at least two possible causes,
+               and trying to check is probably more trouble than it's worth.
+             *)
+            Printf.ksprintf plugin_error "CSV.to_list_of_tables failed: CSV data appears to have rows that do not match the header."
+        in
+        `O kvs |> lua_of_json
+      in
+      match csv_data with
+      | [] | [_] ->
+        Printf.ksprintf plugin_error "CSV.to_list_of_tables cannot convert data that does not have a header and at least one row"
+      | header :: rows ->
+        List.map (convert header) rows
+
     (* For the Base64 module. *)
 
     let base64_decode s =
@@ -939,6 +969,7 @@ struct
     C.register_module "CSV" [
       "from_string", V.efunc (V.string **-> V.option V.string **->> V.list (V.list V.string)) csv_from_string;
       "unsafe_from_string", V.efunc (V.string **-> V.option V.string **->> V.option (V.list (V.list V.string))) csv_from_string_unsafe;
+      "to_list_of_tables", V.efunc (V.list (V.list V.string) **->> V.list V.value) csv_to_table_list;
     ] g;
 
     C.register_module "Date" [
