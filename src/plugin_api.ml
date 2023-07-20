@@ -463,6 +463,14 @@ struct
       let html = HtmlV.makemap V.userdata V.projection
     end (* Map *)
 
+    (* NB: the main reason why there are so many utility functions inside this [MakeLib] module
+       is that they require functions and types from the module of Lua values [V],
+       and that module doesn't exist outside of the instantiated functor.
+       If this module becomes really huge, maybe this problem can be solved by include,
+       or by a preprocessor.
+       For now, I'm inclined to just tolerate its size.
+     *)
+
     (* For ordered iteration. *)
     let get_hash_keys h = V.Luahash.fold (fun k _ acc -> k :: acc) h [] |> List.sort_uniq compare
 
@@ -537,14 +545,15 @@ struct
         | k :: ks ->
           try
             let v = V.Luahash.find h k in
-            (* If a key exists and its value is a table, look one level deeper. *)
+            (* If the key [k] exists and its value is a table, look one level deeper. *)
             if V.table.is v then aux (V.table.project v) ks
-            (* If a key exists and its value is set to nil, then return nil.
-               Since settings a table member to nil in Lua deletes it,
-               this case is unlikely, but who knows if it's really impossible in Lua-ML?
+            (* If [k] exists and its value is set to [nil], then return [nil].
+               Since setting a table key's value to [nil] in Lua is supposed to delete it, this case is unlikely,
+               but internally [nil] values are possible in Lua-ML (which uses OCaml hash tables internally),
+               so it's better to handle that case. The Lua-ML for [nil] is [V.unit].
              *)
             else if V.unit.is v then v
-            (* If a key exists but its value not a table and it's not the last key in the path,
+            (* If [k] exists but its value is not a table, and it's not the last key in the path,
                the table structure clearly doesn't match plugin author's expectations.
                The best thing to do is to throw an error.
              *)
@@ -554,7 +563,7 @@ struct
             (* If there is no such key, then the path partially does not exist.
                For the purpose of this function that's fine, it's intended to return a value at a path
                only if every nested subtable exists.
-               If not, just return nil to indicate undefined sub-table value.
+               If not, just return [nil] to indicate undefined sub-table.
              *)
             V.unit.embed ()
       in
@@ -583,22 +592,22 @@ struct
       end
 
     let rec value_of_lua v =
-      if V.int.is v then `Float (V.int.project v |> float_of_int)
-      (* Lua's float is a supertype of int, so int "is" a float, and the order of checks is important:
-         if we checked for float first, the int check would never be executed.
+      (* Lua's float is a supertype of int, so int "is" a float, and the order of these checks is important:
+         if we check for float first, the int check will never be executed.
        *)
+      if V.int.is v then `Float (V.int.project v |> float_of_int)
       else if V.float.is v then `Float (V.float.project v)
       else if V.string.is v then `String (V.string.project v)
       else if V.table.is v then project_lua_table v
       else if V.unit.is v then `Null
-      (* Everything in Lua has a truth value, so V.bool.is appears to never fail. *)
+      (* Everything in Lua has a truth value, so [V.bool.is] appears to never fail. *)
       else if V.bool.is v then `Bool (V.bool.project v)
-      (* Not sure if this can actually happen but better have a distinctive error if it does. *)
+      (* Not sure if this can actually happen, but better have a distinctive error if it does. *)
       else internal_error  "Unimplemented Lua to OCaml value projection"
     and project_lua_table t =
       let ts = t |> V.table.project |> V.Luahash.to_seq |> List.of_seq in
       (* In Lua, everything is a table. There are no arrays/lists, only int-indexed tables.
-         However, many things, like nav_path, are logically lists. They are lists before we pass them to Lua,
+         However, many things, like [nav_path], are logically lists. They are lists before we pass them to Lua,
          and it would be nice to have them come back as lists.
 
          This is why we apply a funny heuristic here: if all keys are integers, we ignore the keys
@@ -608,7 +617,7 @@ struct
       let keys = CCList.Assoc.keys ts in
       if List.for_all V.int.is keys then
         (* It's an int-indexed table -- a "list".
-           However, Hashtbl.to_seq doesn't know about its intended order,
+           However, [Hashtbl.to_seq] doesn't know about its intended order (since hash tables are unordered),
            so we need to sort it by keys ourselves.
          *)
         let ts = List.sort (fun (k, _) (k', _) -> compare k k') ts in
@@ -751,7 +760,7 @@ struct
       | header :: rows ->
         List.map (convert header) rows
 
-    (* For the Base64 module. *)
+    (* String utilities. *)
 
     let base64_decode s =
       try Some (Base64.decode_exn s)
@@ -784,6 +793,7 @@ struct
       | _ -> internal_error "project_lua_table returned an unexpected result"
 
     (* Datetime helpers *)
+
     let reformat_date date_string input_formats output_format =
       let (>>=) = Stdlib.Option.bind in
       Utils.parse_date input_formats date_string >>=
@@ -1024,7 +1034,7 @@ struct
       "is_float", V.efunc (V.value **->> V.bool) V.float.is;
       "is_string", V.efunc (V.value **->> V.bool) V.string.is;
       (* There are no true, ordered arrays in Lua,
-         so they have to be fakes with number-indexed tables
+         so they have to be faked with number-indexed tables
          and ordered iteration methods.
          We give the user a way to find out if something is a table (of any kind)
          or an integer-indexed table that can be handled as a list. *)
