@@ -1,4 +1,4 @@
-(** This module mostly provides UTF8 string functions
+(** This module mostly provides UTF-8 string functions
     that support fallback to ASCII for strings that aren't valid UTF-8.
 
     In a sense, it's a home-grown alternative to https://opam.ocaml.org/packages/text/
@@ -14,7 +14,7 @@
     convenient wrappers and automatic fallback to ASCII functions
     for strings that contain invalid UTF-8 sequences.
 
-    It also containes a few more string handling functions —
+    It also contains a few more string handling functions —
     they had to go somewhere, you know. ;)
  *) 
 
@@ -84,7 +84,7 @@ let url_encode ?(exclude_chars=None) s =
 
 (** Decodes percent-encoded URLs.
     Copied from ocaml-uri (https://github.com/mirage/ocaml-uri),
-    distributed under the MIT license.
+    which distributed under the MIT license.
  *)
 let url_decode b =
   let int_of_hex_char c =
