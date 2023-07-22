@@ -7,18 +7,18 @@
  ;(flags (-ccopt -static))
  (libraries
    lambdasoup
-   otoml
    containers
    fileutils
    logs
    logs.fmt
    fmt.tty
-   re
-   odate
-   spelll
+   otoml
    ezjsonm
    yaml
    csv
+   re
+   odate
+   spelll
    jingoo
    base64
    digestif

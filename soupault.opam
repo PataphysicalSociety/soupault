@@ -33,25 +33,25 @@ build: [
 depends: [
   "ocaml" {>= "4.13"}
   "dune" {>= "2.0.0"}
-  "lambdasoup" {>= "1.0.0"}
-  "markup" {>= "1.0.0-1"}
-  "otoml" {>= "1.0.4"}
+  "containers" {>= "3.9"}
   "fileutils" {>= "0.6.3"}
   "logs" {>= "0.7.0"}
   "fmt" {>= "0.8.9"}
-  "re" {>= "1.9.0"}
+  "lambdasoup" {>= "1.0.0"}
+  "markup" {>= "1.0.0-1"}
+  "otoml" {>= "1.0.4"}
   "ezjsonm" {>= "1.2.0"}
   "yaml" {>= "2.0.0"}
   "csv" {>= "2.4"}
-  "containers" {>= "3.9"}
+  "re" {>= "1.9.0"}
   "odate" {>= "0.6"}
   "spelll" {>= "0.4"}
   "base64" {>= "3.0.0"}
   "jingoo" {>= "1.4.2"}
-  "tsort" {>= "2.1.0"}
-  "lua-ml" {>= "0.9.3"}
   "camomile" {>= "2.0.0"}
   "digestif" {>= "0.7.3"}
+  "tsort" {>= "2.1.0"}
+  "lua-ml" {>= "0.9.3"}
 ]
 
 conflicts: [
