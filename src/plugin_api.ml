@@ -421,6 +421,13 @@ module Html = struct
     let node = to_soup node in
     SoupNode (Soup.to_string node |> Soup.parse)
 
+  let wrap node elem =
+    match elem with
+    | ElementNode e ->
+      let n = to_element node in
+      Soup.wrap n e
+    | _ -> plugin_error "HTML.wrap requires an element node as its second argument"
+
   let unwrap node =
     match node with
     | None -> ()
@@ -862,6 +869,7 @@ struct
         "inner_text", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
         "append_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_root;
         "prepend_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_root;
+        "wrap", V.efunc (Map.html **-> Map.html **->> V.unit) Html.wrap;
         "unwrap", V.efunc (V.option Map.html **->> V.unit) Html.unwrap;
         "swap", V.efunc (Map.html **-> Map.html **->> V.unit) Html.swap;
         "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
