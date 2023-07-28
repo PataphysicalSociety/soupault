@@ -369,6 +369,11 @@ module Html = struct
     | None -> ()
     | Some node -> to_general node |> Soup.clear
 
+  let swap l r =
+    match l, r with
+    | ElementNode l, ElementNode r -> Soup.swap l r
+    | _, _ -> plugin_error "HTML.swap requires two element nodes"
+
   let get_tag_name node =
     let* node = node in
     match node with
@@ -858,6 +863,7 @@ struct
         "append_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_root;
         "prepend_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_root;
         "unwrap", V.efunc (V.option Map.html **->> V.unit) Html.unwrap;
+        "swap", V.efunc (Map.html **-> Map.html **->> V.unit) Html.swap;
         "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
         "is_empty", V.efunc (V.option Map.html **->> V.option V.bool) Html.is_empty;
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
