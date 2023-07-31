@@ -19,7 +19,7 @@ let list_plugins config =
   | Some ps' -> ps'
 
 let make_plugin_function lua_source settings config name =
-  let plugin_env_ref = Plugin_api.make_plugin_env () in
+  let plugin_env_ref = Plugin_api.make_lua_hash () in
   Plugin_api.run_plugin settings config name lua_source plugin_env_ref
 
 let rec _load_plugins settings ps config hash =

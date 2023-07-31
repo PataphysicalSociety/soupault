@@ -1175,7 +1175,7 @@ let get_global state name vmap =
   if not (I.Value.(vmap.is) value) then Error (Printf.sprintf "wrong Lua type for variable %s" name)
   else Ok (I.Value.(vmap.project) value)
 
-let make_plugin_env () = ref (I.Value.Table.of_list [] |> I.Value.table.embed)
+let make_lua_hash () = ref (I.Value.Table.of_list [] |> I.Value.table.embed)
 
 let run_lua filename state lua_code =
   try
