@@ -1,3 +1,5 @@
+open Soupault_common
+
 (* Multi-way tree used by the ToC module and the plugin API
    to build a tree of page sections from its headings.
  *)
@@ -54,7 +56,15 @@ let take_section get_level hs =
     if (get_level h) > level then aux hs (h :: section) level
     else section, (h :: hs)
   in match hs with
-  | [] -> failwith "Cannot take any section from an empty list of headings"
+  | [] ->
+    (* Shouldn't happen because [from_list] treats the empty list as its base, non-recursive case,
+       and doesn't call [take_section] in that branch.
+
+       XXX: There may not be any real need for this error, actually.
+       I put it here mainly to catch logic errors and to prevent possible infinite loops
+       that may arise from passing an exhausted list of headings around.
+     *)
+    internal_error "Toc_tree.take_section was called on an empty list of headings, please file a bug report"
   | [h] -> (h, []), []
   | h :: hs ->
     let first_level = get_level h in
@@ -142,8 +152,14 @@ module Path_tree = struct
   let from_list get_level tree hs =
     let rec aux tree hs path =
       match hs with
-      | [] -> tree
+      | [] ->
+        (* All headings are handled or the page has no headings,
+           in any case it's time to terminate. *)
+        tree
       | _ -> begin
+        (* [take_section] is not meant to be called on empty lists,
+           so we only use it in this branch where we are sure
+           that there are headings to handle. *)
         let ((id, h), children), remainder = take_section get_level hs in
         let new_path = path @ [id] in
         let tree = insert tree new_path h in
