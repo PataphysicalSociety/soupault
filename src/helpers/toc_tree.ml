@@ -42,20 +42,21 @@ end
 
    Since there can be any number of <h1> elements,
    we have two possible options: consider all headings children of a virtual root,
-   or treat it as multiple independent trees.
+   or treat them as multiple independent trees.
 
    The latter approach allows for simpler types, since adding a virtual root
-   would require node data to be 'a option _just_ to accomodate the root,
+   would require the node data to be ['a option] _just_ to accomodate the root,
    while all real headings are guaranteed to have non-empty data.
  *)
 let take_section get_level hs =
   let rec aux hs section level =
+    match hs with
+    | [] -> section, []
+    | h :: hs ->
+      if (get_level h) > level then aux hs (h :: section) level
+      else section, (h :: hs)
+  in
   match hs with
-  | [] -> section, []
-  | h :: hs ->
-    if (get_level h) > level then aux hs (h :: section) level
-    else section, (h :: hs)
-  in match hs with
   | [] ->
     (* Shouldn't happen because [from_list] treats the empty list as its base, non-recursive case,
        and doesn't call [take_section] in that branch.
