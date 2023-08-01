@@ -13,6 +13,9 @@ open Soupault_common
 module OH = Otoml.Helpers
 module I = Plugin_api.I
 
+exception Hook_error of string
+let hook_error msg = raise (Hook_error msg)
+
 let lua_of_toml = Plugin_api.lua_of_toml
 
 (* Auxilliary functions *)
@@ -294,14 +297,14 @@ let run_post_save_hook settings soupault_config hook_config file_name lua_code e
 
 let run_lua_index_processor soupault_config index_view_config view_name file_name lua_code env soup =
   let page_from_lua p =
-    let page_json = match Plugin_api.json_of_lua p with Ok p -> p | Error msg -> failwith msg in
+    let page_json = match Plugin_api.json_of_lua p with Ok p -> p | Error msg -> hook_error msg in
     match page_json with
     | `O [("page_file", `String page_file);
           ("page_content", `String page_content)] ->
        let nav_path = File_path.split_path (FilePath.dirname page_file) |> CCList.drop 1 in
        {page_file_path=page_file; page_content=(Some page_content); page_nav_path=nav_path}
     | _ ->
-      failwith {|generated page must be a table with fields "page_file" (string) and "page_content" (string)|}
+      hook_error {|generated page must be a table with fields "page_file" (string) and "page_content" (string)|}
   in
   let open Defaults in
   let lua_str = I.Value.string in
@@ -337,4 +340,4 @@ let run_lua_index_processor soupault_config index_view_config view_name file_nam
   let res = I.getglobal state (I.Value.string.embed "pages") in
   if not (table_list.is res) then Error "Index processor has not assigned a list of tables to the pages variable" else
   try Ok ((I.Value.list I.Value.value).project res |> List.map page_from_lua)
-  with Failure msg -> Error (Printf.sprintf "Index processor generated a page incorrectly: %s" msg)
+  with Hook_error msg -> Error (Printf.sprintf "Index processor generated a page incorrectly: %s" msg)

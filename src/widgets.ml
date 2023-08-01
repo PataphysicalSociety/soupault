@@ -4,6 +4,8 @@ module OH = Otoml.Helpers
 
 open Defaults
 
+exception Widget_error of string
+
 type 'a widget = {
   config: Otoml.t;
   func: Defaults.env -> Otoml.t -> 'a Soup.node -> (unit, string) result
@@ -61,7 +63,7 @@ let rec _load_widgets settings config plugins ws hash =
   | w :: ws' ->
     let widget_config = get_widget_config config w in
     let name = OH.find_string_opt widget_config ["widget"] in
-    let fail msg = Printf.ksprintf failwith "Error in [widgets.%s]: %s" w msg in
+    let fail msg = raise @@ Widget_error (Printf.sprintf "Error in [widgets.%s]: %s" w msg) in
     begin
       match name with
       | None -> fail {|missing required option widget="<some widget>"|}
@@ -145,7 +147,7 @@ let load_widgets settings config plugins =
     try
       let () = _load_widgets settings config plugins ws widgets_hash in
       Ok widgets_hash
-    with Failure msg -> Error msg
+    with Widget_error msg -> Error msg
 
 let get_widgets settings config plugins index_deps =
   let (let*) = Stdlib.Result.bind in

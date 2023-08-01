@@ -128,12 +128,13 @@ end
 
 module Plugin_version = struct
   let require_version vstr =
-    try
-     let res = Version.require_version vstr in
-     if res then () else
-     let msg = Printf.sprintf "Plugin requires soupault %s or newer, current version is %s" vstr Defaults.version_string in
-     raise (Plugin_error msg)
-    with Failure msg ->
+    let res = Version.require_version vstr in
+    match res with
+    | Ok r ->
+      if r then ()
+      else Printf.ksprintf plugin_error "Plugin requires soupault %s or newer, current version is %s"
+        vstr Defaults.version_string
+    | Error msg ->
       plugin_error @@ Printf.sprintf "Plugin.require_version failed: %s" msg
 end
 
@@ -787,10 +788,11 @@ struct
         None
 
     let url_encode s exclude_chars =
+      let exception Bad_char of string in
       let chars_of_strings ss =
         try List.map (fun s -> if ((String.length s) = 1) then s.[0]
-                               else failwith @@ Printf.sprintf {|String "%s" does not represent a character|} s) ss
-        with Failure msg -> plugin_error @@ Printf.sprintf "String.url_encode got an incorrect chars argument: %s" msg
+                               else raise @@ Bad_char (Printf.sprintf {|String "%s" does not represent a character|} s)) ss
+        with Bad_char msg -> plugin_error @@ Printf.sprintf "String.url_encode got an incorrect chars argument: %s" msg
       in
       let exclude_chars = Option.bind exclude_chars (fun ss -> Some (chars_of_strings ss)) in
       Text.url_encode ~exclude_chars:exclude_chars s

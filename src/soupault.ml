@@ -819,20 +819,23 @@ let check_version settings =
   match settings.soupault_version with
   | None -> ()
   | Some v ->
-    try
-      let res = Version.require_version v in
-      if res then () else begin
+    let res = Version.require_version v in
+    match res with
+    | Ok r ->
+      if r then ()
+      else begin
         Printf.printf "According to settings.soupault_version, this configuration file is for soupault %s\n" v;
         Printf.printf "You are running soupault version %s, older than required\n" Defaults.version_string;
         Printf.printf "To proceed, upgrade soupault to at least %s, or (at your own risk) \
-          remove the soupault_version option from your configuration\n" v;
+        remove the soupault_version option from your configuration\n" v;
         exit 1
       end
-    with Failure msg -> begin
-      Printf.printf "Could not check configuration compatibility with running soupault version: %s\n" msg;
-      print_endline "Maybe your settings.soupault_version option is malformed?\n";
-      exit 1
-    end
+    | Error msg ->
+      begin
+        Printf.printf "Could not check configuration compatibility with running soupault version: %s\n" msg;
+        print_endline "Maybe your settings.soupault_version option is malformed?\n";
+        exit 1
+      end
 
 let process_page_files index_hash widgets hooks config settings files =
   Utils.fold_left_result

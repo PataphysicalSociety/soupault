@@ -1,3 +1,5 @@
+open Soupault_common
+
 module OH = Otoml.Helpers
 
 let (>>=) = Option.bind
@@ -10,7 +12,7 @@ let get_plugin_config config plugin =
   | None ->
     (* This function is, or should be used only with plugin names already
        retrieved from the config *)
-   failwith @@ Printf.sprintf "Trying to lookup a non-existent plugin %s" plugin
+    Printf.ksprintf internal_error "Trying to lookup a non-existent plugin %s" plugin
 
 let list_plugins config =
   let ps = Config.find_table_opt [Defaults.plugins_table] config >>= (fun x -> Some (Otoml.list_table_keys x)) in

@@ -39,6 +39,6 @@ let require_version vstr =
   let required_version = version_of_string vstr in
   match required_version with
   | Ok required_version ->
-    (compare_versions current_version required_version) >= 0
-  | Error msg -> failwith msg
+    Ok ((compare_versions current_version required_version) >= 0)
+  | (Error _) as err -> err
 
