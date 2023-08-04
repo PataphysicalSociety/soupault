@@ -33,7 +33,7 @@ let check_breadcrumb_template tmpl_str =
   try let _ = Template.of_string tmpl_str in Ok ()
   with _ -> Error "Failed to parse breadcrumb template (consult Jingoo documentation for a syntax reference)"
 
-let breadcrumbs env config soup =
+let breadcrumbs _ env config soup =
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
   let () = Config.check_options valid_options config {|widget "breadcrumbs"|} in

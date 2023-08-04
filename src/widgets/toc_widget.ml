@@ -155,7 +155,7 @@ let rec _make_toc settings depth counter parent tree =
     else Soup.append_child parent container;
     List.iter (_make_toc settings (depth + 1) counter container) children
 
-let toc _ config soup =
+let toc _ _ config soup =
   let valid_options = List.append Config.common_widget_options [
     (* General options *)
     "selector"; "action"; "strip_tags";

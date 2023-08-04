@@ -11,7 +11,7 @@ let html_of_string ?(parse=true) ?(body_context=true) html_str =
 
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
-let insert_html _ config soup =
+let insert_html _ _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "insert_html"|} in
   let selector = get_selectors config in
@@ -34,7 +34,7 @@ let insert_html _ config soup =
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
-let include_file _ config soup =
+let include_file _ _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "include"|} in
   let selector = get_selectors config in
@@ -66,7 +66,7 @@ let make_program_env env =
   [| page_file; page_url; target_dir |]
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
-let include_program_output env config soup =
+let include_program_output _ env config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "exec"|} in
   let selector = get_selectors config in
@@ -99,7 +99,7 @@ let make_node_env node =
 (** Runs the [command] using the text of the element that matches the
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
-let preprocess_element env config soup =
+let preprocess_element _ env config soup =
   let run_command env command action parse body_context node =
     let input = Html_utils.inner_html ~escape_html:false node in
     let cached_result = Cache.get_cached_object env.settings env.page_file command input in

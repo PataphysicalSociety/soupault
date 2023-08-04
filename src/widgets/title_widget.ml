@@ -1,7 +1,7 @@
 let (>>=) = Option.bind
 
 (* Title *)
-let set_title _ config soup =
+let set_title _ _ config soup =
   let make_title_string default prepend append title_opt =
     (* If title is not given, return the default title
        without appending or prepending anything, since that would look weird *)

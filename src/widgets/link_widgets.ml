@@ -275,7 +275,7 @@ let absolutize_link_target prefix check_file env only_regex exclude_regex target
    String.concat "/" [parent_path; target]
 
 (** Converts all internal links to relative according to the page's location in the directory tree. *)
-let relative_links env config soup =
+let relative_links _ env config soup =
   let valid_options = List.append Config.common_widget_options ["exclude_target_regex"; "only_target_regex"; "check_file"] in
   let () = Config.check_options valid_options config {|widget "relative_links"|} in
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
@@ -297,7 +297,7 @@ let relative_links env config soup =
   end
 
 (** Converts all internal links to absolute. *)
-let absolute_links env config soup =
+let absolute_links _ env config soup =
   let valid_options = List.append Config.common_widget_options
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
   in

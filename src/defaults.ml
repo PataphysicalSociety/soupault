@@ -219,6 +219,10 @@ type settings = {
   soupault_version : string option;
 }
 
+type state = {
+  global_data : Ezjsonm.value ref;
+}
+
 type env = {
   nav_path : string list;
   page_file : string;

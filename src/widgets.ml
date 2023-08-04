@@ -8,7 +8,7 @@ exception Widget_error of string
 
 type 'a widget = {
   config: Otoml.t;
-  func: Defaults.env -> Otoml.t -> 'a Soup.node -> (unit, string) result
+  func: Defaults.state -> Defaults.env -> Otoml.t -> 'a Soup.node -> (unit, string) result
 }
 
 (* The widgets datastructure is a widget priority list plus a hash with actual widgets *)

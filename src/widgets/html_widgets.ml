@@ -7,7 +7,7 @@ open Widget_utils
 let (let*) = Stdlib.Result.bind
 
 (** Deletes an element from the tree *)
-let delete_element _ config soup =
+let delete_element _ _ config soup =
   let valid_options = List.append Config.common_widget_options ["selector"; "only_if_empty"; "delete_all"] in
   let () = Config.check_options valid_options config {|widget "delete_element"|} in
   let selector = Config.find_string_result config ["selector"] in
@@ -34,7 +34,7 @@ let delete_element _ config soup =
     Ok ()
 
 (** Wraps elements matching certain selectors into an HTML snippet. *)
-let wrap _ config soup =
+let wrap _ _ config soup =
   let wrap_elem s w e =
     let w_soup = Soup.parse w in
     (* XXX: This is a rather inelegant dirty hack.
