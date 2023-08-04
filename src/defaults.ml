@@ -221,6 +221,15 @@ type settings = {
 
 type state = {
   global_data : Ezjsonm.value ref;
+
+  (* This field allows plugins to determine if it's the first, index-extraction only pass
+     or the second, full rendering pass.
+
+     * 0 — when [index.index_first] is false.
+     * 1 — on the first pass (indexing only, no page rendering)
+     * 2 — on the second pass (full rendering)
+   *)
+  soupault_pass : int;
 }
 
 type env = {

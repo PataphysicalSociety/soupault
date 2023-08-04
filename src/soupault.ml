@@ -926,6 +926,13 @@ let main cli_options =
     let* config, widgets, hooks, settings = initialize cli_options in
     let state = {
       global_data = (ref (`O []));
+
+      (* If [settings.index_first] is true,
+         this field will be set to 2 on the second, full rendering pass.
+         If it's false, it stays at 0 to indicate that the two-pass workflow
+         is not enabled.
+       *)
+      soupault_pass = (if not settings.index_first then 0 else 1);
     }
     in
     let () =
@@ -978,6 +985,12 @@ let main cli_options =
         (* Sort entries according to the global settings so that widgets that use index data
            don't have to sort it themselves. *)
         let* index = Autoindex.sort_entries settings settings.index_sort_options index in
+        (* Set the soupault_pass variable to 2 to indicate that the second pass has begun,
+           so that plugins know they can rely on the complete index or global data
+           generated during the first pass.
+         *)
+        let state = {state with soupault_pass=2} in
+        (* Import the extracted index data into the random-access hash. *)
         let () = import_index_hash index_hash index in
        (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
            content pages and section index pages should be treated the same.

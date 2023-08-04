@@ -1253,6 +1253,7 @@ let run_plugin settings soupault_config filename lua_code plugin_env_ref soupaul
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
+      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       (* Restore the persistent data from previous plugin runs *)
       "persistent_data", plugin_env;
       (* Inject the global state data. *)
