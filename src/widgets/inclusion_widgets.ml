@@ -66,7 +66,8 @@ let make_program_env env =
   [| page_file; page_url; target_dir |]
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
-let include_program_output _ env config soup =
+let include_program_output state env config soup =
+  let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "exec"|} in
   let selector = get_selectors config in
@@ -84,7 +85,7 @@ let include_program_output _ env config soup =
       | Some container ->
         let env_array = make_program_env env in
         let* cmd = Config.find_string_result config ["command"] in
-        let* content = Process_utils.get_program_output ~env:env_array ~debug:env.settings.debug cmd in
+        let* content = Process_utils.get_program_output ~env:env_array ~debug:settings.debug cmd in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
         Ok (Html_utils.insert_element action container content)
     end
@@ -99,10 +100,11 @@ let make_node_env node =
 (** Runs the [command] using the text of the element that matches the
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
-let preprocess_element _ env config soup =
+let preprocess_element state env config soup =
+  let settings = state.soupault_settings in
   let run_command env command action parse body_context node =
     let input = Html_utils.inner_html ~escape_html:false node in
-    let cached_result = Cache.get_cached_object env.settings env.page_file command input in
+    let cached_result = Cache.get_cached_object settings env.page_file command input in
     match cached_result with
     | Some output ->
       let () = Logs.info @@ fun m -> m {|The result of executing command "%s" was found in cache|} command in
@@ -114,11 +116,11 @@ let preprocess_element _ env config soup =
       let node_env = make_node_env node in
       let program_env = make_program_env env in
       let env_array = Array.append program_env node_env in
-      let result = Process_utils.get_program_output ~input:(Some input) ~env:env_array ~debug:env.settings.debug command in
+      let result = Process_utils.get_program_output ~input:(Some input) ~env:env_array ~debug:settings.debug command in
       begin
         match result with
         | Ok output ->
-          let () = Cache.cache_object env.settings env.page_file command input output in
+          let () = Cache.cache_object settings env.page_file command input output in
           let content = html_of_string ~parse:parse ~body_context:body_context output in
           let () = Html_utils.insert_element action node content in
           Ok ()

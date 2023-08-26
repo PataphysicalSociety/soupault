@@ -282,7 +282,9 @@ let get_sort_options settings view =
       sort_strict = redefine l.sort_strict r.sort_strict;
     }
   
-let insert_index env soupault_config soup view =
+let insert_index soupault_state env soup view =
+  let settings = soupault_state.soupault_settings in
+  let soupault_config = soupault_state.soupault_config in
  let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
@@ -293,30 +295,31 @@ let insert_index env soupault_config soup view =
     begin
       let () = Logs.info @@ fun m -> m {|Rendering index view "%s" on page %s|} view.index_view_name env.page_file in
       let (let*) = Result.bind in
-      let index = List.filter (view_includes_page env.settings env.page_file view) env.site_index in
-      let* index = sort_entries env.settings (get_sort_options env.settings view) index in
+      let index = List.filter (view_includes_page settings env.page_file view) env.site_index in
+      let* index = sort_entries settings (get_sort_options settings view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl ->
-        let* () = render_index soupault_config view tmpl env.settings ic index in Ok []
+        let* () = render_index soupault_config view tmpl settings ic index in Ok []
       | Defaults.IndexTemplate tmpl ->
-        let* () = render_index ~item_template:false soupault_config view tmpl env.settings ic index in Ok []
+        let* () = render_index ~item_template:false soupault_config view tmpl settings ic index in Ok []
       | Defaults.ExternalIndexer cmd ->
         let* () = run_index_processor view cmd ic index in Ok []
       | Defaults.LuaIndexer (file_name, lua_code) ->
         let index_view_config = Otoml.find soupault_config Otoml.get_table ["index"; "views"; view.index_view_name] |> Otoml.table in
         (* Give the Lua index processor a filtered index view rather than the original full version. *)
         let env = {env with site_index=index} in
-        Hooks.run_lua_index_processor soupault_config index_view_config view.index_view_name file_name lua_code env soup
+        Hooks.run_lua_index_processor soupault_state index_view_config view.index_view_name file_name lua_code env soup
     end
 
-let insert_indices env soupault_config soup =
+let insert_indices soupault_state env soup =
   let (let*) = Result.bind in
-  let insert_index_get_pages env soupault_config soup acc view =
-    let* pages = insert_index env soupault_config soup view in
+  let settings = soupault_state.soupault_settings in
+  let insert_index_get_pages soupault_state env soup acc view =
+    let* pages = insert_index soupault_state env soup view in
     Ok (List.append pages acc)
   in
-  Utils.fold_left_result ~ignore_errors:(not env.settings.strict)
-    (insert_index_get_pages env soupault_config soup) [] env.settings.index_views
+  Utils.fold_left_result ~ignore_errors:(not settings.strict)
+    (insert_index_get_pages soupault_state env soup) [] settings.index_views
 
 let index_extraction_should_run settings page_file =
   (* If this option is true, this is a second pass and we don't need to extract anything

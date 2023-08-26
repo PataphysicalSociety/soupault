@@ -1179,9 +1179,9 @@ let get_global state name vmap =
 
 let make_lua_hash () = ref (I.Value.Table.of_list [] |> I.Value.table.embed)
 
-let run_lua filename state lua_code =
+let run_lua lua_state filename lua_code =
   try
-    let _ = I.dostring ~file:filename state lua_code in
+    let _ = I.dostring ~file:filename lua_state lua_code in
     Ok ()
   with
   | Failure msg -> Error (Printf.sprintf "Lua code execution failed:\n%s" msg)
@@ -1208,8 +1208,8 @@ let run_lua filename state lua_code =
       global data will need to be passed between plugins written in different languages,
       and we'll have to embed it into the target interpreter every time anyway.
  *)
-let extract_global_data state =
-  let gd = get_global state "global_data" I.Value.value in
+let extract_global_data lua_state =
+  let gd = get_global lua_state "global_data" I.Value.value in
   match gd with
   | Error msg -> Printf.ksprintf plugin_error "Cannot extract the global_data table: %s" msg
   | Ok data -> begin
@@ -1231,12 +1231,13 @@ let extract_global_data state =
       | Ok j -> j
     end
 
-let run_plugin settings soupault_config filename lua_code plugin_env_ref soupault_state env widget_config soup =
+let run_plugin filename lua_code plugin_env_ref soupault_state env widget_config soup =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
   let plugin_env = !plugin_env_ref in
-  let state = I.mk () in
+  let lua_state = I.mk () in
+  let settings = soupault_state.soupault_settings in
   let () =
     (* Set up the built-in plugin environment *)
     I.register_globals [
@@ -1249,7 +1250,7 @@ let run_plugin settings soupault_config filename lua_code plugin_env_ref soupaul
       "site_index", lua_of_json (Utils.json_of_index_entries env.site_index);
       "config", lua_of_toml widget_config;
       "widget_config", lua_of_toml widget_config;
-      "soupault_config", lua_of_toml soupault_config;
+      "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
@@ -1258,15 +1259,15 @@ let run_plugin settings soupault_config filename lua_code plugin_env_ref soupaul
       "persistent_data", plugin_env;
       (* Inject the global state data. *)
       "global_data", lua_of_json !(soupault_state.global_data)
-    ] state
+    ] lua_state
   in
-  let res = run_lua filename state lua_code in
+  let res = run_lua lua_state filename lua_code in
   (* NOTE: here we save the modified global data whether the plugin execution succeeded or not.
      Plugins certainly can produce useful data before failing,
      there's a plugin API function to signal an error,
      and the user can choose to ignore page processing errors with [settings.strict = false].
      So, it's probably wrong to discard the data if a plugin produces any before it fails.
    *)
-  let global_data = extract_global_data state in
+  let global_data = extract_global_data lua_state in
   let () = soupault_state.global_data := global_data in
   res

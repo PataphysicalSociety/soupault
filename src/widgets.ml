@@ -56,12 +56,15 @@ let add_widget hash name widget_func widget_config =
   let widget_rec = {config=widget_config; func=widget_func} in
   Hashtbl.add hash name widget_rec
 
-(* The real widget loading function *)
-let rec _load_widgets settings config plugins ws hash =
+(* The underlying widget loading function.
+   It raises [Widget_error] to escape from the loading loop,
+   and thus shouldn't be used directly -- there's a result'y wrapper below it.
+ *)
+let rec _load_widgets settings soupault_config plugins ws hash =
   match ws with
   | [] -> ()
   | w :: ws' ->
-    let widget_config = get_widget_config config w in
+    let widget_config = get_widget_config soupault_config w in
     let name = OH.find_string_opt widget_config ["widget"] in
     let fail msg = raise @@ Widget_error (Printf.sprintf "Error in [widgets.%s]: %s" w msg) in
     begin
@@ -91,17 +94,25 @@ let rec _load_widgets settings config plugins ws hash =
                     with Sys_error msg ->
                       fail @@ Printf.sprintf {|Could not read plugin file that provides widget "%s": %s|} name msg
                   in
-                  let () = Hashtbl.add plugins name (Plugins.make_plugin_function lua_source settings config name) in
+                  let () = Hashtbl.add plugins name (Plugins.make_plugin_function name lua_source) in
                   let () = Logs.debug @@ fun m -> m "Widget %s is loaded from plugin file %s" name plugin_file in
                   let () = add_widget hash w (find_widget plugins name |> Option.get) widget_config in
-                   _load_widgets settings config plugins ws' hash
+                   _load_widgets settings soupault_config plugins ws' hash
             end
           | Some wf ->
             let () = add_widget hash w wf widget_config in
-            _load_widgets settings config plugins ws' hash
+            _load_widgets settings soupault_config plugins ws' hash
         end
     end
 
+(* Result'y wrapper for _load_widgets *)
+let load_widgets settings soupault_config plugins =
+  let ws = list_widgets soupault_config in
+  let widgets_hash = Hashtbl.create 1024 in
+  try
+    let () = _load_widgets settings soupault_config plugins ws widgets_hash in
+    Ok widgets_hash
+  with Widget_error msg -> Error msg
 
 let get_widget_order hash =
   let format_bad_deps ds =
@@ -136,23 +147,10 @@ let partition_widgets all_widgets index_deps =
     | _ as ds, []  -> Error (Printf.sprintf "Index extraction depends on non-existent widgets: %s" (String.concat " " ds))
   in aux index_deps [] all_widgets
 
-
-(* The monadic wrapping for it *)
-let load_widgets settings config plugins =
-  let widgets_hash = Hashtbl.create 1024 in
-  match config with
-  | None -> Ok widgets_hash
-  | Some config ->
-    let ws = list_widgets config in
-    try
-      let () = _load_widgets settings config plugins ws widgets_hash in
-      Ok widgets_hash
-    with Widget_error msg -> Error msg
-
-let get_widgets settings config plugins index_deps =
+let get_widgets settings soupault_config plugins index_deps =
   let (let*) = Stdlib.Result.bind in
   let () = Logs.info @@ fun m -> m "Loading widgets" in
-  let* wh = load_widgets settings config plugins in
+  let* wh = load_widgets settings soupault_config plugins in
   let* wo = get_widget_order wh in
   let* before_index, after_index = partition_widgets wo index_deps in
   let () =

@@ -220,6 +220,12 @@ type settings = {
 }
 
 type state = {
+  soupault_settings: settings;
+  soupault_config: Otoml.t;
+
+  (* A variable accessible to all plugins
+     that can be used to share data between them.
+   *)
   global_data : Ezjsonm.value ref;
 
   (* This field allows plugins to determine if it's the first, index-extraction only pass
@@ -240,7 +246,6 @@ type env = {
   target_file : string;
   site_index : index_entry list;
   site_index_hash : (string, index_entry) Hashtbl.t;
-  settings : settings;
 }
 
 let config_file = "soupault.toml"
