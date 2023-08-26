@@ -127,9 +127,10 @@ let compare_entries settings sort_options l r =
     match v with
     | Some _ -> v
     | None ->
+      let sort_by = (match sort_options.sort_by with None -> "url" | Some by -> Printf.sprintf {|sort_by="%s"|} by) in
       if sort_options.sort_strict then Printf.ksprintf soupault_error
-        "Cannot sort entries using sort_by=\"%s\": value \"%s\" could not be parsed as %s. The offending entry is:\n%s"
-        (Option.get sort_options.sort_by) (Option.value ~default:"null" orig) type_name
+        "Cannot sort entries using %s: value \"%s\" could not be parsed as %s. The offending entry is:\n%s"
+        sort_by (Option.value ~default:"null" orig) type_name
         (e |> json_of_entry |> Ezjsonm.to_string ~minify:false)
       else v
   in
