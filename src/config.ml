@@ -13,6 +13,12 @@ let required_option res =
   | Ok v -> v
   | Error msg -> config_error msg
 
+(* A helper for unwrapping result values. *)
+let of_result base_msg value =
+  match value with
+  | Ok v -> v
+  | Error msg -> config_error @@ Printf.sprintf "%s: %s" base_msg msg
+
 (* For internal use, to avoid re-raising Config_error *)
 exception Index_view_error of string
 let index_view_error err = raise (Index_view_error err)
