@@ -214,6 +214,8 @@ type settings = {
 
   force : bool;
 
+  page_character_encoding : Markup.Encoding.t;
+
   pretty_print_html : bool;
 
   soupault_version : string option;
@@ -333,6 +335,9 @@ let default_settings = {
   cache_dir = ".soupault-cache";
 
   force = false;
+
+  page_character_encoding = Markup.Encoding.utf_8;
+
   pretty_print_html = true;
 
   soupault_version = None;

@@ -9,9 +9,8 @@ include Soupault_common
   lambdasoup doesn't provide a context-aware parsing function, so we turn to lower level
   Markup.ml for that.
  *)
-let parse_html ?(body=true) str =
-  let context = if body then `Fragment "body" else `Fragment "head" in
-  Markup.string str |> Markup.parse_html ~context:context |> Markup.signals |> Soup.from_signals
+let parse_html ?context ?(encoding=Markup.Encoding.utf_8) str =
+  Markup.string str |> Markup.parse_html ?context:context ~encoding:encoding |> Markup.signals |> Soup.from_signals
 
 (* Result-aware element selection functions *)
 let wrap_select f selector soup =

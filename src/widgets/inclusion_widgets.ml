@@ -3,15 +3,17 @@ open Widget_utils
 
 let (let*) = Stdlib.Result.bind
 
-let html_of_string ?(parse=true) ?(body_context=true) html_str =
-  if parse then Html_utils.parse_html ~body:body_context html_str |> Soup.coerce
+let html_of_string ?(parse=true) ?(body_context=true) settings html_str =
+  let context = if body_context then `Fragment "body" else `Fragment "head" in
+  if parse then Html_utils.parse_html ~context:context ~encoding:settings.page_character_encoding html_str |> Soup.coerce
   else Soup.create_text html_str
 
 (** Widgets that include external resources into the page *)
 
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
-let insert_html _ _ config soup =
+let insert_html state _ config soup =
+  let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "insert_html"|} in
   let selector = get_selectors config in
@@ -28,13 +30,14 @@ let insert_html _ _ config soup =
         let () = no_container_action selector in Ok ()
       | Some container ->
         let* html_str = Config.find_string_result config ["html"] in
-        let content = html_of_string ~parse:parse_content ~body_context:html_body_context html_str in
+        let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings html_str in
         Ok (Html_utils.insert_element action container content)
     end
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
-let include_file _ _ config soup =
+let include_file state _ config soup =
+  let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "include"|} in
   let selector = get_selectors config in
@@ -52,7 +55,7 @@ let include_file _ _ config soup =
       | Some container ->
         let* file = Config.find_string_result config ["file"] in
         let* content = Utils.read_file file in
-        let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
+        let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings content in
         Ok (Html_utils.insert_element action container content)
     end
 
@@ -86,7 +89,7 @@ let include_program_output state env config soup =
         let env_array = make_program_env env in
         let* cmd = Config.find_string_result config ["command"] in
         let* content = Process_utils.get_program_output ~env:env_array ~debug:settings.debug cmd in
-        let content = html_of_string ~parse:parse_content ~body_context:html_body_context content in
+        let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings content in
         Ok (Html_utils.insert_element action container content)
     end
 
@@ -108,7 +111,7 @@ let preprocess_element state env config soup =
     match cached_result with
     | Some output ->
       let () = Logs.info @@ fun m -> m {|The result of executing command "%s" was found in cache|} command in
-      let content = html_of_string ~parse:parse ~body_context:body_context output in
+      let content = html_of_string ~parse:parse ~body_context:body_context settings output in
       let () = Html_utils.insert_element action node content in
       Ok ()
     | None ->
@@ -121,7 +124,7 @@ let preprocess_element state env config soup =
         match result with
         | Ok output ->
           let () = Cache.cache_object settings env.page_file command input output in
-          let content = html_of_string ~parse:parse ~body_context:body_context output in
+          let content = html_of_string ~parse:parse ~body_context:body_context settings output in
           let () = Html_utils.insert_element action node content in
           Ok ()
         | (Error _) as e -> e

@@ -421,6 +421,7 @@ let valid_settings = [
   "complete_page_selector"; "generator_mode"; "process_pages_first";
   "plugin_dirs"; "plugin_discovery";
   "force"; "caching"; "cache_dir";
+  "page_character_encoding";
   "pretty_print_html";
   "soupault_version";
 ]
@@ -463,6 +464,12 @@ let _update_settings settings config =
        cache_dir = find_string_or ~default:settings.cache_dir st ["cache_dir"];
 
        force = find_bool_or ~default:settings.force st ["force"];
+
+       page_character_encoding =
+         find_string_or ~default:"utf-8" st ["page_character_encoding"] |>
+         Utils.encoding_of_string |>
+         of_result "Incorrect value for page_character_endcoding:";
+
        pretty_print_html = find_bool_or ~default:settings.pretty_print_html st ["pretty_print_html"];
 
        soupault_version = OH.find_string_opt st ["soupault_version"];

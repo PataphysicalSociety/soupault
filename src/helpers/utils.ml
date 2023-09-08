@@ -130,7 +130,6 @@ let format_date fmt date =
   | None -> soupault_error (Printf.sprintf {|Date format "%s" is invalid|} fmt)
   | Some printer -> ODate.Unix.To.string printer date
 
-
 (* TOML/JSON convertors *)
 
 let string_of_float f =
@@ -236,3 +235,23 @@ let deprecation_warning f opt msg config =
   match value with
   | None -> ()
   | Some _ -> Logs.warn @@ fun m -> m "Deprecated option %s: %s" opt msg
+
+(* Converts a string encoding name to Markup's internal encoding type. *)
+let encoding_of_string name =
+  let open Markup.Encoding in
+  let name = String.lowercase_ascii name in
+  match name with
+  | "ascii" -> Ok us_ascii
+  | "iso-8859-1" -> Ok iso_8859_1
+  | "windows-1251" -> Ok windows_1251
+  | "windows-1252" -> Ok windows_1252
+  | "utf-8" -> Ok utf_8
+  | "utf-16" -> Ok utf_16
+  | "utf-16le" -> Ok utf_16le
+  | "utf-16be" -> Ok utf_16be
+  | _ ->
+    (* Markup has UTF-32 support as well, and I'm happy to add it,
+       if anyone ever asks for it.
+     *)
+    Error (Printf.sprintf "unsupported character encoding %s" name)
+
