@@ -249,9 +249,9 @@ let encoding_of_string name =
   | "utf-16" -> Ok utf_16
   | "utf-16le" -> Ok utf_16le
   | "utf-16be" -> Ok utf_16be
+  | "utf-32le" -> Ok ucs_4le
+  | "utf-32be" -> Ok ucs_4be
+  | "ebcdic" -> Ok ebcdic
   | _ ->
-    (* Markup has UTF-32 support as well, and I'm happy to add it,
-       if anyone ever asks for it.
-     *)
     Error (Printf.sprintf "unsupported character encoding %s" name)
 
