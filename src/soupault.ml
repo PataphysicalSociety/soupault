@@ -197,7 +197,6 @@ let load_html state hooks page_file =
   match pre_parse_hook with
   | Some (file_name, source_code, hook_config) ->
     if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
-      let () = Logs.info @@ fun m -> m {|Running the "pre-parse" hook on page %s|} page_file in
       Hooks.run_pre_parse_hook state hook_config file_name source_code page_file page_source
     else Ok page_source
   | None -> Ok page_source
@@ -272,7 +271,6 @@ let render_html state hooks env soup =
     if not (Hooks.hook_should_run settings hook_config "render" env.page_file)
     then Ok (render_html_builtin settings soup)
     else
-      let () = Logs.info @@ fun m -> m {|Running the "render" hook on page %s|} env.page_file in
       let* page_source = Hooks.run_render_hook state hook_config file_name source_code env soup in
       Ok page_source
   | None -> Ok (render_html_builtin settings soup)
@@ -444,7 +442,6 @@ let extract_metadata state hooks env html =
     if not (Hooks.hook_should_run settings hook_config "post-index" env.page_file) then (Ok (Some entry)) else
     (* Let the post-index hook update the fields *)
     let* index_fields =
-      let () = Logs.info @@ fun m -> m {|Running the "post-index" hook on page %s|} env.page_file in
       Hooks.run_post_index_hook state hook_config file_name source_code env html entry.fields
     in
     Ok (Some {entry with fields=index_fields})
@@ -458,7 +455,6 @@ let run_pre_process_hook state hooks page_file target_dir target_file content =
     if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
     then Ok (target_dir, target_file, content)
     else
-      let () = Logs.info @@ fun m -> m {|Running the "pre-process" hook on page %s|} page_file in
       Hooks.run_pre_process_hook
         state hook_config file_name source_code page_file target_dir target_file content
   | None -> Ok (target_dir, target_file, content)
