@@ -17,6 +17,7 @@ exception Hook_error of string
 let hook_error msg = raise (Hook_error msg)
 
 let lua_of_toml = Plugin_api.lua_of_toml
+let lua_of_json = Plugin_api.lua_of_json
 
 (* Auxilliary functions *)
 
@@ -26,7 +27,7 @@ let hook_types = [
   "post-index";
   "render";
   "save";
-  "post-save"
+  "post-save";
 ]
 
 (* Checks if the user didn't try to add hooks of non-existent types.
@@ -113,12 +114,14 @@ let run_pre_parse_hook soupault_state hook_config file_name lua_code page_file p
       "hook_config", lua_of_toml hook_config;
       "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
-      "site_dir", lua_str.embed settings.site_dir
+      "site_dir", lua_str.embed settings.site_dir;
+      "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the pre-parse hook on page %s" page_file in
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   let res = I.getglobal lua_state (I.Value.string.embed "page_source") in
   if I.Value.string.is res then Ok (I.Value.string.project res)
   else Error "pre-parse hook has not assigned a string to the page_source variable"
@@ -145,12 +148,14 @@ let run_pre_process_hook soupault_state hook_config file_name lua_code page_file
       "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
+      "site_dir", lua_str.embed settings.site_dir;
+      "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the pre-process hook on page %s" page_file in
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   let* target_file = Plugin_api.get_global lua_state "target_file" I.Value.string in
   let* target_dir = Plugin_api.get_global lua_state "target_dir" I.Value.string in
   Ok (target_dir, target_file, soup)
@@ -196,11 +201,13 @@ let run_post_index_hook soupault_state hook_config file_name lua_code env soup f
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
+      "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the post-index hook on page %s" env.page_file in
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   let index_fields = I.getglobal lua_state (I.Value.string.embed "index_fields") in
   if not (I.Value.table.is index_fields) then
     Error "post-index hook has not assigned a table to the index_fields variable"
@@ -242,12 +249,14 @@ let run_render_hook soupault_state hook_config file_name lua_code env soup =
       "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
+      "site_dir", lua_str.embed settings.site_dir;
+      "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the render hook on page %s" env.page_file in
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   let res = I.getglobal lua_state (I.Value.string.embed "page_source") in
   if I.Value.string.is res then Ok (I.Value.string.project res)
   else Error "render hook has not assigned a string to the page_source variable"
@@ -270,11 +279,15 @@ let run_save_hook soupault_state hook_config file_name lua_code env page_source 
       "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
+      "site_dir", lua_str.embed settings.site_dir;
+      "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
+  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the save hook on page %s" env.page_file in
-  Plugin_api.run_lua lua_state file_name lua_code
+  let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
+  Ok ()
 
 let run_post_save_hook soupault_state hook_config file_name lua_code env =
   let open Defaults in
@@ -293,11 +306,15 @@ let run_post_save_hook soupault_state hook_config file_name lua_code env =
       "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
+      "site_dir", lua_str.embed settings.site_dir;
+      "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
+  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the post-save hook on page %s" env.page_file in
-  Plugin_api.run_lua lua_state file_name lua_code
+  let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
+  Ok ()
 
 (* Lua index processors aren't actually hooks but their execution process is similar. *)
 
@@ -331,7 +348,8 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
       "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
-      "site_dir", lua_str.embed settings.site_dir
+      "site_dir", lua_str.embed settings.site_dir;
+      "global_data", lua_of_json !(soupault_state.global_data);
      ] lua_state;
     (* Set the output variable [pages] to an empty list by default,
        so that index processors that don't create pagination or taxonomies
@@ -344,6 +362,7 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
     file_name view_name env.page_file
   in
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   let res = I.getglobal lua_state (I.Value.string.embed "pages") in
   if not (table_list.is res) then Error "Index processor has not assigned a list of tables to the pages variable" else
   try Ok ((I.Value.list I.Value.value).project res |> List.map page_from_lua)
