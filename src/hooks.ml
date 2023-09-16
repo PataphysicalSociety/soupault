@@ -28,6 +28,7 @@ let hook_types = [
   "render";
   "save";
   "post-save";
+  "post-build";
 ]
 
 (* Checks if the user didn't try to add hooks of non-existent types.
@@ -315,6 +316,35 @@ let run_post_save_hook soupault_state hook_config file_name lua_code env =
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
   let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   Ok ()
+
+let run_post_build_hook soupault_state hooks =
+  let open Defaults in
+  let hook = Hashtbl.find_opt hooks "post-build" in
+  match hook with
+  | None -> Ok ()
+  | Some (file_name, source_code, hook_config) ->
+    let lua_str = I.Value.string in
+    let lua_state = I.mk () in
+    let settings = soupault_state.soupault_settings in
+    let () =
+      (* Set up the hook environment *)
+      I.register_globals [
+        "config", lua_of_toml hook_config;
+        "hook_config", lua_of_toml hook_config;
+        "soupault_config", lua_of_toml soupault_state.soupault_config;
+        "force", I.Value.bool.embed settings.force;
+        "build_dir", lua_str.embed settings.build_dir;
+        "site_dir", lua_str.embed settings.site_dir;
+        "global_data", lua_of_json !(soupault_state.global_data);
+      ] lua_state
+    in
+    let () = Logs.info @@ fun m -> m "Running the post-build hook" in
+    (* Since this hook runs just before soupault finishes its work and exits,
+       there's no reason to update the global data variable --
+       there's no plugin code to run that could use it at that point.
+     *)
+    Plugin_api.run_lua lua_state file_name source_code
+
 
 (* Lua index processors aren't actually hooks but their execution process is similar. *)
 
