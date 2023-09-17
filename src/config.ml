@@ -546,7 +546,8 @@ let inject_options settings config =
       inject_option ["settings"; "plugin_discovery"] (boolean settings.plugin_discovery) |>
       inject_option ["settings"; "plugin_dirs"] (array @@ List.map string settings.plugin_dirs) |>
       inject_option ["settings"; "caching"] (boolean settings.caching) |>
-      inject_option ["settings"; "cache_dir"] (string settings.cache_dir)
+      inject_option ["settings"; "cache_dir"] (string settings.cache_dir) |>
+      inject_option ["settings"; "page_character_encoding"] (settings.page_character_encoding |> Utils.string_of_encoding |> string)
   in
   let inject_default_index_settings settings config =
       inject_option ["index"; "index"] (boolean settings.index) config |>

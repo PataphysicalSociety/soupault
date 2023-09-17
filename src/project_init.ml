@@ -121,6 +121,10 @@ let make_default_config settings = Printf.sprintf {|
   # It's disabled by default but you can enable it and configure the cache directory name/path
   caching = false
   cache_dir = ".soupault-cache"
+
+  # Soupault supports a variety of page source character encodings,
+  # the default encoding is UTF-8
+  page_character_encoding = "utf-8"
 |}
 
 Defaults.version_string settings.site_dir settings.build_dir

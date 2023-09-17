@@ -255,3 +255,22 @@ let encoding_of_string name =
   | _ ->
     Error (Printf.sprintf "unsupported character encoding %s" name)
 
+let string_of_encoding enc =
+  (* XXX: as of Markup.ml 1.0.3, encodings are not data constructors
+          but variables of an abstract defined inside a module,
+          so physical equality check is the only option.
+   *)
+  let open Markup.Encoding in
+  if enc == us_ascii then "ascii"
+  else if enc == iso_8859_1 then "iso-8859-1"
+  else if enc == windows_1251 then "windows-1251"
+  else if enc == windows_1252 then "windows-1252"
+  else if enc == utf_8 then "utf-8"
+  else if enc == utf_16 then "utf-16"
+  else if enc == utf_16le then  "utf-16le"
+  else if enc == utf_16be then "utf-16be"
+  else if enc == ucs_4le then "utf-32le"
+  else if enc == ucs_4be then "utf-32be"
+  else if enc == ebcdic then "ebcdic"
+  (* Should not happen. *)
+  else internal_error {|Unrecognized page character encoding!|}
