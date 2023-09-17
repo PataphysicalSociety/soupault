@@ -3,6 +3,8 @@
 ## New features and improvements
 
 * New `max_items` option in index views allows limiting the number of displayed items.
+* New `settings.page_character_encoding` option for correctly loading pages in encodings other than ASCII and UTF-8.
+* New `post-build` hook that runs when all pages are processed and soupault is about to terminate.
 * Info logs to indicate the first and second passes in the `index_first = true` mode.
 * Debug logs now tell why a page is included or excluded from an index view: `"page_included checks for %s: regex=%b, page=%b, section=%b"`
 
@@ -24,8 +26,7 @@
 ## Misc
 
 New `state` record now holds both the settings record and the TOML config datastructure,
-plus the new `global_data` and `soupault_pass` variables, and can be easily extended
-to support new pieced of the global state if necessary.
+plus the new `global_data` and `soupault_pass` variables, and can be easily extended to support global state new variables.
 
 # 4.6.0 (2023-06-16)
 
