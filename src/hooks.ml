@@ -323,7 +323,7 @@ let run_post_save_hook soupault_state hook_config file_name lua_code env =
   let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   Ok ()
 
-let run_post_build_hook soupault_state hooks =
+let run_post_build_hook soupault_state site_index hooks =
   let open Defaults in
   let hook = Hashtbl.find_opt hooks "post-build" in
   match hook with
@@ -342,6 +342,7 @@ let run_post_build_hook soupault_state hooks =
         "build_dir", lua_str.embed settings.build_dir;
         "site_dir", lua_str.embed settings.site_dir;
         "global_data", lua_of_json !(soupault_state.global_data);
+        "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries site_index);
       ] lua_state
     in
     let () = Logs.info @@ fun m -> m "Running the post-build hook" in
