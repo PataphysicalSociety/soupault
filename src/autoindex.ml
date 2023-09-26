@@ -285,7 +285,7 @@ let get_sort_options settings view =
 let insert_index soupault_state env soup view =
   let settings = soupault_state.soupault_settings in
   let soupault_config = soupault_state.soupault_config in
- let index_container = Soup.select_one view.index_selector soup in
+  let index_container = Soup.select_one view.index_selector soup in
   match index_container with
   | None ->
     let () = Logs.debug @@ fun m -> m {|Page "%s" doesn't have an element matching selector "%s", ignoring index view "%s"|}
