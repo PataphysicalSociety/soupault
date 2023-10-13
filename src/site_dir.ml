@@ -12,7 +12,10 @@ let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
 let remove_ignored_files settings files =
-  let ignored settings file = Utils.any_in_list settings.ignore_extensions (File_path.get_extensions file) in
+  let ignored settings file =
+    (Utils.any_in_list settings.ignore_extensions (File_path.get_extensions file)) ||
+    (List.exists (fun r -> Regex_utils.Public.matches ~regex:r file) settings.ignore_path_regexes)
+  in
   List.filter (fun f -> not (ignored settings f)) files
 
 let list_section_files settings path =
