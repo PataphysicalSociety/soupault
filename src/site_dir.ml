@@ -62,6 +62,8 @@ let split_pages settings ps =
 let get_site_files settings =
   let rec aux path nav_path =
     let dirs = FU.ls path |> FU.filter FU.Is_dir in
+    (* Remove ignored dirs *)
+    let dirs = List.filter (fun d -> not (Utils.in_list (FP.basename d) settings.ignore_directories)) dirs in
     let section_page_files, section_asset_files = list_section_files settings path in
     let section_page_files, section_index_files = split_pages settings section_page_files in
     (* Attach the nav path to each file. Target dir and page URL are generated from it *)

@@ -118,6 +118,7 @@ type settings = {
   (* Files to ignore completely. *)
   ignore_extensions : string list;
   ignore_path_regexes: string list;
+  ignore_directories: string list;
 
   (* Extensions to keep intact when generating pages from content files.
      That's for people who want to use Markdown etc. _without_ also using clean URLs,
@@ -299,6 +300,7 @@ let default_settings = {
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
   ignore_extensions = [];
   ignore_path_regexes = [];
+  ignore_directories = [];
   default_extension = "html";
   keep_extensions = ["html"; "htm"];
   complete_page_selector = "html";

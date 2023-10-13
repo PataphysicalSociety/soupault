@@ -418,7 +418,7 @@ let valid_settings = [
   "index_page"; "index_file";
   "clean_urls"; "page_file_extensions";
   "ignore_extensions"; "default_extension"; "keep_extensions";
-  "ignore_path_regexes";
+  "ignore_path_regexes"; "ignore_directories";
   "complete_page_selector"; "generator_mode"; "process_pages_first";
   "plugin_dirs"; "plugin_discovery";
   "force"; "caching"; "cache_dir";
@@ -453,6 +453,7 @@ let _update_settings settings config =
        page_extensions = find_strings_or ~default:settings.page_extensions st ["page_file_extensions"];
        ignore_extensions = find_strings_or ~default:[] st ["ignore_extensions"];
        ignore_path_regexes = find_strings_or ~default:[] st ["ignore_path_regexes"];
+       ignore_directories = find_strings_or ~default:[] st ["ignore_directories"];
        keep_extensions = find_strings_or ~default:settings.keep_extensions st ["keep_extensions"];
        default_extension = find_string_or ~default:settings.default_extension st ["default_extension"];
        complete_page_selector = find_string_or ~default:settings.complete_page_selector st ["complete_page_selector"];
@@ -541,6 +542,7 @@ let inject_options settings config =
       inject_option ["settings"; "page_file_extensions"] (array @@ List.map string settings.page_extensions) |>
       inject_option ["settings"; "ignore_extensions"] (array []) |>
       inject_option ["settings"; "ignore_path_regexes"] (array []) |>
+      inject_option ["settings"; "ignore_directories"] (array []) |>
       inject_option ["settings"; "default_extension"] (string settings.default_extension) |>
       inject_option ["settings"; "keep_extensions"] (array @@ List.map string settings.keep_extensions) |>
       inject_option ["settings"; "complete_page_selector"] (string settings.complete_page_selector) |>
