@@ -409,6 +409,12 @@ module Html = struct
     | None -> ""
     | Some node -> to_general node |> Html_utils.inner_html
 
+  let inner_text node =
+    match node with
+    | None -> ""
+    | Some node ->
+      to_general node |> Soup.texts |> String.concat " "
+
   let strip_tags node =
     match node with
     | None -> ""
@@ -865,6 +871,7 @@ struct
         "delete", V.efunc (V.option Map.html **->> V.unit) Html.delete;
         "delete_element", V.efunc (V.option Map.html **->> V.unit) Html.delete;
         "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
+        "inner_text", V.efunc (V.option Map.html **->> V.string) Html.inner_text;
         "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
         "clone_document", V.efunc (Map.html **->> Map.html) Html.clone_page;
         "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
