@@ -1,3 +1,14 @@
+# 4.8.9 (TBD)
+
+## New features and improvements
+
+* `site_index` is now available to the post-build hook,
+* New options for ignoring certain paths in the sire dir: `settings.ignore_path_regexes` and `settings.ignore_directories`
+
+### New plugin API functions
+
+* `HTML.inner_text()` — returns the text nodes from inside a node, stripped of all HTML tags.
+
 # 4.7.0 (2023-09-19)
 
 ## New features and improvements
