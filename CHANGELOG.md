@@ -1,9 +1,9 @@
-# 4.8.9 (TBD)
+# 4.8.0 (2023-11-04)
 
 ## New features and improvements
 
-* `site_index` is now available to the post-build hook,
-* New options for ignoring certain paths in the sire dir: `settings.ignore_path_regexes` and `settings.ignore_directories`
+* `site_index` is now available to the post-build hook.
+* New options for ignoring certain paths in the sire dir: `settings.ignore_path_regexes` and `settings.ignore_directories`.
 
 ### New plugin API functions
 
