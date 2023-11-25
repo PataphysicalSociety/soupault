@@ -95,6 +95,13 @@ let get_hooks config =
 
 (* Hook functions *)
 
+(* A helper function to get the index entry for the current page from the index hash *)
+let get_index_entry_json env =
+  let index_entry = Hashtbl.find_opt env.site_index_hash env.page_file in
+  match index_entry with
+  | None -> `Null
+  | Some ie -> Utils.json_of_index_entry ie
+
 (* pre-parse hook runs just after the page source is loaded from a file or received from a preprocessor
    and before it's parsed into an HTML element tree.
 
@@ -229,15 +236,7 @@ let run_render_hook soupault_state hook_config file_name lua_code env soup =
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
   let settings = soupault_state.soupault_settings in
-  (* Get the index entry for the current page from the index hash *)
-  let index_entry_json =
-    begin
-      let index_entry = Hashtbl.find_opt env.site_index_hash env.page_file in
-      match index_entry with
-      | None -> `Null
-      | Some ie -> Utils.json_of_index_entry ie
-    end
-  in
+  let index_entry_json = get_index_entry_json env in
   let () =
     (* Set up the hook environment *)
     I.register_globals [
@@ -270,6 +269,7 @@ let run_save_hook soupault_state hook_config file_name lua_code env page_source 
   let open Defaults in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
+  let index_entry_json = get_index_entry_json env in
   let settings = soupault_state.soupault_settings in
    let () =
     (* Set up the hook environment *)
@@ -277,6 +277,8 @@ let run_save_hook soupault_state hook_config file_name lua_code env page_source 
       "page_source", lua_str.embed page_source;
       "page_file", lua_str.embed env.page_file;
       "page_url", lua_str.embed env.page_url;
+      "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index);
+      "index_entry", Plugin_api.lua_of_json index_entry_json;
       "target_file", lua_str.embed env.target_file;
       "target_dir", lua_str.embed env.target_dir;
       "config", lua_of_toml hook_config;
@@ -299,12 +301,15 @@ let run_post_save_hook soupault_state hook_config file_name lua_code env =
   let open Defaults in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
+  let index_entry_json = get_index_entry_json env in
   let settings = soupault_state.soupault_settings in
    let () =
     (* Set up the hook environment *)
     I.register_globals [
       "page_file", lua_str.embed env.page_file;
       "page_url", lua_str.embed env.page_url;
+      "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index);
+      "index_entry", Plugin_api.lua_of_json index_entry_json;
       "target_file", lua_str.embed env.target_file;
       "target_dir", lua_str.embed env.target_dir;
       "config", lua_of_toml hook_config;
@@ -370,6 +375,7 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
   let lua_str = I.Value.string in
   let table_list = I.Value.list I.Value.table in
   let lua_state = I.mk () in
+  let index_entry_json = get_index_entry_json env in
   let settings = soupault_state.soupault_settings in
   let () =
     (* Set up index processor environment *)
@@ -377,6 +383,7 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
       "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
       "page_url", lua_str.embed env.page_url;
       "site_index", Plugin_api.lua_of_json (Utils.json_of_index_entries env.site_index);
+      "index_entry", Plugin_api.lua_of_json index_entry_json;
       "page_file", lua_str.embed env.page_file;
       "target_file", lua_str.embed env.target_file;
       "target_dir", lua_str.embed env.target_dir;

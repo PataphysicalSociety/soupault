@@ -1,8 +1,9 @@
-# 4.8.0 (2023-11-04)
+# 4.8.0 (TBD)
 
 ## New features and improvements
 
-* `site_index` is now available to the post-build hook.
+* `site_index` variable is now available to the post-build hook.
+* `index_entry` variable (the site index entry for the current page) is now available to save and post-save hooks and to Lua index processors.
 * New options for ignoring certain paths in the sire dir: `settings.ignore_path_regexes` and `settings.ignore_directories`.
 
 ### New plugin API functions
