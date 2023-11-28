@@ -175,7 +175,7 @@ let run_pre_process_hook soupault_state hook_config file_name lua_code page_file
    It has access to the page element tree and also to extracted index fields
    and can modify both.
  *)
-let run_post_index_hook soupault_state hook_config file_name lua_code env soup fields =
+let run_post_index_hook soupault_state hook_config file_name lua_code env soup entry =
   let assoc_of_json j =
     (* This function handles values projected from Lua,
        and Lua doesn't have a distinction between arrays/lists and tables:
@@ -198,13 +198,15 @@ let run_post_index_hook soupault_state hook_config file_name lua_code env soup f
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
   let settings = soupault_state.soupault_settings in
-   let () =
+  let index_entry_json =  Utils.json_of_index_entry entry in
+  let () =
     (* Set up the post-index hook environment *)
     I.register_globals [
       "page", Plugin_api.lua_of_soup (Plugin_api.Html.SoupNode soup);
       "page_url", lua_str.embed env.page_url;
       "page_file", lua_str.embed env.page_file;
-      "index_fields", Plugin_api.lua_of_json (`O fields);
+      "index_entry", Plugin_api.lua_of_json index_entry_json;
+      "index_fields", Plugin_api.lua_of_json (`O entry.fields);
       "config", lua_of_toml hook_config;
       "hook_config", lua_of_toml hook_config;
       "soupault_config", lua_of_toml soupault_state.soupault_config;
@@ -213,18 +215,25 @@ let run_post_index_hook soupault_state hook_config file_name lua_code env soup f
       "site_dir", lua_str.embed settings.site_dir;
       "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
+      "ignore_page", I.Value.bool.embed false;
     ] lua_state
   in
   let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the post-index hook on page %s" env.page_file in
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
   let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
+  (* XXX: The assumption is that there's no way to completely unset a global
+          in the Lua interpreter we are using,
+          so if we added [ignore_page] to globals, retrieving it will never cause errors,
+          and that projection to a bool will never fail either.
+   *)
+  let ignore_page = I.getglobal lua_state (I.Value.string.embed "ignore_page") |> I.Value.bool.project in
   let index_fields = I.getglobal lua_state (I.Value.string.embed "index_fields") in
   if not (I.Value.table.is index_fields) then
     Error "post-index hook has not assigned a table to the index_fields variable"
   else
     let* fields = Plugin_api.json_of_lua index_fields in
-    Ok (assoc_of_json fields)
+    Ok (ignore_page, (assoc_of_json fields))
 
 (* render hook replaces the normal page rendering process.
 

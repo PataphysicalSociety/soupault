@@ -434,18 +434,21 @@ let make_page_url settings nav_path orig_path target_dir page_file =
 let extract_metadata state hooks env html =
   (* Metadata is only extracted from non-index pages *)
   let settings = state.soupault_settings in
-  if not (Autoindex.index_extraction_should_run settings env.page_file) then (Ok None) else
+  if not (Autoindex.index_extraction_should_run settings env.page_file) then (Ok (false, None)) else
   let entry = Autoindex.get_entry settings env html in
   let post_index_hook = Hashtbl.find_opt hooks "post-index" in
   match post_index_hook with
   | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "post-index" env.page_file) then (Ok (Some entry)) else
-    (* Let the post-index hook update the fields *)
-    let* index_fields =
-      Hooks.run_post_index_hook state hook_config file_name source_code env html entry.fields
+    if not (Hooks.hook_should_run settings hook_config "post-index" env.page_file) then (Ok (false, (Some entry))) else
+    (* Let the post-index hook update the fields.
+       It can also set a special [ignore_page] variable to tell soupault to exclude the page
+       from indexing and any further processing.
+     *)
+    let* (ignore_page, index_fields) =
+      Hooks.run_post_index_hook state hook_config file_name source_code env html entry
     in
-    Ok (Some {entry with fields=index_fields})
-  | None -> Ok (Some entry)
+    Ok (ignore_page, (Some {entry with fields=index_fields}))
+  | None -> Ok (false, (Some entry))
 
 let run_pre_process_hook state hooks page_file target_dir target_file content =
   let settings = state.soupault_settings in
@@ -531,15 +534,26 @@ let process_page state page_data index index_hash widgets hooks =
   let before_index, after_index, widget_hash = widgets in
   let* () = process_widgets state env before_index widget_hash html in
   (* Index extraction *)
-  let* index_entry = extract_metadata state hooks env html in
-  if settings.index_only then Ok (index_entry, new_pages) else
-  let* () = process_widgets state env after_index widget_hash html in
-  let* () = mkdir target_dir in
-  let* html_str = render_html state hooks env html in
-  let* () = save_html state hooks env html_str in
-  (* Finally, run the post-save hook. *)
-  let* () = run_post_save_hook state hooks env in
-  Ok (index_entry, new_pages)
+  let* (ignore_page, index_entry) = extract_metadata state hooks env html in
+  (* If the render hook told us to ignore the page, pretend it did not exist:
+     return None for the index entry and do not save to disk.
+   *)
+  if ignore_page then
+    begin
+      let () = Logs.info @@ fun m -> m "Ignoring page %s according to post-index hook instructions" page_file in
+      Ok (None, [])
+    end
+  else
+    begin
+      if settings.index_only then Ok (index_entry, new_pages) else
+      let* () = mkdir target_dir in
+      let* () = process_widgets state env after_index widget_hash html in
+      let* html_str = render_html state hooks env html in
+      let* () = save_html state hooks env html_str in
+      (* Finally, run the post-save hook. *)
+      let* () = run_post_save_hook state hooks env in
+      Ok (index_entry, new_pages)
+    end
 
 (* Monadic wrapper for process_page that can either return or ignore errors  *)
 let process_page state index index_hash widgets hooks page_data =
