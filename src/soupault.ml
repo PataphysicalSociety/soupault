@@ -201,11 +201,12 @@ let load_html state hooks page_file =
     else Ok page_source
   | None -> Ok page_source
 
-let parse_html settings page_source =
+let parse_html ?(fragment=true) settings page_source =
   (* As of lambdasoup 0.7.2, Soup.parse never fails, only returns empty element trees,
      so there's no need to handle errors here.
    *)
-  Ok (Html_utils.parse_html ~encoding:settings.page_character_encoding  page_source)
+  let context = if fragment then (`Fragment "body") else `Document in
+  Ok (Html_utils.parse_html ~context:context ~encoding:settings.page_character_encoding  page_source)
 
 (* The built-in HTML rendering function that is used when the "render" hook is not configured. *)
 let render_html_builtin settings soup =
@@ -501,7 +502,11 @@ let process_page state page_data index index_hash widgets hooks =
       let () = Cache.refresh_page_cache settings page_file content in
       Ok content
   in
-  let* content = parse_html settings page_source in
+  (* If we are in generator mode, tell the parser to interpret pages
+     as HTML fragments that will go inside <body>,
+     otherwise treat them as documents. *)
+  let fragment = if settings.generator_mode then true else false in
+  let* content = parse_html ~fragment:fragment settings page_source in
   let page_name = FP.basename page_file |> FP.chop_extension in
   let orig_path = nav_path in
   let nav_path = fix_nav_path settings nav_path page_name in
