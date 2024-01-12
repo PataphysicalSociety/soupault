@@ -1,14 +1,19 @@
-# 4.8.0 (TBD)
+# 4.8.0 (2024-01-12)
 
 ## New features and improvements
 
 * `site_index` variable is now available to the post-build hook.
-* `index_entry` variable (the site index entry for the current page) is now available to save and post-save hooks and to Lua index processors.
+* `index_entry` variable (the complete site index entry for the current page) is now available to post-index, save and post-save hooks and to Lua index processors.
 * New options for ignoring certain paths in the sire dir: `settings.ignore_path_regexes` and `settings.ignore_directories`.
 
 ### New plugin API functions
 
 * `HTML.inner_text()` — returns the text nodes from inside a node, stripped of all HTML tags.
+
+## Bug fixes
+
+* In generator mode, page files are parsed as HTML fragments so  `<style>` tags and similar no longer call issues
+  with duplicate  `<body>` tag inserted in the page (#58, report by Delan Azabani).
 
 # 4.7.0 (2023-09-19)
 
