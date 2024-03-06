@@ -1004,6 +1004,15 @@ struct
       "to_list_of_tables", V.efunc (V.list (V.list V.string) **->> V.list V.value) csv_to_table_list;
     ] g;
 
+    C.register_module "Digest" [
+      "md5", V.efunc (V.string **->> V.string) Hash.md5;
+      "sha1", V.efunc (V.string **->> V.string) Hash.sha1;
+      "sha256", V.efunc (V.string **->> V.string) Hash.sha256;
+      "sha512", V.efunc (V.string **->> V.string) Hash.sha512;
+      "blake2s", V.efunc (V.string **->> V.string) Hash.blake2s;
+      "blake2b", V.efunc (V.string **->> V.string) Hash.blake2b;
+    ] g;
+
     C.register_module "Date" [
       "reformat", V.efunc (V.string **-> V.list V.string **-> V.string **->> V.option V.string) reformat_date;
       "to_timestamp", V.efunc (V.string **-> V.list V.string **->> V.option V.int) to_timestamp;
