@@ -19,10 +19,7 @@ open Defaults
    and also because almost no one uses it — and I like to be contrarian,
    at least when it doesn't harm anyone else. ;)
  *)
-let hash_sum s =
-  let ctx = Digestif.BLAKE2S.empty in
-  let ctx = Digestif.BLAKE2S.feed_string ctx s in
-  Digestif.BLAKE2S.get ctx |> Digestif.BLAKE2S.to_hex
+let hash_sum = Hash.blake2s
 
 let read_file path =
   try Soup.read_file path
