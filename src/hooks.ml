@@ -22,6 +22,7 @@ let lua_of_json = Plugin_api.lua_of_json
 (* Auxilliary functions *)
 
 let hook_types = [
+  "startup";
   "pre-parse";
   "pre-process";
   "post-index";
@@ -336,6 +337,43 @@ let run_post_save_hook soupault_state hook_config file_name lua_code env =
   let* () = Plugin_api.run_lua lua_state file_name lua_code in
   let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
   Ok ()
+
+(** These two hooks are executed only once rather than for every page:
+    before the first page is processed and after the last page is processed. *)
+
+(* pre-parse hook runs just after the page source is loaded from a file or received from a preprocessor
+   and before it's parsed into an HTML element tree.
+
+   It only has access to the page source, not an element tree.
+   It is free to modify the [page_source] variable that contains the page source.
+ *)
+
+let run_startup_hook soupault_state hooks =
+  let open Defaults in
+  let hook = Hashtbl.find_opt hooks "startup" in
+  match hook with
+  | None -> Ok ()
+  | Some (file_name, source_code, hook_config) ->
+    let lua_str = I.Value.string in
+    let lua_state = I.mk () in
+    let settings = soupault_state.soupault_settings in
+    let () =
+      (* Set up the hook environment *)
+      I.register_globals [
+        "config", lua_of_toml hook_config;
+        "hook_config", lua_of_toml hook_config;
+        "soupault_config", lua_of_toml soupault_state.soupault_config;
+        "force", I.Value.bool.embed settings.force;
+        "site_dir", lua_str.embed settings.site_dir;
+        "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
+        "global_data", lua_of_json !(soupault_state.global_data);
+      ] lua_state
+    in
+    let (let*) = Result.bind in
+    let () = Logs.info @@ fun m -> m "Running the startup hook" in
+    let* () = Plugin_api.run_lua lua_state file_name source_code in
+    let () = soupault_state.global_data := (Plugin_api.extract_global_data lua_state) in
+    Ok()
 
 let run_post_build_hook soupault_state site_index hooks =
   let open Defaults in
