@@ -941,7 +941,9 @@ struct
        "split_path_unix", V.efunc (V.string **->> V.list V.string) File_path.split_path_unix;
        "split_path_url", V.efunc (V.string **->> V.list V.string) File_path.split_path_unix;
        "basename_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.basename;
+       "basename_url", V.efunc (V.string **->> V.string) FilePath.UnixPath.basename;
        "dirname_unix", V.efunc (V.string **->> V.string) FilePath.UnixPath.dirname;
+       "dirname_url", V.efunc (V.string **->> V.string) FilePath.UnixPath.dirname;
         (* Operations with file extensions. *)
        "get_extension", V.efunc (V.string **->> V.string) Sys_wrappers.get_extension;
        "get_extensions", V.efunc (V.string **->> V.list V.string) Sys_wrappers.get_extensions;
