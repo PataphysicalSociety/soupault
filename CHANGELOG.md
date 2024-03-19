@@ -1,3 +1,25 @@
+# 4.9.0 (2024-03-19)
+
+## New features and improvements
+
+* New `startup` hook that runs before soupault processes any pages and can modify the `global_data` variable.
+
+### New plugin API functions
+
+New `Digest` module offers functions for calculating cryptographic hash sums of strings.
+All those functions return hex digests.
+
+* `Digest.md5(str)`
+* `Digest.sha1(str)`
+* `Digest.sha256(str)`
+* `Digest.sha512(str)`
+* `Digest.blake2s(str)`
+* `Digest.blake2b(str)`
+
+Other new functions:
+
+* `Sys.basename_url(str)` and `Sys.dirname_url(str)` — aliases for `Sys.basename_unix` and `Sys.dirname_unix`, respectively.
+
 # 4.8.0 (2024-01-12)
 
 ## New features and improvements

@@ -347,7 +347,7 @@ let default_settings = {
   soupault_version = None;
 }
 
-let version = (4, 8, 0, None)
+let version = (4, 9, 0, None)
 
 let version_to_string v =
   let major, minor, patch, suffix = v in
