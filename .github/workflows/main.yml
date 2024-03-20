@@ -39,7 +39,7 @@ jobs:
         eval $(opam env)
         dune build
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: soupault
         path: _build/default/src/soupault.exe
