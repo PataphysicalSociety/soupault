@@ -63,7 +63,7 @@ For support and discussion, write a message to the [mailing list](https://lists.
 # Installation
 
 Pre-built binaries are available for Linux, Windows, and macOS. You can download them from https://files.baturin.org/software/soupault
-and from Github releases (https://github.com/dmbaturin/soupault/releases).
+and from Github releases (https://github.com/PataphysicalSociety/soupault/releases).
 
 You can verify release archive integrity using this signify/minisign key: `RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy`.
 
