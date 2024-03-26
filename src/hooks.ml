@@ -5,6 +5,14 @@
    This module also has code for executing Lua index processors, which are configured differently
    but their internal execution process is very similar.
 
+   To add a new hook:
+
+   1. Add its name to [hook_types]
+      It's important for config validation.
+      NOTE: the order of the [hook_types] list doesn't matter,
+            but it's better keep it sorted in the hook execution order to avoid confusuion.
+   2. Add a hook function to this module.
+   3. Call that function from an appropriate place in src/soupault.ml or elsewhere.
  *)
 
 open Defaults
@@ -13,14 +21,7 @@ open Soupault_common
 module OH = Otoml.Helpers
 module I = Plugin_api.I
 
-exception Hook_error of string
-let hook_error msg = raise (Hook_error msg)
-
-let lua_of_toml = Plugin_api.lua_of_toml
-let lua_of_json = Plugin_api.lua_of_json
-
-(* Auxilliary functions *)
-
+(* The exhaustive list of valid hook names, for config validation purposes. *)
 let hook_types = [
   "startup";
   "pre-parse";
@@ -31,6 +32,16 @@ let hook_types = [
   "post-save";
   "post-build";
 ]
+
+(* Auxilliary functions *)
+
+exception Hook_error of string
+let hook_error msg = raise (Hook_error msg)
+
+let lua_of_toml = Plugin_api.lua_of_toml
+let lua_of_json = Plugin_api.lua_of_json
+
+(* Auxilliary functions *)
 
 (* Checks if the user didn't try to add hooks of non-existent types.
    The set of hooks is fixed and their names must be from the [hook_types] list.
@@ -400,7 +411,7 @@ let run_post_build_hook soupault_state site_index hooks =
     let () = Logs.info @@ fun m -> m "Running the post-build hook" in
     (* Since this hook runs just before soupault finishes its work and exits,
        there's no reason to update the global data variable --
-       there's no plugin code to run that could use it at that point.
+       there's no plugin code left to run that could use it at that point.
      *)
     Plugin_api.run_lua lua_state file_name source_code
 
