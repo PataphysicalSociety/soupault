@@ -12,6 +12,10 @@ include Soupault_common
 let parse_html ?context ?(encoding=Markup.Encoding.utf_8) str =
   Markup.string str |> Markup.parse_html ?context:context ~encoding:encoding |> Markup.signals |> Soup.from_signals
 
+(* An equivalent of [Soup.parse], but encoding-aware. *)
+let parse_html_default ?(encoding=Markup.Encoding.utf_8) str =
+  Markup.string str |> Markup.parse_html ~encoding:encoding |> Markup.signals |> Soup.from_signals
+
 (* Result-aware element selection functions *)
 let wrap_select f selector soup =
   try Ok (f selector soup)

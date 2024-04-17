@@ -1,3 +1,9 @@
+# 4.10.0 (TBD)
+
+## Bug fixes
+
+* Complete HTML pages work correctly in generator mode again (report by Auguste Baum)
+
 # 4.9.0 (2024-03-19)
 
 ## New features and improvements
