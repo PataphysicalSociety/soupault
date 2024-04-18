@@ -3,6 +3,10 @@
 ## Bug fixes
 
 * Complete HTML pages work correctly in generator mode again (report by Auguste Baum)
+* Config files with multiline strings and Windows newlines (CRLF) no longer cause parse errors
+  (report by Bohdan Kolesnikov)
+* Configs that consists of a single comment line terminated by end of file no longer cause parse errors
+  (found thanks to the TOML test suite v1.4.0)
 
 # 4.9.0 (2024-03-19)
 
