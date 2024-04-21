@@ -1,5 +1,29 @@
 # 4.10.0 (TBD)
 
+## New features
+
+### Deleting only elements that do not have certain children
+
+The `delete_element` widget has a new option: `when_no_child`.
+
+For example, suppose you have footnotes container in your template that looks like this:
+`<div id="footnotes"> <hr class="footnotes-separator"> </div>`. If a page has footnotes,
+it would contain something like `<p class="footnote">...`. If not, it would only have the `<hr>` element in it.
+
+Deleting it from pages that don't have any footnotes cannot be done with `only_if_empty`
+because the container has that auxilliary element in it.
+
+However, with the new option you can make the widget delete the container
+only if nothing inside it matches the selector of actual footnotes.
+
+```toml
+[widgets.clean-up-footnote-containers]
+  after = "footnotes"
+  widget = "delete_element"
+  selector = "div#footnotes"
+  when_no_child = "p.footnote"
+```
+
 ## Bug fixes
 
 * Complete HTML pages work correctly in generator mode again (report by Auguste Baum)
