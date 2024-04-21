@@ -1,4 +1,4 @@
-# 4.10.0 (TBD)
+# 4.10.0 (2024-04-21)
 
 ## New features
 
@@ -29,7 +29,7 @@ only if nothing inside it matches the selector of actual footnotes.
 * Complete HTML pages work correctly in generator mode again (report by Auguste Baum)
 * Config files with multiline strings and Windows newlines (CRLF) no longer cause parse errors
   (report by Bohdan Kolesnikov)
-* Configs that consists of a single comment line terminated by end of file no longer cause parse errors
+* Configs that consist of a single comment line followed by EOF no longer cause parse errors
   (found thanks to the TOML test suite v1.4.0)
 
 # 4.9.0 (2024-03-19)
