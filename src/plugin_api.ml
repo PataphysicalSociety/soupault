@@ -445,11 +445,11 @@ module Html = struct
     | None -> None
     | Some node -> Some (to_general node |> Soup.children |> Soup.count)
 
-let is_empty node =
-  let n = child_count node in
-  match n with
-  | None -> None
-  | Some n -> Some (n = 0)
+  let is_empty node =
+    let n = child_count node in
+    match n with
+    | None -> None
+    | Some n -> Some (n = 0)
 
   let get_heading_level node =
     let* node = node in
