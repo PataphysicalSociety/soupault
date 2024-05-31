@@ -830,36 +830,60 @@ struct
 
     let init g = 
       C.register_module "HTML" [
+        (* Internal utility functions, don't need to be documented. *)
         "mk", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
-        "create_document", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
-        "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
-        "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
+
+        (* Parsing and rendering. *)
         "parse", V.efunc (V.string **->> Map.html) (fun s -> Html.SoupNode (Soup.parse s));
         "to_string", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.to_string);
         "pretty_print", V.efunc (Map.html **->> V.string) (fun s -> Html.to_general s |> Soup.pretty_print);
+
+        (* Node creation. *)
+        "create_document", V.efunc (V.unit **->> Map.html) (fun () -> Html.SoupNode (Soup.create_soup ()));
+        "create_element", V.efunc (V.string **-> V.option V.string **->> Map.html) Html.create_element;
+        "create_text", V.efunc (V.string **->> Map.html) Html.create_text;
+
+        (* Node cloning. *)
+        "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
+        "clone_document", V.efunc (Map.html **->> Map.html) Html.clone_page;
+
+        (* Selection and selector match checking. *)
         "select", V.efunc (V.option Map.html **-> V.string **->> V.option (V.list Map.html)) Html.select;
         "select_one", V.efunc (V.option Map.html **-> V.string **->> (V.option Map.html)) Html.select_one;
         "select_any_of", V.efunc (V.option Map.html **-> V.list V.string **->> V.option Map.html) Html.select_any_of;
         "select_all_of", V.efunc (V.option Map.html **-> V.list V.string **->> V.option (V.list Map.html)) Html.select_all_of;
         "matches_selector", V.efunc (Map.html **-> Map.html **-> V.string **->> V.bool) Html.matches_selector;
         "matches_any_of_selectors", V.efunc (Map.html **-> Map.html **-> V.list V.string **->> V.bool) Html.matches_any_of_selectors;
+
+        (* Access to element tree surroudings. *)
         "parent", V.efunc (V.option Map.html **->> (V.option Map.html)) Html.parent;
         "children", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.children;
         "descendants", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.descendants;
         "ancestors", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.ancestors;
         "siblings", V.efunc (V.option Map.html **->> V.option (V.list Map.html)) Html.siblings;
-        "set_tag_name", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.set_tag_name;
+        "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
+        "is_empty", V.efunc (V.option Map.html **->> V.option V.bool) Html.is_empty;
+
+        (* Element property access and manipulation. *)
         "get_tag_name", V.efunc (V.option Map.html **->> V.option V.string) Html.get_tag_name;
+        "set_tag_name", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.set_tag_name;
         "get_attribute", V.efunc (V.option Map.html **-> V.string **->> V.option V.string) Html.get_attribute;
         "set_attribute", V.efunc (V.option Map.html **-> V.string **-> V.string **->> V.unit) Html.set_attribute;
         "append_attribute", V.efunc (V.option Map.html **-> V.string **-> V.string **->> V.unit) Html.append_attribute;
         "delete_attribute", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.delete_attribute;
         "list_attributes", V.efunc (V.option Map.html **->> V.list V.string) Html.list_attributes;
         "clear_attributes", V.efunc (V.option Map.html **->> V.unit) Html.clear_attributes;
-        "add_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.add_class;
-        "remove_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.remove_class;
         "get_classes", V.efunc (V.option Map.html **->> V.list V.string) Html.get_classes;
         "has_class", V.efunc (V.option Map.html **-> V.string **->> V.bool) Html.has_class;
+        "add_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.add_class;
+        "remove_class", V.efunc (V.option Map.html **-> V.string **->> V.unit) Html.remove_class;
+        "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
+        "inner_text", V.efunc (V.option Map.html **->> V.string) Html.inner_text;
+        "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
+
+        (* Element tree manipulation. *)
+        "append_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_root;
+        "prepend_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_root;
         "append_child", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.append_child);
         "prepend_child", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.prepend_child);
         "insert_before", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.insert_before);
@@ -867,26 +891,21 @@ struct
         "replace", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.replace);
         "replace_element", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.replace);
         "replace_content", V.efunc (V.option Map.html **-> Map.html **->> V.unit) (Html.do_with_node Html.replace_content);
-        "delete_content", V.efunc (V.option Map.html **->> V.unit) Html.delete_content;
         "delete", V.efunc (V.option Map.html **->> V.unit) Html.delete;
         "delete_element", V.efunc (V.option Map.html **->> V.unit) Html.delete;
-        "inner_html", V.efunc (V.option Map.html **->> V.string) Html.inner_html;
-        "inner_text", V.efunc (V.option Map.html **->> V.string) Html.inner_text;
-        "clone_content", V.efunc (V.option Map.html **->> V.option Map.html) Html.clone_content;
-        "clone_document", V.efunc (Map.html **->> Map.html) Html.clone_page;
-        "strip_tags", V.efunc (V.option Map.html **->> V.string) Html.strip_tags;
-        "append_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.append_root;
-        "prepend_root", V.efunc (Map.html **-> Map.html **->> V.unit) Html.prepend_root;
+        "delete_content", V.efunc (V.option Map.html **->> V.unit) Html.delete_content;
         "wrap", V.efunc (Map.html **-> Map.html **->> V.unit) Html.wrap;
         "unwrap", V.efunc (V.option Map.html **->> V.unit) Html.unwrap;
         "swap", V.efunc (Map.html **-> Map.html **->> V.unit) Html.swap;
-        "child_count", V.efunc (V.option Map.html **->> V.option V.int) Html.child_count;
-        "is_empty", V.efunc (V.option Map.html **->> V.option V.bool) Html.is_empty;
+
+        (* Node tests. *)
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
         "is_root", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_root n);
         "is_document", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_root n);
+
+        (* High-level convenience functions. *)
+        "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level; 
         "get_headings_tree", V.efunc (V.option Map.html **->> V.list V.value) get_headings_tree;
-        "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level;
       ] g;
       
       C.register_module "Regex" [
