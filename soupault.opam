@@ -37,7 +37,7 @@ depends: [
   "fileutils" {>= "0.6.3"}
   "logs" {>= "0.7.0"}
   "fmt" {>= "0.8.9"}
-  "lambdasoup" {>= "1.0.0"}
+  "lambdasoup" {>= "1.1.0"}
   "markup" {>= "1.0.0-1"}
   "otoml" {>= "1.0.5"}
   "ezjsonm" {>= "1.2.0"}
