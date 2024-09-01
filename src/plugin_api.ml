@@ -176,6 +176,9 @@ module Html = struct
     | ElementNode n -> Soup.coerce n
     | SoupNode n -> Soup.coerce n
 
+  let is_text n =
+    n |> to_general |> Soup.is_text 
+
   let to_soup n =
     match n with
     | SoupNode n -> n
