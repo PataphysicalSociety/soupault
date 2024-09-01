@@ -188,9 +188,7 @@ module Html = struct
     to_general n |> Soup.is_root
 
   let is_document n =
-    match n with
-    | SoupNode _ -> true
-    | _ -> false
+    to_general n |> Soup.is_document
 
   let select soup selector =
     let* soup = soup in
