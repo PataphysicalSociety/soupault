@@ -176,6 +176,9 @@ module Html = struct
     | ElementNode n -> Soup.coerce n
     | SoupNode n -> Soup.coerce n
 
+  let is_text n =
+    n |> to_general |> Soup.is_text 
+
   let to_soup n =
     match n with
     | SoupNode n -> n
@@ -185,9 +188,7 @@ module Html = struct
     to_general n |> Soup.is_root
 
   let is_document n =
-    match n with
-    | SoupNode _ -> true
-    | _ -> false
+    to_general n |> Soup.is_document
 
   let select soup selector =
     let* soup = soup in
