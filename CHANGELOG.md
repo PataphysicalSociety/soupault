@@ -1,3 +1,18 @@
+# 4.11.0 (2024-09-06)
+
+## New features
+
+* It's now possible to use `:has()` selector in options that accept CSS selectors (implemented in lambdasoup 1.1.0)
+
+### New plugin API functions
+
+* `HTML.is_text(e)` — checks if an HTML element tree node is a text node.
+
+## Bug fixes
+
+* `HTML.is_document(e)` now correctly returns true for values created with `HTML.parse()` and `HTML.create_document()`.
+* Namespaces are now correctly preserved in HTML element attribute names (implemented in lambdasoup 1.1.1).
+
 # 4.10.0 (2024-04-21)
 
 ## New features
