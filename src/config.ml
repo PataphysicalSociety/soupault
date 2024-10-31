@@ -233,7 +233,7 @@ let get_index_queries index_table =
 
 let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
-  "index"; "index_first"; "dump_json"; "sort_by"; "sort_descending"; "sort_type"; "strict_sort"; "date_formats";
+  "index"; "dump_json"; "sort_by"; "sort_descending"; "sort_type"; "strict_sort"; "date_formats";
   "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
   "force_indexing_path_regex"; "leaf_file";
   "profile"
@@ -358,7 +358,6 @@ let _get_index_settings settings config =
     let date_formats = find_strings_or ~default:settings.index_date_input_formats st ["date_formats"] in
     {settings with
        index = find_bool_or ~default:settings.index st ["index"];
-       index_first = find_bool_or ~default:settings.index_first st ["index_first"];
        dump_index_json = OH.find_string_opt st ["dump_json"];
        ignore_template_errors = find_bool_or ~default:settings.ignore_template_errors st ["ignore_template_errors"];
        index_extract_after_widgets = find_strings_or ~default:[] st ["extract_after_widgets"];

@@ -153,12 +153,6 @@ type settings = {
   (* Only extract the site index, don't generate any pages *)
   index_only : bool;
 
-  (* Extract site index data from all pages
-     and then process all pages again to make index data available
-     to plugins.
-   *)
-  index_first : bool;
-
   (* Do not try to extract metadata from the page.
      This option is not visible to the user since it makes no sense alone
      (without disabling both extraction and insertion, like [index=false] does).
@@ -231,15 +225,6 @@ type state = {
      that can be used to share data between them.
    *)
   global_data : Ezjsonm.value ref;
-
-  (* This field allows plugins to determine if it's the first, index-extraction only pass
-     or the second, full rendering pass.
-
-     * 0 — when [index.index_first] is false.
-     * 1 — on the first pass (indexing only, no page rendering)
-     * 2 — on the second pass (full rendering)
-   *)
-  soupault_pass : int;
 }
 
 type env = {
@@ -310,7 +295,6 @@ let default_settings = {
 
   index = false;
   index_only = false;
-  index_first = false;
 
   (* Must always be false by default, only used internally. *)
   no_index_extraction = false;

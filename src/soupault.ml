@@ -977,13 +977,6 @@ let main cli_options =
     let* config, widgets, hooks, settings = initialize cli_options in
     let state = {
       global_data = (ref (`O []));
-
-      (* If [settings.index_first] is true,
-         this field will be set to 2 on the second, full rendering pass.
-         If it's false, it stays at 0 to indicate that the two-pass workflow
-         is not enabled.
-       *)
-      soupault_pass = (if not settings.index_first then 0 else 1);
       soupault_settings = settings;
       soupault_config = config;
     }
@@ -1011,106 +1004,56 @@ let main cli_options =
       then Utils.iter_result (fun (src, dst) -> process_asset_file settings src dst) asset_files
       else Ok ()
     in
-    (* A bit of code duplication ahead, for now at least...
+    (* Creates a random-access version of the site index from a list of entries. *)
+    let import_index_hash hash entries =
+      List.iter (fun e -> Hashtbl.add hash e.index_entry_page_file e) entries 
+    in
+    (* The user wants the complete site metadata available to widgets/plugins on every page. *)
+    begin
+      (* Make a random-access hash table version of the index to provide an index entry to widgets and
+         hooks for the page being processed. *)
+      let index_hash = Hashtbl.create 1024 in
+      (* Do just enough work to have all site metadata produced and extracted.
+         [index_only=true] prevents [process_page] from rendering pages and writing them to disk.
 
-       Page processing workflows with [index.index_first=true] and without is slightly different.
-       The purpose of [index_first=true] is to make the entire site metadata available to _all_ pages.
-       Obviously, it can only be done by doing certain amount of work twice:
-       at the very least, reading all pages, running widgets that aren't in [index.extract_after_widgets],
-       and extracting fields.
-     *)
-    if settings.index_first then
-      (* Creates a random-access version of the site index from a list of entries. *)
-      let import_index_hash hash entries =
-        List.iter (fun e -> Hashtbl.add hash e.index_entry_page_file e) entries 
-      in
-      (* The user wants the complete site metadata available to widgets/plugins on every page. *)
-      begin
-        (* Make a random-access hash table version of the index to provide an index entry to widgets and
-           hooks for the page being processed. *)
-        let index_hash = Hashtbl.create 1024 in
-        (* Do just enough work to have all site metadata produced and extracted.
-           [index_only=true] prevents [process_page] from rendering pages and writing them to disk.
-
-           It also often (though not always) reduces the number of widgets that will run on each page
-           because widgets that aren't in the [extract_after_widgets] list are not processed.
-         *)
-        let () = Logs.info @@ fun m -> m "Starting the first (index extraction only) pass" in
-        let state = {state with soupault_settings={state.soupault_settings with index_only=true}} in
-        let* index = process_page_files state index_hash widgets hooks page_files in
-        (* Sort entries according to the global settings so that widgets that use index data
-           don't have to sort it themselves. *)
-        let* index = Autoindex.sort_entries settings settings.index_sort_options index in
-        (* Set the soupault_pass variable to 2 to indicate that the second pass has begun,
-           so that plugins know they can rely on the complete index or global data
-           generated during the first pass.
-         *)
-        let state = {state with soupault_pass=2} in
-        (* Import the extracted index data into the random-access hash. *)
-        let () = import_index_hash index_hash index in
-       (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
-           content pages and section index pages should be treated the same.
-           So we merge the lists of content and index pages back into one list
-           and process it to generate the website.
-         *)
-        let all_files = List.append page_files index_files in
-        (* Disable metadata extraction to avoid doing useless work, then process all pages.
-           In practice, only index pages may produce new pages, but for simplicity we merge the lists
-           because there's no harm in trying to collect generated pages from non-index pages,
-           they will simply return empty lists.
-         *)
-        let state = {state with soupault_settings={state.soupault_settings with no_index_extraction=true; index_only=false}} in
-        let () = Logs.info @@ fun m -> m "Starting the second (full page rendering) pass" in
-        (* At this step Lua index_processors may generate new pages, e.g. for taxonomies or pagination. *)
-        let* new_pages = process_index_files state index index_hash widgets hooks all_files in
-        (* Now process those "fake" pages generated by index processors.
-           Index processing must be disabled on them to prevent index processors from generating
-           new "fake" pages from generated pages and creating infinite loops.
-         *)
-        let () = if new_pages <> [] then Logs.info @@ fun m -> m "Processing pages generated by indexer scripts" in
-        let state = {state with soupault_settings={state.soupault_settings with index=false}} in
-        let* () = Utils.iter_result (process_page state index index_hash widgets hooks) new_pages in
-        let* () = Hooks.run_post_build_hook state index hooks in
-        (* Finally, dump the index file, if requested. *)
-        let* () = dump_index_json settings index in
-        Ok ()
-      end
-    else
-      (* The user only wants site metadata available to section index pages
-         and doesn't want the performance penalty of processing anything twice.
+         It also often (though not always) reduces the number of widgets that will run on each page
+         because widgets that aren't in the [extract_after_widgets] list are not processed.
        *)
-      begin
-        (* Since in the [index_first=false] mode non-index pages have no access to the site-wide index data,
-           we simply give the [process_page] function an empty hash.
-         *)
-        let index_hash = Hashtbl.create 1 in
-        (* Process normal pages and collect index data from them.
-           The [process_page_files] function is not using the [index_hash] argument,
-           it's only needed to keep its underlying [process_page] call well-typed,
-           so we can safely give it an empty hash.
-         *)
-        let* index = process_page_files state index_hash widgets hooks page_files in
-        (* Sort entries according to the global settings so that widgets that use index data
-           don't have to sort it themselves. *)
-        let* index = Autoindex.sort_entries settings settings.index_sort_options index in
-        (* Now process the index pages, using previously collected index data.
-           That will not produce new index data because extraction will not run,
-           but index processors may generate new pages (e.g. pagination and taxonomies).
-         *)
-        let state = {state with soupault_settings={state.soupault_settings with no_index_extraction=true}} in
-        let* new_pages = process_index_files state index index_hash widgets hooks index_files in
-        (* Now process "fake" pages generated by index processors.
-           Index processing must be disabled on them to prevent index processors from generating
-           new "fake" pages from generated pages and creating infinite loops.
-         *)
-        let state = {state with soupault_settings={state.soupault_settings with index=false}} in
-        let () = if new_pages <> [] then Logs.info @@ fun m -> m "Processing pages generated by indexer scripts" in
-        let* () = Utils.iter_result (process_page state index index_hash widgets hooks) new_pages in
-        let* ()	= Hooks.run_post_build_hook state index hooks in
-        (* Finally, dump the index file, if requested. *)
-        let* () = dump_index_json settings index in
-        Ok ()
-      end
+      let () = Logs.info @@ fun m -> m "Starting the first (index extraction only) pass" in
+      let state = {state with soupault_settings={state.soupault_settings with index_only=true}} in
+      let* index = process_page_files state index_hash widgets hooks page_files in
+      (* Sort entries according to the global settings so that widgets that use index data
+         don't have to sort it themselves. *)
+      let* index = Autoindex.sort_entries settings settings.index_sort_options index in
+      (* Import the extracted index data into the random-access hash. *)
+      let () = import_index_hash index_hash index in
+      (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
+         content pages and section index pages should be treated the same.
+         So we merge the lists of content and index pages back into one list
+         and process it to generate the website.
+       *)
+      let all_files = List.append page_files index_files in
+      (* Disable metadata extraction to avoid doing useless work, then process all pages.
+         In practice, only index pages may produce new pages, but for simplicity we merge the lists
+         because there's no harm in trying to collect generated pages from non-index pages,
+         they will simply return empty lists.
+       *)
+      let state = {state with soupault_settings={state.soupault_settings with no_index_extraction=true; index_only=false}} in
+      let () = Logs.info @@ fun m -> m "Starting the second (full page rendering) pass" in
+      (* At this step Lua index_processors may generate new pages, e.g. for taxonomies or pagination. *)
+      let* new_pages = process_index_files state index index_hash widgets hooks all_files in
+      (* Now process those "fake" pages generated by index processors.
+         Index processing must be disabled on them to prevent index processors from generating
+         new "fake" pages from generated pages and creating infinite loops.
+       *)
+      let () = if new_pages <> [] then Logs.info @@ fun m -> m "Processing pages generated by indexer scripts" in
+      let state = {state with soupault_settings={state.soupault_settings with index=false}} in
+      let* () = Utils.iter_result (process_page state index index_hash widgets hooks) new_pages in
+      let* () = Hooks.run_post_build_hook state index hooks in
+      (* Finally, dump the index file, if requested. *)
+      let* () = dump_index_json settings index in
+      Ok ()
+    end
 
 let () =
   let cli_options = get_args () in

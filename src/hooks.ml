@@ -135,7 +135,6 @@ let run_pre_parse_hook soupault_state hook_config file_name lua_code page_file p
       "soupault_config", lua_of_toml soupault_state.soupault_config;
       "force", I.Value.bool.embed settings.force;
       "site_dir", lua_str.embed settings.site_dir;
-      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
@@ -170,7 +169,6 @@ let run_pre_process_hook soupault_state hook_config file_name lua_code page_file
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
-      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
@@ -225,7 +223,6 @@ let run_post_index_hook soupault_state hook_config file_name lua_code env soup e
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
-      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
       "ignore_page", I.Value.bool.embed false;
     ] lua_state
@@ -274,7 +271,6 @@ let run_render_hook soupault_state hook_config file_name lua_code env soup =
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
-      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
@@ -308,7 +304,6 @@ let run_save_hook soupault_state hook_config file_name lua_code env page_source 
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
-      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
@@ -339,7 +334,6 @@ let run_post_save_hook soupault_state hook_config file_name lua_code env =
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
-      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
     ] lua_state
   in
@@ -376,7 +370,6 @@ let run_startup_hook soupault_state hooks =
         "soupault_config", lua_of_toml soupault_state.soupault_config;
         "force", I.Value.bool.embed settings.force;
         "site_dir", lua_str.embed settings.site_dir;
-        "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
         "global_data", lua_of_json !(soupault_state.global_data);
       ] lua_state
     in
@@ -451,7 +444,6 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
-      "soupault_pass", I.Value.int.embed soupault_state.soupault_pass;
       "global_data", lua_of_json !(soupault_state.global_data);
      ] lua_state;
     (* Set the output variable [pages] to an empty list by default,
