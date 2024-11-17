@@ -35,10 +35,27 @@ let copy_file fs d =
    ([settings.strict] in the config or [--strict <true|false>>] in the command line),
    there needs to be a way to iterate over page lists of collect data from page processing
    that would allow ignoring errors.
-   Raising an isn't an option since it would interrupt the caller,
+   Raising an exception isn't an option since it would interrupt the caller,
    so the only way to achieve that is to make custom functions and use a sum type to signal errors.
    The built-in result type suits that purpose perfectly.
  *)
+
+(* Result-aware map -- no option to ignore errors,
+    since that would violate the natural invariant
+    [len xs = len (map (f, xs))]. *)
+let map_result f xs =
+  let rec aux f xs acc = 
+    match xs with
+    | [] -> Ok acc
+    | x :: xs' ->
+      let res = f x in
+      begin
+        match res with
+        | Ok v -> aux f xs' (v :: acc)
+        | (Error msg) as e -> e
+      end
+  in
+  aux f xs []
 
 (* Result-aware iteration that can either stop on errors or ignore them. *)
 let rec iter_result ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> ('b, string) result) xs =
@@ -69,7 +86,6 @@ let rec fold_left_result ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> 'b
           fold_left_result ~ignore_errors:ignore_errors ~fmt:fmt f acc xs
         else e
     end
-
 
 (* List helpers. *)
 
