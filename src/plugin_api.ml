@@ -903,6 +903,7 @@ struct
         "is_element", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_element n);
         "is_root", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_root n);
         "is_document", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_document n);
+        "is_text", V.efunc (V.option Map.html **->> V.bool) (fun n -> match n with None -> false | Some n -> Html.is_text n);
 
         (* High-level convenience functions. *)
         "get_heading_level", V.efunc (V.option Map.html **->> V.option V.int) Html.get_heading_level; 
