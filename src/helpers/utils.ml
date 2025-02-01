@@ -52,7 +52,7 @@ let map_result f xs =
       begin
         match res with
         | Ok v -> aux f xs' (v :: acc)
-        | (Error msg) as e -> e
+        | (Error _) as e -> e
       end
   in
   aux f xs []
