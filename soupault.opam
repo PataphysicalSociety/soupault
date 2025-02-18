@@ -26,6 +26,7 @@ license: "MIT"
 homepage: "https://www.soupault.app"
 bug-reports: "https://github.com/PataphysicalSociety/soupault/issues"
 dev-repo: "git+https://github.com/PataphysicalSociety/soupault"
+x-maintenance-intent: ["(latest)"]
 build: [
   ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
