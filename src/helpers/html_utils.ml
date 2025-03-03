@@ -1,3 +1,4 @@
+open Defaults
 include Soupault_common
 
 (** Parse HTML in specific context.
@@ -15,6 +16,43 @@ let parse_html ?context ?(encoding=Markup.Encoding.utf_8) str =
 (* An equivalent of [Soup.parse], but encoding-aware. *)
 let parse_html_default ?(encoding=Markup.Encoding.utf_8) str =
   Markup.string str |> Markup.parse_html ~encoding:encoding |> Markup.signals |> Soup.from_signals
+
+(* A high-level page parsing function. *)
+let parse_page ?(fragment=true) settings page_source =
+  (* As of lambdasoup 1.0.0, [Soup.parse] never fails, only returns empty element trees,
+     so there's no need to handle errors here.
+
+     First we use the default HTML parsing function (equivalent to [Soup.parse]) to get the element tree
+     without any top-level structure corrections
+     and see if it's intended to be a complete page rather than a fragment
+     that the user may want to insert in a template.
+
+     The problem with using that function for real parsing is that, as of 1.0.0,
+     [Soup.parse] resolves certain ambiguities in a way that interferes with our templating:
+     for example, it may insert a [<body>] tag if it sees tags normally found in [<head>], like [<style>],
+     even though they are not prohibited in [<body>].
+
+     Passing [~context:(`Fragment "body")] to [Markup.parse_html] solves that problem
+     but creates a different problem instead: that strips top-level [<html>] tags
+     from the document if they are present.
+
+     So, for now at least, we parse HTML twice: first to determine if it's complete or partial,
+     then to produce an actual element tree.
+   *)
+  let _interim_html = parse_html_default ~encoding:settings.page_character_encoding page_source in
+  let html_elem = Soup.select_one "html" _interim_html in
+  match html_elem with
+  | Some _ ->
+    (* If there's the ([<html>]) in the page, it's a complete page.
+       We must not attempt to parse it as a fragment.
+     *)
+    parse_html ~context:`Document ~encoding:settings.page_character_encoding page_source
+  | None ->
+    (* If there's no [<html>] element, it's a partial page.
+       We can parse it as a <body> fragment or a complete page, depending on the settings.
+     *)
+    let context = if fragment then (`Fragment "body") else `Document in
+    parse_html ~context:context ~encoding:settings.page_character_encoding page_source
 
 (* Result-aware element selection functions *)
 let wrap_select f selector soup =

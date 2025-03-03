@@ -97,9 +97,6 @@ let setup_logging verbose debug =
 
 (*** Filesystem stuff ***)
 
-let (+/) left right =
-    FP.concat left right
-
 let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
@@ -108,21 +105,20 @@ let make_build_dir build_dir =
   let () = Logs.info @@ fun m -> m {|Build directory "%s" does not exist, creating|} build_dir in
   mkdir build_dir
 
+(* Wrappers for running hooks *)
+let run_pre_process_hook state hooks page_file target_dir target_file content =
+  let settings = state.soupault_settings in
+  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
+  match pre_process_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
+    then Ok (target_dir, target_file, content)
+    else
+      Hooks.run_pre_process_hook
+        state hook_config file_name source_code page_file target_dir target_file content
+  | None -> Ok (target_dir, target_file, content)
+
 (*** Page processing helpers. ***)
-
-(* Produces a target directory name for the page.
-
-   If clean URLs are used, then a subdirectory matching the page name
-   should be created inside the section directory, unless the page is
-   a section index page.
-   E.g. "site/foo.html" becomes "build/foo/index.html" to provide
-   a clean URL.
-
-   If clean URLs are not used, only section dirs are created.
- *)
-let make_page_dir_name settings target_dir page_name =
-  if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
-  else target_dir +/ page_name
 
 (* Finds a preprocessor for given file name,
    if a preprocessor for its extension is configured.
@@ -201,42 +197,6 @@ let load_html state hooks page_file =
     else Ok page_source
   | None -> Ok page_source
 
-let parse_html ?(fragment=true) settings page_source =
-  (* As of lambdasoup 1.0.0, [Soup.parse] never fails, only returns empty element trees,
-     so there's no need to handle errors here.
-
-     First we use the default HTML parsing function (equivalent to [Soup.parse]) to get the element tree
-     without any top-level structure corrections
-     and see if it's intended to be a complete page rather than a fragment
-     that the user may want to insert in a template.
-
-     The problem with using that function for real parsing is that, as of 1.0.0,
-     [Soup.parse] resolves certain ambiguities in a way that interferes with our templating:
-     for example, it may insert a [<body>] tag if it sees tags normally found in [<head>], like [<style>],
-     even though they are not prohibited in [<body>].
-
-     Passing [~context:(`Fragment "body")] to [Markup.parse_html] solves that problem
-     but creates a different problem instead: that strips top-level [<html>] tags
-     from the document if they are present.
-
-     So, for now at least, we parse HTML twice: first to determine if it's complete or partial,
-     then to produce an actual element tree 
-   *)
-  let _interim_html = Html_utils.parse_html_default ~encoding:settings.page_character_encoding page_source in
-  let html_elem = Soup.select_one "html" _interim_html in
-  match html_elem with
-  | Some _ ->
-    (* If there's the ([<html>]) in the page, it's a complete page.
-       We must not attempt to parse it as a fragment.
-     *)
-    Ok (Html_utils.parse_html ~context:`Document ~encoding:settings.page_character_encoding page_source)
-  | None ->
-    (* If there's no [<html>] element, it's a partial page.
-       We can parse it as a <body> fragment or a complete page, depending on the settings.
-     *)
-    let context = if fragment then (`Fragment "body") else `Document in
-    Ok (Html_utils.parse_html ~context:context ~encoding:settings.page_character_encoding page_source)
-
 (* The built-in HTML rendering function that is used when the "render" hook is not configured. *)
 let render_html_builtin settings soup =
   let add_doctype settings html_str =
@@ -293,17 +253,17 @@ let render_html_builtin settings soup =
 (* The high-level render call that will either run the "render" hook or use the built-in renderer
    if the render hook is not configured or the page is excluded from it.
  *)
-let render_html state hooks env soup =
+let render_html state hooks page =
   let settings = state.soupault_settings in
   let hook = Hashtbl.find_opt hooks "render" in
   match hook with
   | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "render" env.page_file)
-    then Ok (render_html_builtin settings soup)
+    if not (Hooks.hook_should_run settings hook_config "render" page.page_file)
+    then Ok (render_html_builtin settings page.element_tree)
     else
-      let* page_source = Hooks.run_render_hook state hook_config file_name source_code env soup in
+      let* page_source = Hooks.run_render_hook state hook_config file_name source_code page in
       Ok page_source
-  | None -> Ok (render_html_builtin settings soup)
+  | None -> Ok (render_html_builtin settings page.element_tree)
 
 (* Injects page content into a template.
    Where exactly it will insert the content is defined by the [content_selector] option in the template config,
@@ -319,13 +279,13 @@ let include_content action selector html content =
 
 (* Produces a complete page.
    In generator mode and for partial pages (those that aren't complete HTML documents)
-   that means insert page content loaded from file into a template.
+   that means inserting page content loaded from a file into a template.
    Pages that are already complete documents are returned unchanged.
  *)
-let make_page settings page_file_path content =
+let make_page settings page =
   (* If generator mode is off, treat everything like a complete page *)
-  if not settings.generator_mode then Ok content else
-  let page_wrapper_elem = Soup.select_one settings.complete_page_selector content in
+  if not settings.generator_mode then Ok page else
+  let page_wrapper_elem = Soup.select_one settings.complete_page_selector page.element_tree in
   (* If page file appears to be a complete page rather than a page body,
      just return it *)
   match page_wrapper_elem with
@@ -334,57 +294,59 @@ let make_page settings page_file_path content =
       if settings.generator_mode then
       Logs.debug @@ fun m -> m "File appears to be a complete page, not using the page template"
       (* In the HTML processor mode there's no question — everything is treated as a complete page *)
-    in Ok content
+    in Ok page
   | None ->
     let tmpl = List.find_opt
-      (fun t -> (Path_options.page_included settings t.template_path_options settings.site_dir page_file_path) = true)
+      (fun t -> (Path_options.page_included settings t.template_path_options settings.site_dir page.page_file) = true)
       settings.page_templates
     in
     let html, content_selector, content_action = (match tmpl with
       | None ->
-        let () = Logs.info @@ fun m -> m "Using the default template for page %s" page_file_path in
+        let () = Logs.info @@ fun m -> m "Using the default template for page %s" page.page_file in
         (Soup.parse settings.default_template_source,
          Some settings.default_content_selector,
          Some settings.default_content_action)
       | Some t ->
-        let () = Logs.info @@ fun m -> m {|Using template "%s" for page %s|} t.template_name page_file_path in
+        let () = Logs.info @@ fun m -> m {|Using template "%s" for page %s|} t.template_name page.page_file in
         (Soup.parse t.template_data,
          t.template_content_selector,
          t.template_content_action))
     in
     let content_selector = Option.value ~default:settings.default_content_selector content_selector in
     let content_action = Option.value ~default:settings.default_content_action content_action in
-    let* () = include_content content_action content_selector html content in
-    Ok html
+    let* () = include_content content_action content_selector html page.element_tree in
+    let () = Logs.debug @@ fun m -> m "Rendered page:\n%s" (Soup.pretty_print html) in
+    Ok {page with element_tree=html}
 
 (* Widget processing *)
-let rec process_widgets state env ws wh soup =
+let rec process_widgets state widget_list widget_hash page =
   let settings = state.soupault_settings in
-  match ws with
+  let index = state.site_index in
+  match widget_list with
   | [] -> Ok ()
-  | w :: ws' ->
+  | w :: ws ->
     begin
       let open Widgets in
-      let widget = Hashtbl.find wh w in
-      if not (widget_should_run settings w widget env.page_file)
-      then (process_widgets state env ws' wh soup) else
-      let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w env.page_file in
+      let widget = Hashtbl.find widget_hash w in
+      if not (widget_should_run settings w widget page.page_file)
+      then (process_widgets state ws widget_hash page) else
+      let () = Logs.info @@ fun m -> m "Processing widget %s on page %s" w page.page_file in
       let res =
-        try widget.func state env widget.config soup
+        try widget.func state widget.config index page
         with 
         | Soupault_error s -> Error s
         | Config.Config_error s -> Error s
       in
       (* In non-strict mode, widget processing errors do not fail the build *)
       match res, settings.strict with
-      | Ok _, _ -> process_widgets state env ws' wh soup
+      | Ok _, _ -> process_widgets state ws widget_hash page
       | Error _ as err, true -> err
       | Error msg, false ->
-        let () = Logs.warn @@ fun m -> m {|Processing widget "%s" failed: %s|} w msg in
-        process_widgets state env ws' wh soup
+        let () = Logs.warn @@ fun m -> m {|Processing widget "%s" on page %s failed: %s|} w page.page_file msg in
+        process_widgets state ws widget_hash page
     end
 
-(** Removes index page's parent dir from its navigation path
+(* Removes index page's parent dir from its navigation path
 
     When clean URLs are used, the "navigation path" —
     the list of directories/sections that precede the page —
@@ -394,16 +356,30 @@ let rec process_widgets state env ws wh soup =
     However, if the intended way to access that page is just
     https://example.com/foo/bar,
     then trying to use that definition for generating breadcrumbs and similar
-    will create pages with references to themselves.
+    will create pages with links to themselves.
    
-    The only way to deal with it I could find is to remove the
-    last parent if the page is an index page.
+    The only way to deal with it I could find
+    is to remove the last parent if the page is an index page.
  *)
 let fix_nav_path settings path page_name =
   if page_name = settings.index_page then Utils.drop_tail path
   else path
 
-(** Decide on the page file name.
+(* Produces a target directory name for the page.
+
+   If clean URLs are used, then a subdirectory matching the page name
+   should be created inside the section directory, unless the page is
+   a section index page.
+   E.g. "site/foo.html" becomes "build/foo/index.html" to provide
+   a clean URL.
+
+   If clean URLs are not used, only section dirs are created.
+ *)
+let make_page_dir_name settings target_dir page_name =
+  if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
+  else target_dir +/ page_name
+
+(*  Generates page file name.
 
     If clean URLs are used, it's always <target_dir>/<settings.index_file>
 
@@ -416,7 +392,7 @@ let fix_nav_path settings path page_name =
     with pages like build/about.md that have HTML inside despit their name.
     In short, that's what Jekyll et al. always did to non-blog pages.
  *)
-let make_page_file_name settings page_file target_dir =
+let make_page_file_path settings page_file target_dir =
   if settings.clean_urls then (target_dir +/ settings.index_file) else
   let page_file = FP.basename page_file in
   let extension = File_path.get_extension page_file in
@@ -425,34 +401,11 @@ let make_page_file_name settings page_file target_dir =
     else FP.add_extension (FP.chop_extension page_file) settings.default_extension
   in target_dir +/ page_file
 
-let save_html state hooks env page_source =
-  let settings = state.soupault_settings in
-  let save_hook = Hashtbl.find_opt hooks "save" in
-  match save_hook with
-  | Some (file_name, source_code, hook_config) ->
-    if Hooks.hook_should_run settings hook_config "save" env.page_file then
-      Hooks.run_save_hook state hook_config file_name source_code env page_source
-    else Utils.write_file env.target_file page_source
-  | None ->
-    let () = Logs.info @@ fun m -> m "Writing generated page to %s" env.target_file in
-    Utils.write_file env.target_file page_source
-
-let run_post_save_hook state hooks env =
-  let settings = state.soupault_settings in
-  let post_save_hook = Hashtbl.find_opt hooks "post-save" in
-  match post_save_hook with
-  | Some (file_name, source_code, hook_config) ->
-    if Hooks.hook_should_run settings hook_config "post-save" env.page_file then
-      Hooks.run_post_save_hook state hook_config file_name source_code env
-    else Ok ()
-  | None ->
-    Ok ()
-
 let make_page_url settings nav_path orig_path target_dir page_file =
   let orig_page_file_name = FP.basename page_file in
   let target_page =
     if settings.clean_urls then target_dir |> FP.basename
-    else make_page_file_name settings orig_page_file_name ""
+    else make_page_file_path settings orig_page_file_name ""
   in
   let path =
     if ((FP.chop_extension orig_page_file_name) = settings.index_page) then orig_path
@@ -461,36 +414,73 @@ let make_page_url settings nav_path orig_path target_dir page_file =
   (* URL path should be absolute *)
   String.concat "/" path |> Printf.sprintf "/%s"
 
-let extract_metadata state hooks env html =
+(* Assembles a page data structure. *)
+let make_page_data state hooks page_file element_tree =
+  let page_name = FP.basename page_file |> FP.chop_extension in
+  (* The "navigation path" of a page is a list of its parent dirs
+     excluding site_dir — e.g., ["pets", "cats"] for "site/pets/cats/fluffy.html"
+   *)
+  let orig_nav_path = FP.dirname page_file |> File_path.split_path |> CCList.drop 1 in
+  (* With a caveat — see above in [fix_nav_path].
+     We need to avoid index pages referring to themselves.
+   *)
+  let settings = state.soupault_settings in
+  let nav_path = fix_nav_path settings orig_nav_path page_name in
+  let target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
+    FP.concat settings.build_dir
+  in
+  let target_file = make_page_file_path settings page_file target_dir in
+  let* (target_dir, target_file, element_tree) =
+    run_pre_process_hook state hooks page_file target_dir target_file element_tree
+  in
+  let url = make_page_url settings nav_path orig_nav_path target_dir page_file in
+  let page = {
+    element_tree = element_tree;
+    nav_path = nav_path;
+    url = url;
+    page_file = page_file;
+    target_dir = target_dir;
+    target_file = target_file
+  }
+  in
+  Ok page
+
+let save_html state hooks page rendered_page_text =
+  let settings = state.soupault_settings in
+  (* Make sure the target directory exists before trying to write to it:
+     when clean URLs are used and the page is a non-index page,
+     the target directory (generated from its file name)
+     certainly will not exist at this point yet.
+   *)
+  let* () = mkdir page.target_dir in
+  let save_hook = Hashtbl.find_opt hooks "save" in
+  match save_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if Hooks.hook_should_run settings hook_config "save" page.page_file then
+      Hooks.run_save_hook state hook_config file_name source_code page rendered_page_text
+    else Utils.write_file page.target_file rendered_page_text
+  | None ->
+    let () = Logs.info @@ fun m -> m "Writing the page generated from %s to %s" page.page_file page.target_file in
+    Utils.write_file page.target_file rendered_page_text
+
+let extract_metadata state hooks page =
   (* Metadata is only extracted from non-index pages *)
   let settings = state.soupault_settings in
-  if not (Autoindex.index_extraction_should_run settings env.page_file) then (Ok (false, None)) else
-  let entry = Autoindex.get_entry settings env html in
+  if not (Autoindex.index_extraction_should_run settings page.page_file) then Ok None else
+  let entry = Autoindex.get_index_entry settings page in
   let post_index_hook = Hashtbl.find_opt hooks "post-index" in
   match post_index_hook with
   | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "post-index" env.page_file) then (Ok (false, (Some entry))) else
+    if not (Hooks.hook_should_run settings hook_config "post-index" page.page_file) then (Ok (Some entry)) else
     (* Let the post-index hook update the fields.
        It can also set a special [ignore_page] variable to tell soupault to exclude the page
        from indexing and any further processing.
      *)
-    let* (ignore_page, index_fields) =
-      Hooks.run_post_index_hook state hook_config file_name source_code env html entry
+    let* index_fields =
+      Hooks.run_post_index_hook state hook_config file_name source_code page entry
     in
-    Ok (ignore_page, (Some {entry with fields=index_fields}))
-  | None -> Ok (false, (Some entry))
-
-let run_pre_process_hook state hooks page_file target_dir target_file content =
-  let settings = state.soupault_settings in
-  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
-  match pre_process_hook with
-  | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
-    then Ok (target_dir, target_file, content)
-    else
-      Hooks.run_pre_process_hook
-        state hook_config file_name source_code page_file target_dir target_file content
-  | None -> Ok (target_dir, target_file, content)
+    Ok (Some {entry with fields=index_fields})
+  | None -> Ok (Some entry)
 
 (* Check if index insertion should be done and log the reason if not *)
 let index_insertion_should_run settings index page_name =
@@ -506,103 +496,27 @@ let index_insertion_should_run settings index page_name =
     let () = Logs.debug @@ fun m -> m "Not inserting index data: %s" msg in
     false
 
-(** Processes a page:
-
-    1. Adjusts the path to account for index vs non-index page difference
-       in setups using clean URLs
-    2. Reads a page file and inserts the content into the template,
-       unless it's a complete page
-    3. Updates the global index if necessary
-    4. Runs the page through widgets
-    5. Inserts the index section into the page if it's an index page
-    6. Saves the processed page to file
-  *)
-let process_page state page_data index index_hash widgets hooks =
+(* Loads a page from a file on disk. *)
+let load_page_file state hooks page_file =
+  let () = Logs.info @@ fun m -> m "Loading page %s" page_file in
   let settings = state.soupault_settings in
-  let (page_file, page_content, nav_path) = (page_data.page_file_path, page_data.page_content, page_data.page_nav_path) in
-  let () = Logs.info @@ fun m -> m "Processing page %s" page_file in
-  let* page_source =
-    match page_content with
-    | None ->
-      (* This is a real page that actually exists on disk. *)
-      load_html state hooks page_file
-    | Some content ->
-      (* This is a "fake" paginated index or taxonomy page created by an index processor. *)
-      let () = Cache.refresh_page_cache settings page_file content in
-      Ok content
-  in
+  (* Load and parse page HTML. *)
+  let* html_source = load_html state hooks page_file in
   (* If we are in generator mode, tell the parser to interpret pages
      as HTML fragments that will go inside <body>,
      otherwise treat them as documents. *)
   let fragment = if settings.generator_mode then true else false in
-  let* content = parse_html ~fragment:fragment settings page_source in
-  let page_name = FP.basename page_file |> FP.chop_extension in
-  let orig_path = nav_path in
-  let nav_path = fix_nav_path settings nav_path page_name in
-  let target_dir = make_page_dir_name settings (File_path.concat_path orig_path) page_name |> FP.concat settings.build_dir in
-  let target_file = make_page_file_name settings page_file target_dir in
-  let* (target_dir, target_file, content) =
-    run_pre_process_hook state hooks page_file target_dir target_file content
-  in
-  let page_url = make_page_url settings nav_path orig_path target_dir page_file in
-  let env = {
-    nav_path = nav_path;
-    page_url = page_url;
-    page_file = page_file;
-    target_dir = target_dir;
-    target_file = target_file;
-    site_index = index;
-    site_index_hash = index_hash;
-  }
-  in
-  let* html = make_page settings page_file content in
-  (* Section index injection always happens before any widgets have run —
-     otherwise generated content would be impossible to process with widgets.
-   *)
-  let* new_pages =
-    (* Section index is inserted only in index pages *)
-    if not (index_insertion_should_run settings index page_name) then Ok []
-    else let () = Logs.info @@ fun m -> m "Inserting section index into page %s" page_file in
-    Autoindex.insert_indices state env html
-  in
-  let before_index, after_index, widget_hash = widgets in
-  let* () = process_widgets state env before_index widget_hash html in
-  (* Index extraction *)
-  let* (ignore_page, index_entry) = extract_metadata state hooks env html in
-  (* If the render hook told us to ignore the page, pretend it did not exist:
-     return None for the index entry and do not save to disk.
-   *)
-  if ignore_page then
-    begin
-      let () = Logs.info @@ fun m -> m "Ignoring page %s according to post-index hook instructions" page_file in
-      Ok (None, [])
-    end
-  else
-    begin
-      if settings.index_only then Ok (index_entry, new_pages) else
-      let* () = mkdir target_dir in
-      let* () = process_widgets state env after_index widget_hash html in
-      let* html_str = render_html state hooks env html in
-      let* () = save_html state hooks env html_str in
-      (* Finally, run the post-save hook. *)
-      let* () = run_post_save_hook state hooks env in
-      Ok (index_entry, new_pages)
-    end
+  let element_tree = Html_utils.parse_page ~fragment:fragment settings html_source in
+  let* page_data = make_page_data state hooks page_file element_tree in
+  Ok page_data
 
-(* Monadic wrapper for process_page that can either return or ignore errors  *)
-let process_page state index index_hash widgets hooks page_data =
-  let settings = state.soupault_settings in
-  let res =
-    try process_page state page_data index index_hash widgets hooks
-    with Soupault_error msg -> Error msg
-  in
-  match res with
-    Ok _ as res -> res
-  | Error msg ->
-    let msg = Printf.sprintf "Could not process page %s: %s" page_data.page_file_path msg in
-    if settings.strict then Error msg else 
-    let () = Logs.warn @@ fun m -> m "%s" msg in
-    Ok (None, [])
+let load_page_files state hooks files =
+  Utils.fold_left_result
+    (fun acc f ->
+      let res = load_page_file state hooks f in
+      match res with Ok content -> Ok (content :: acc) | Error _ as err -> err)
+    []
+    files
 
 (* Option parsing and initialization.
 
@@ -888,26 +802,8 @@ let check_version settings =
         exit 1
       end
 
-let process_page_files state index_hash widgets hooks files =
-  Utils.fold_left_result
-    (fun acc p ->
-      let ie = process_page state [] index_hash widgets hooks p in
-       match ie with Ok (None, _) -> Ok acc | Ok (Some ie', _) -> Ok (ie' :: acc) | Error _ as err -> err)
-    []
-    files
-
-let process_index_files state index index_hash widgets hooks files =
-  Utils.fold_left_result
-    (fun acc p ->
-      let ie = process_page state index index_hash widgets hooks p in
-       match ie with
-       | Ok (_, []) -> Ok acc
-       | Ok (_, new_pages) -> Ok (List.append new_pages acc)
-       | Error _ as err -> err)
-    []
-    files
-
 let process_asset_file settings src_path dst_path =
+  let () = Logs.debug @@ fun m -> m "Processing asset file %s" src_path in
   let processor = find_preprocessor settings.asset_processors src_path in
   match processor with
   | None ->
@@ -974,13 +870,15 @@ let main cli_options =
     let () = Otoml.Printer.to_channel stdout config in
     exit 0
   | BuildWebsite ->
-    let* config, widgets, hooks, settings = initialize cli_options in
+    let* (config, widget_data, hooks, settings) = initialize cli_options in
     let state = {
-      global_data = (ref (`O []));
       soupault_settings = settings;
       soupault_config = config;
+      site_index = [];
+      global_data = (ref (`O []));
     }
     in
+    let pre_index_widgets, post_index_widgets, widget_hash = widget_data in
     let () =
       Logs.info @@ fun m -> m "Starting website build";
       check_version settings;
@@ -990,70 +888,111 @@ let main cli_options =
     in
     let* () = make_build_dir settings.build_dir in
     let* () = Hooks.run_startup_hook state hooks in
-    let (page_files, index_files, asset_files) = Site_dir.get_site_files settings in
-    (* If settings.process_pages_first is set, extract those pages and move them to the head of the list.
+    let () = Logs.info @@ fun m -> m "Discovering website files in %s" settings.site_dir in
+    let (content_files, index_files, asset_files) = Site_dir.get_site_files settings in
+    (* If [settings.process_pages_first] is set, extract those pages and move them to the head of the list.
        For an empty list it would return the original list, but it would require traversing that list twice,
        so it's better to avoid it unless it's actually required. *)
-    let* page_files =
+    let* content_files =
       if settings.process_pages_first <> []
-      then Site_dir.reorder_pages settings page_files
-      else Ok page_files
+      then Site_dir.reorder_pages settings content_files
+      else Ok content_files
     in
+    let () = Logs.info @@ fun m -> m "Processing asset files" in
     let* () =
       if not settings.index_only
       then Utils.iter_result (fun (src, dst) -> process_asset_file settings src dst) asset_files
       else Ok ()
     in
-    (* Creates a random-access version of the site index from a list of entries. *)
-    let import_index_hash hash entries =
-      List.iter (fun e -> Hashtbl.add hash e.index_entry_page_file e) entries 
+    let	() = Logs.info @@ fun m -> m "Loading page files" in
+    let* content_pages = load_page_files state hooks content_files in
+    let* index_pages = load_page_files state hooks index_files in
+    (* Assemble complete pages from bodies and templates,
+       if running in generator mode, if required. *)
+    let* content_pages = Utils.map_result (make_page settings) content_pages in
+    let* index_pages = Utils.map_result (make_page settings) index_pages in
+    let pages = List.append content_pages index_pages in
+    (* Run widgets that are scheduled to run before index extraction,
+       so that they may produce metadata that the user wants to extract.
+       We run those widgets on all pages right away to keep things simpler,
+       even though index files are not used as metadata sources
+       and running those widgets on them early should not be important. *)
+    let () =
+      if (pre_index_widgets <> [])
+      then Logs.info @@ fun m -> m "Running widgets scheduled to run before index extraction"
     in
-    (* The user wants the complete site metadata available to widgets/plugins on every page. *)
-    begin
-      (* Make a random-access hash table version of the index to provide an index entry to widgets and
-         hooks for the page being processed. *)
-      let index_hash = Hashtbl.create 1024 in
-      (* Do just enough work to have all site metadata produced and extracted.
-         [index_only=true] prevents [process_page] from rendering pages and writing them to disk.
-
-         It also often (though not always) reduces the number of widgets that will run on each page
-         because widgets that aren't in the [extract_after_widgets] list are not processed.
-       *)
-      let () = Logs.info @@ fun m -> m "Starting the first (index extraction only) pass" in
-      let state = {state with soupault_settings={state.soupault_settings with index_only=true}} in
-      let* index = process_page_files state index_hash widgets hooks page_files in
-      (* Sort entries according to the global settings so that widgets that use index data
-         don't have to sort it themselves. *)
-      let* index = Autoindex.sort_entries settings settings.index_sort_options index in
-      (* Import the extracted index data into the random-access hash. *)
-      let () = import_index_hash index_hash index in
-      (* Since metadata extraction is already done and the complete site metadata should be available to all pages,
-         content pages and section index pages should be treated the same.
-         So we merge the lists of content and index pages back into one list
-         and process it to generate the website.
-       *)
-      let all_files = List.append page_files index_files in
-      (* Disable metadata extraction to avoid doing useless work, then process all pages.
-         In practice, only index pages may produce new pages, but for simplicity we merge the lists
-         because there's no harm in trying to collect generated pages from non-index pages,
-         they will simply return empty lists.
-       *)
-      let state = {state with soupault_settings={state.soupault_settings with no_index_extraction=true; index_only=false}} in
-      let () = Logs.info @@ fun m -> m "Starting the second (full page rendering) pass" in
-      (* At this step Lua index_processors may generate new pages, e.g. for taxonomies or pagination. *)
-      let* new_pages = process_index_files state index index_hash widgets hooks all_files in
-      (* Now process those "fake" pages generated by index processors.
-         Index processing must be disabled on them to prevent index processors from generating
-         new "fake" pages from generated pages and creating infinite loops.
-       *)
-      let () = if new_pages <> [] then Logs.info @@ fun m -> m "Processing pages generated by indexer scripts" in
-      let state = {state with soupault_settings={state.soupault_settings with index=false}} in
-      let* () = Utils.iter_result (process_page state index index_hash widgets hooks) new_pages in
-      let* () = Hooks.run_post_build_hook state index hooks in
-      (* Finally, dump the index file, if requested. *)
-      let* () = dump_index_json settings index in
-      Ok ()
-    end
+    let* () = Utils.iter_result (process_widgets state pre_index_widgets widget_hash) pages in
+    (* Extract metadata . *)
+    let () = Logs.info @@ fun m -> m "Extracting metadata from pages" in
+    let* index = Utils.fold_left_result
+      (fun acc p ->
+        let () = Logs.info @@ fun m -> m "Extracting metadata from page %s \n %s"
+          p.page_file (Soup.pretty_print p.element_tree)
+        in
+        let res = extract_metadata state hooks p in
+        match res with
+        | Ok entry ->
+         Ok (match entry with
+              | Some e ->
+                let () = Logs.debug @@ fun m -> m "Index entry for page %s:\n%s"
+                  p.page_file (Autoindex.json_of_entry e |> Ezjsonm.to_string)
+                in
+                (e :: acc)
+              | None -> acc)
+        | Error _ as e -> e)
+      []
+      pages
+    in
+    (* Sort entries according to the global settings sort option so that widgets that use index data
+       don't have to sort it themselves. *)
+    let* index = Autoindex.sort_entries settings settings.index_sort_options index in
+    (* Run index processors, on all pages, content and index alike.
+       At this stage, index processor plugins may produce autogenerated pages
+       (for example, paginated blog indices).
+       This step produces an intermediate (page_file, element_tree) list.
+     *)
+    let state = {state with site_index=index} in
+    let* new_page_sources = Utils.fold_left_result
+      (fun acc page ->
+         let* nps = Autoindex.insert_indices state page in
+         Ok (List.append acc nps)) [] pages
+    in
+    let* new_pages = Utils.map_result (fun (path, etree) -> make_page_data state hooks path etree) new_page_sources in
+    (* Run the remaining widgets on all pages.
+       We do it only after index insertion, so that widgets can modify
+       HTML nodes that index processors may create. *)
+    let () =
+      if (post_index_widgets <> [])
+      then Logs.info @@ fun m -> m "Running widgets scheduled to run after index extraction"
+    in
+    let* () = Utils.iter_result (process_widgets state post_index_widgets widget_hash) pages in
+    (* Now process "fake" pages generated by index processors.
+       We only run widgets on them, since index data insertion was already done
+       by the index processors that produced them. *)
+    let all_widgets = List.append pre_index_widgets post_index_widgets in
+    let* () = Utils.iter_result (process_widgets state all_widgets widget_hash) new_pages in
+    let () = Logs.info @@ fun m -> m "Rendering generated pages to HTML" in
+    let all_pages = List.append pages new_pages in
+    (* We need the original page record so that the save hook can use it,
+       so we create a list of tuples. *)
+    let* generated_pages = Utils.map_result
+      (fun p ->
+         let res = render_html state hooks p in
+         match res with
+         | Ok pt -> Ok (p, pt)
+         | Error _ as e -> e)
+      all_pages
+    in
+    let () = Logs.info @@ fun m -> m "Saving generated pages to disk" in
+    let* () = Utils.iter_result
+      (fun (p, pt) ->
+         save_html state hooks p pt)
+      generated_pages
+    in
+    (* Run the post-build hook — it runs once, after all pages are saved to disk. *)
+    let* () = Hooks.run_post_build_hook state index hooks in
+    (* Finally, dump the index file, if requested. *)
+    dump_index_json settings index
 
 let () =
   let cli_options = get_args () in

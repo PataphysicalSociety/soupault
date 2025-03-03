@@ -1,7 +1,10 @@
+open Defaults
+
 let (>>=) = Option.bind
 
 (* Title *)
-let set_title _ _ config soup =
+let set_title _ config _ page =
+  let soup = page.element_tree in
   let make_title_string default prepend append title_opt =
     (* If title is not given, return the default title
        without appending or prepending anything, since that would look weird *)

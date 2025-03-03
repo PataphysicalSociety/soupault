@@ -1,8 +1,11 @@
 
 type page_data = {
-  page_file_path : string;
-  page_content : string option;
-  page_nav_path : string list;
+  page_file: string;
+  element_tree: Soup.soup Soup.node;
+  nav_path : string list;
+  target_dir: string;
+  target_file: string;
+  url: string;
 }
 
 type sort_type = Calendar | Numeric | Lexicographic
@@ -57,6 +60,8 @@ type index_entry = {
   index_entry_nav_path: string list;
   fields : (string * Ezjsonm.value) list;
 }
+
+type index = index_entry list
 
 type page_template = {
   template_name : string;
@@ -221,20 +226,12 @@ type state = {
   soupault_settings: settings;
   soupault_config: Otoml.t;
 
+  site_index: index_entry list;
+
   (* A variable accessible to all plugins
      that can be used to share data between them.
    *)
   global_data : Ezjsonm.value ref;
-}
-
-type env = {
-  nav_path : string list;
-  page_file : string;
-  page_url : string;
-  target_dir : string;
-  target_file : string;
-  site_index : index_entry list;
-  site_index_hash : (string, index_entry) Hashtbl.t;
 }
 
 let config_file = "soupault.toml"

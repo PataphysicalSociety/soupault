@@ -1269,7 +1269,7 @@ let extract_global_data lua_state =
       | Ok j -> j
     end
 
-let run_plugin filename lua_code plugin_env_ref soupault_state env widget_config soup =
+let run_plugin filename lua_code plugin_env_ref soupault_state widget_config index page =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
@@ -1279,13 +1279,13 @@ let run_plugin filename lua_code plugin_env_ref soupault_state env widget_config
   let () =
     (* Set up the built-in plugin environment *)
     I.register_globals [
-      "page", lua_of_soup (Html.SoupNode soup);
-      "nav_path", lua_str_list.embed env.nav_path;
-      "page_file", lua_str.embed env.page_file;
-      "page_url", lua_str.embed env.page_url;
-      "target_dir", lua_str.embed env.target_dir;
-      "target_file", lua_str.embed env.target_file;
-      "site_index", lua_of_json (Utils.json_of_index_entries env.site_index);
+      "page", lua_of_soup (Html.SoupNode page.element_tree);
+      "nav_path", lua_str_list.embed page.nav_path;
+      "page_file", lua_str.embed page.page_file;
+      "page_url", lua_str.embed page.url;
+      "target_dir", lua_str.embed page.target_dir;
+      "target_file", lua_str.embed page.target_file;
+      "site_index", lua_of_json (Utils.json_of_index_entries index);
       "config", lua_of_toml widget_config;
       "widget_config", lua_of_toml widget_config;
       "soupault_config", lua_of_toml soupault_state.soupault_config;

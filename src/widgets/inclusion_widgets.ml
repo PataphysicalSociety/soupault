@@ -12,7 +12,8 @@ let html_of_string ?(parse=true) ?(body_context=true) settings html_str =
 
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
-let insert_html state _ config soup =
+let insert_html state config _ page =
+  let soup = page.element_tree in
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "insert_html"|} in
@@ -36,7 +37,8 @@ let insert_html state _ config soup =
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
-let include_file state _ config soup =
+let include_file state config _ page =
+  let soup = page.element_tree in
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "include"|} in
@@ -61,15 +63,16 @@ let include_file state _ config soup =
 
 (* External program output inclusion *)
 
-let make_program_env env =
+let make_program_env page =
   let make_var l r = Printf.sprintf "%s=%s" l r in
-  let page_file = make_var "PAGE_FILE" env.page_file in
-  let page_url = make_var "PAGE_URL" env.page_url in
-  let target_dir = make_var "TARGET_DIR" env.target_dir in
+  let page_file = make_var "PAGE_FILE" page.page_file in
+  let page_url = make_var "PAGE_URL" page.url in
+  let target_dir = make_var "TARGET_DIR" page.target_dir in
   [| page_file; page_url; target_dir |]
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
-let include_program_output state env config soup =
+let include_program_output state config _ page =
+  let soup = page.element_tree in
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "exec"|} in
@@ -86,7 +89,7 @@ let include_program_output state env config soup =
       | None ->
         let () = no_container_action selector in Ok ()
       | Some container ->
-        let env_array = make_program_env env in
+        let env_array = make_program_env page in
         let* cmd = Config.find_string_result config ["command"] in
         let* content = Process_utils.get_program_output ~env:env_array ~debug:settings.debug cmd in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings content in
@@ -103,11 +106,12 @@ let make_node_env node =
 (** Runs the [command] using the text of the element that matches the
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
-let preprocess_element state env config soup =
+let preprocess_element state config _ page =
+  let soup = page.element_tree in
   let settings = state.soupault_settings in
-  let run_command env command action parse body_context node =
+  let run_command page command action parse body_context node =
     let input = Html_utils.inner_html ~escape_html:false node in
-    let cached_result = Cache.get_cached_object settings env.page_file command input in
+    let cached_result = Cache.get_cached_object settings page.page_file command input in
     match cached_result with
     | Some output ->
       let () = Logs.info @@ fun m -> m {|The result of executing command "%s" was found in cache|} command in
@@ -117,13 +121,13 @@ let preprocess_element state env config soup =
     | None ->
       let () = Logs.info @@ fun m -> m "Executing command: %s" command in
       let node_env = make_node_env node in
-      let program_env = make_program_env env in
+      let program_env = make_program_env page in
       let env_array = Array.append program_env node_env in
       let result = Process_utils.get_program_output ~input:(Some input) ~env:env_array ~debug:settings.debug command in
       begin
         match result with
         | Ok output ->
-          let () = Cache.cache_object settings env.page_file command input output in
+          let () = Cache.cache_object settings page.page_file command input output in
           let content = html_of_string ~parse:parse ~body_context:body_context settings output in
           let () = Html_utils.insert_element action node content in
           Ok ()
@@ -140,4 +144,4 @@ let preprocess_element state env config soup =
   let* selectors = Config.find_strings_result config ["selector"] in
   let* command = Config.find_string_result config ["command"] in
   let nodes = Html_utils.select_all selectors soup in
-  Utils.iter_result (run_command env command (Some action) parse html_body_context) nodes
+  Utils.iter_result (run_command page command (Some action) parse html_body_context) nodes

@@ -2,12 +2,14 @@
 
 module OH = Otoml.Helpers
 
+open Defaults
 open Widget_utils
 
 let (let*) = Stdlib.Result.bind
 
 (** Deletes an element from the tree *)
-let delete_element _ _ config soup =
+let delete_element _ config _ page =
+  let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options [
     "selector"; "only_if_empty"; "when_no_child"; "delete_all"
   ]
@@ -47,7 +49,8 @@ let delete_element _ _ config soup =
     Ok ()
 
 (** Wraps elements matching certain selectors into an HTML snippet. *)
-let wrap _ _ config soup =
+let wrap _ config _ page =
+  let soup = page.element_tree in
   let wrap_elem s w e =
     let w_soup = Soup.parse w in
     (* XXX: This is a rather inelegant dirty hack.

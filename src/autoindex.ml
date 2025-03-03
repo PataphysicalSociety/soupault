@@ -54,12 +54,12 @@ let rec get_fields strip_tags fields soup =
     field :: (get_fields strip_tags fs soup)
 
 (* Prepares a complete entry together with built-in meta-fields. *)
-let get_entry settings env soup =
+let get_index_entry settings page =
   {
-    index_entry_url = env.page_url;
-    index_entry_page_file = env.page_file;
-    index_entry_nav_path = env.nav_path;
-    fields = get_fields settings.index_strip_tags settings.index_fields soup
+    index_entry_url = page.url;
+    index_entry_page_file = page.page_file;
+    index_entry_nav_path = page.nav_path;
+    fields = get_fields settings.index_strip_tags settings.index_fields page.element_tree
   }
 
 let json_of_entry = Utils.json_of_index_entry
@@ -282,20 +282,20 @@ let get_sort_options settings view =
       sort_strict = redefine l.sort_strict r.sort_strict;
     }
   
-let insert_index soupault_state env soup view =
-  let settings = soupault_state.soupault_settings in
-  let soupault_config = soupault_state.soupault_config in
-  let index_container = Soup.select_one view.index_selector soup in
+let insert_index state page view =
+  let settings = state.soupault_settings in
+  let soupault_config = state.soupault_config in
+  let index_container = Soup.select_one view.index_selector page.element_tree in
   match index_container with
   | None ->
     let () = Logs.debug @@ fun m -> m {|Page "%s" doesn't have an element matching selector "%s", ignoring index view "%s"|}
-      env.page_file view.index_selector view.index_view_name
+      page.page_file view.index_selector view.index_view_name
     in Ok []
   | Some ic ->
     begin
-      let () = Logs.info @@ fun m -> m {|Rendering index view "%s" on page %s|} view.index_view_name env.page_file in
+      let () = Logs.info @@ fun m -> m {|Rendering index view "%s" on page %s|} view.index_view_name page.page_file in
       let (let*) = Result.bind in
-      let index = List.filter (view_includes_page settings env.page_file view) env.site_index in
+      let index = List.filter (view_includes_page settings page.page_file view) state.site_index in
       let* index = sort_entries settings (get_sort_options settings view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl ->
@@ -307,19 +307,19 @@ let insert_index soupault_state env soup view =
       | Defaults.LuaIndexer (file_name, lua_code) ->
         let index_view_config = Otoml.find soupault_config Otoml.get_table ["index"; "views"; view.index_view_name] |> Otoml.table in
         (* Give the Lua index processor a filtered index view rather than the original full version. *)
-        let env = {env with site_index=index} in
-        Hooks.run_lua_index_processor soupault_state index_view_config view.index_view_name file_name lua_code env soup
+        let state = {state with site_index=index} in
+        Hooks.run_lua_index_processor state index_view_config view.index_view_name file_name lua_code page
     end
 
-let insert_indices soupault_state env soup =
+let insert_indices state page =
   let (let*) = Result.bind in
-  let settings = soupault_state.soupault_settings in
-  let insert_index_get_pages soupault_state env soup acc view =
-    let* pages = insert_index soupault_state env soup view in
+  let settings = state.soupault_settings in
+  let insert_index_get_pages state page acc view =
+    let* pages = insert_index state page view in
     Ok (List.append pages acc)
   in
   Utils.fold_left_result ~ignore_errors:(not settings.strict)
-    (insert_index_get_pages soupault_state env soup) [] settings.index_views
+    (insert_index_get_pages state page) [] settings.index_views
 
 let index_extraction_should_run settings page_file =
   (* If this option is true, this is a second pass and we don't need to extract anything
@@ -329,13 +329,12 @@ let index_extraction_should_run settings page_file =
   if not settings.index then false else
   (* ...as well as if indexing is disabled by build profile settings. *)
   if not (Utils.build_profile_matches settings.index_profile settings.build_profiles) then false else
-  (* *)
-  if (Path_options.is_handmade_clean_url settings page_file) then true else
-  (* Metadata is not extracted from section index, unless forced by forced_indexing_path_regex.
-     The only valid reason to extract metadata from an section/index.html page is to account for
+    (* Metadata is not extracted from section index pages, unless forced by forced_indexing_path_regex.
+     The only valid reason to extract metadata from an index page is to account for
      hand-made "clean URLs", otherwise they usually don't contain any content other than pointers
-     to other pages.
+     to other pages and indexing them can create circular links.
    *)
+  if (Path_options.is_handmade_clean_url settings page_file) then true else
   let page_name = FilePath.basename page_file |> FilePath.chop_extension in
   if (page_name = settings.index_page) then false else
   (* A normal, non-index page may still be excluded from indexing. *)

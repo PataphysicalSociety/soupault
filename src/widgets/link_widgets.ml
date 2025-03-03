@@ -2,6 +2,7 @@
 
 module OH = Otoml.Helpers
 
+open Defaults
 open Soupault_common
 
 (* By default, exclude these categories of links from target rewriting:
@@ -197,7 +198,7 @@ let target_matches only_regex exclude_regex target =
    This function rewrites paths according to the real depth by adding a "../" for every nesting level
    to make relative paths correct.
  *)
-let relativize_link_target state env check_file only_regex exclude_regex target =
+let relativize_link_target state page check_file only_regex exclude_regex target =
   let strip_leading_slashes s = Regex_utils.Internal.replace ~regex:"^/+" ~sub:"" s in
   let open Defaults in
   let settings = state.soupault_settings in
@@ -205,7 +206,7 @@ let relativize_link_target state env check_file only_regex exclude_regex target 
     let () =
       Logs.debug @@ fun m -> m {|Link target "%s" is excluded by regex options, not trying to make it relative|} target
     in target
-  else if check_file && (Sys.file_exists (FilePath.concat env.target_dir target)) then
+  else if check_file && (Sys.file_exists (FilePath.concat page.target_dir target)) then
     (* Before doing any real work, we check if the link target is pointing at a file that actually exists
        at a path relative to _this_ page. If it does, the target is _already correct_
        and doesn't need to be relativized.
@@ -231,7 +232,7 @@ let relativize_link_target state env check_file only_regex exclude_regex target 
     "./" ^ (strip_leading_slashes target)
   else
     (* Remove the build_dir from the target path to produce a path relative to the site root. *)
-    let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ settings.build_dir) ~sub:"" env.target_dir in
+    let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ settings.build_dir) ~sub:"" page.target_dir in
     let parent_path = File_path.split_path relative_target_dir in
     (* "Absolute" links that point to the site root (like "/favicon.ico") and "purely relative" ones (like "foo.png")
         require different treatment.
@@ -254,7 +255,7 @@ let relativize_link_target state env check_file only_regex exclude_regex target 
       String.concat "/" @@ ((List.map (fun _ -> "..") parent_path) @ [target])
 
 (** Prepends a prefix (typically the base URL of the website) to link targets. *)
-let absolutize_link_target state env prefix check_file only_regex exclude_regex target =
+let absolutize_link_target state page prefix check_file only_regex exclude_regex target =
   let open Defaults in
   let settings = state.soupault_settings in
   if not (target_matches only_regex exclude_regex target) then
@@ -262,7 +263,7 @@ let absolutize_link_target state env prefix check_file only_regex exclude_regex 
     Logs.debug @@ fun m -> m {|Link target "%s" is excluded by regex options, not trying to make it absolute|} target
   in target
   (* Remove the build_dir from the path *)
-  else let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ settings.build_dir) ~sub:"" env.target_dir in
+  else let relative_target_dir = Regex_utils.Internal.replace ~regex:("^" ^ settings.build_dir) ~sub:"" page.target_dir in
   (* Strip leading slashes *)
   let target = Regex_utils.Internal.replace ~regex:"^/+" ~sub:"" target in
   let parent_path =
@@ -270,14 +271,15 @@ let absolutize_link_target state env prefix check_file only_regex exclude_regex 
        the link probably comes from a page template and we just prepend the prefix to it,
        making an assumption that it's valid relative to the site root.
      *)
-    (if check_file && (Sys.file_exists (FilePath.concat env.target_dir target))
+    (if check_file && (Sys.file_exists (FilePath.concat page.target_dir target))
      then let dir_path = File_path.split_path relative_target_dir in String.concat "/" (prefix :: dir_path)
      else prefix)
    in
    String.concat "/" [parent_path; target]
 
 (** Converts all internal links to relative according to the page's location in the directory tree. *)
-let relative_links state env config soup =
+let relative_links state config _ page =
+  let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options ["exclude_target_regex"; "only_target_regex"; "check_file"] in
   let () = Config.check_options valid_options config {|widget "relative_links"|} in
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
@@ -292,14 +294,15 @@ let relative_links state env config soup =
     | [] ->
       Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
     | ns ->
-      let relativize_target = relativize_link_target state env check_file only_regex exclude_regex in
+      let relativize_target = relativize_link_target state page check_file only_regex exclude_regex in
       List.iter (fun elem -> process_attrs relativize_target elem) ns
     end;
     Ok ()
   end
 
 (** Converts all internal links to absolute. *)
-let absolute_links state env config soup =
+let absolute_links state config _ page =
+  let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
   in
@@ -319,7 +322,7 @@ let absolute_links state env config soup =
     | [] ->
       Logs.debug @@ fun m -> m "Page has no link elements that need adjustment"
     | ns ->
-      let absolutize_target = absolutize_link_target state env prefix check_file only_regex exclude_regex in
+      let absolutize_target = absolutize_link_target state page prefix check_file only_regex exclude_regex in
       List.iter (fun elem -> process_attrs absolutize_target elem) ns
     end;
     Ok ()

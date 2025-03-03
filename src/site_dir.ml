@@ -66,13 +66,6 @@ let get_site_files settings =
     let dirs = List.filter (fun d -> not (Utils.in_list (FP.basename d) settings.ignore_directories)) dirs in
     let section_page_files, section_asset_files = list_section_files settings path in
     let section_page_files, section_index_files = split_pages settings section_page_files in
-    (* Attach the nav path to each file. Target dir and page URL are generated from it *)
-    let section_page_files =
-      List.map (fun x -> ({page_file_path=x; page_content=None; page_nav_path=nav_path})) section_page_files
-    in
-    let	section_index_files =
-      List.map (fun x -> ({page_file_path=x; page_content=None; page_nav_path=nav_path})) section_index_files
-    in
     let asset_path = File_path.concat_path (settings.build_dir :: nav_path) in
     let section_asset_files = List.map (fun x -> (x, asset_path)) section_asset_files in
     (* Collect files from subdirs *)
@@ -88,7 +81,7 @@ let get_site_files settings =
    If any of those don't exist, fail with an error to let the user know their config is inconsistent. *)
 let reorder_pages settings all_pages =
   let page_exists pages path =
-    match List.find_opt (fun p -> p.page_file_path = path) pages with
+    match List.find_opt ((=) path) pages with
     | Some _ -> ()
     | None ->
       soupault_error @@ Printf.sprintf
@@ -97,7 +90,7 @@ let reorder_pages settings all_pages =
   let process_first = List.map (FilePath.concat settings.site_dir) settings.process_pages_first in
   try
     let () = List.iter (page_exists all_pages) settings.process_pages_first in
-    let pages_first = List.find_all (fun i -> Utils.in_list i.page_file_path process_first) all_pages in
-    let pages_rest = List.filter (fun i -> not @@ Utils.in_list i.page_file_path process_first) all_pages in
+    let pages_first = List.find_all (fun p -> Utils.in_list p process_first) all_pages in
+    let pages_rest = List.filter (fun p -> not @@ Utils.in_list p process_first) all_pages in
     Ok (List.append pages_first pages_rest)
   with Soupault_error msg -> Error msg

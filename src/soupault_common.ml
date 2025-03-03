@@ -31,3 +31,8 @@ let internal_error err =
    it should always be re-raised as Internal_error.
  *)
 exception Malformed_file_name of string
+
+(* Custom infix operators *)
+
+let (+/) left right =
+    FilePath.concat left right

@@ -33,7 +33,8 @@ let check_breadcrumb_template tmpl_str =
   try let _ = Template.of_string tmpl_str in Ok ()
   with _ -> Error "Failed to parse breadcrumb template (consult Jingoo documentation for a syntax reference)"
 
-let breadcrumbs _ env config soup =
+let breadcrumbs _ config _ page =
+  let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
   let () = Config.check_options valid_options config {|widget "breadcrumbs"|} in
@@ -51,7 +52,7 @@ let breadcrumbs _ env config soup =
         let () = Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nowhere to insert the breadcrumbs|} selector in
         Ok ()
       | Some container ->
-        let path_length = List.length env.nav_path in
+        let path_length = List.length page.nav_path in
         if path_length < min_depth then Ok () else
         let bc_tmpl_str = Config.find_string_or ~default:{|<a href="{{url}}">{{name}}</a>|} config ["breadcrumb_template"] in
         let* _  = check_breadcrumb_template bc_tmpl_str in
@@ -59,6 +60,6 @@ let breadcrumbs _ env config soup =
         let prepend = Config.find_string_or ~default:"" config ["prepend"] in
         let append = Config.find_string_or ~default:"" config ["append"] in
         let between = Config.find_string_or ~default:"" config ["between"] in
-        let breadcrumbs = make_breadcrumbs env.nav_path bc_tmpl prepend append between in
+        let breadcrumbs = make_breadcrumbs page.nav_path bc_tmpl prepend append between in
         Ok (Html_utils.insert_element action container breadcrumbs)
     end
