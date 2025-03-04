@@ -990,7 +990,9 @@ let main cli_options =
     (* Run the post-build hook — it runs once, after all pages are saved to disk. *)
     let* () = Hooks.run_post_build_hook state index hooks in
     (* Finally, dump the index file, if requested. *)
-    dump_index_json settings index
+    let* () = dump_index_json settings index in
+    let () = Logs.info @@ fun m -> m "Build completed successfully"in
+    Ok ()
 
 let () =
   let cli_options = get_args () in
