@@ -315,7 +315,6 @@ let make_page settings page =
     let content_selector = Option.value ~default:settings.default_content_selector content_selector in
     let content_action = Option.value ~default:settings.default_content_action content_action in
     let* () = include_content content_action content_selector html page.element_tree in
-    let () = Logs.debug @@ fun m -> m "Rendered page:\n%s" (Soup.pretty_print html) in
     Ok {page with element_tree=html}
 
 (* Widget processing *)
@@ -926,8 +925,7 @@ let main cli_options =
     let () = Logs.info @@ fun m -> m "Extracting metadata from pages" in
     let* index = Utils.fold_left_result
       (fun acc p ->
-        let () = Logs.info @@ fun m -> m "Extracting metadata from page %s \n %s"
-          p.page_file (Soup.pretty_print p.element_tree)
+        let () = Logs.info @@ fun m -> m "Extracting metadata from page %s" p.page_file
         in
         let res = extract_metadata state hooks p in
         match res with
