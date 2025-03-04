@@ -459,7 +459,7 @@ let save_html state hooks page rendered_page_text =
       Hooks.run_save_hook state hook_config file_name source_code page rendered_page_text
     else Utils.write_file page.target_file rendered_page_text
   | None ->
-    let () = Logs.info @@ fun m -> m "Writing the page generated from %s to %s" page.page_file page.target_file in
+    let () = Logs.info @@ fun m -> m "Saving the page generated from %s to %s" page.page_file page.target_file in
     Utils.write_file page.target_file rendered_page_text
 
 let extract_metadata state hooks page =
@@ -908,6 +908,7 @@ let main cli_options =
     let* index_pages = load_page_files state hooks index_files in
     (* Assemble complete pages from bodies and templates,
        if running in generator mode, if required. *)
+    let () = Logs.info @@ fun m -> m "Processing pages" in
     let* content_pages = Utils.map_result (make_page settings) content_pages in
     let* index_pages = Utils.map_result (make_page settings) index_pages in
     let pages = List.append content_pages index_pages in
