@@ -158,15 +158,6 @@ type settings = {
   (* Only extract the site index, don't generate any pages *)
   index_only : bool;
 
-  (* Do not try to extract metadata from the page.
-     This option is not visible to the user since it makes no sense alone
-     (without disabling both extraction and insertion, like [index=false] does).
-     It's only set internally to avoid useless work on the second pass
-     when metadata is already extracted and we only need to generate output
-     files from pages.
-   *)
-  no_index_extraction : bool;
-
   (* Enable site metadata extraction. *)
   index : bool;
 
@@ -292,9 +283,6 @@ let default_settings = {
 
   index = false;
   index_only = false;
-
-  (* Must always be false by default, only used internally. *)
-  no_index_extraction = false;
 
   dump_index_json = None;
   ignore_template_errors = false;

@@ -322,9 +322,6 @@ let insert_indices state page =
     (insert_index_get_pages state page) [] settings.index_views
 
 let index_extraction_should_run settings page_file =
-  (* If this option is true, this is a second pass and we don't need to extract anything
-     since the complete website metadata is already available from the first pass. *)
-  if settings.no_index_extraction then false else
   (* If indexing is disabled in the config, it definitely should not run. *)
   if not settings.index then false else
   (* ...as well as if indexing is disabled by build profile settings. *)
