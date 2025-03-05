@@ -39,7 +39,7 @@ let rec _load_plugins soupault_config ps hash =
 
 let get_plugins soupault_config =
   let (let*) = Stdlib.Result.bind in
-  let () = Logs.info @@ fun m -> m "Loading plugins" in
+  let () = Logs.info @@ fun m -> m "Loading explicitly configured plugins" in
   let hash = Hashtbl.create 1024 in
   let plugins = list_plugins soupault_config in
   let* () = _load_plugins soupault_config plugins hash in

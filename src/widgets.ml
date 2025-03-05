@@ -107,6 +107,7 @@ let rec _load_widgets settings soupault_config plugins ws hash =
 
 (* Result'y wrapper for _load_widgets *)
 let load_widgets settings soupault_config plugins =
+  let () = Logs.info @@ fun m -> m "Mapping plugins to widgets" in
   let ws = list_widgets soupault_config in
   let widgets_hash = Hashtbl.create 1024 in
   try
