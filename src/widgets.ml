@@ -116,8 +116,12 @@ let load_widgets settings soupault_config plugins =
   with Widget_error msg -> Error msg
 
 let order_widgets widget_hash =
+  let () = Logs.info @@ fun m -> m "Determining widget execution order" in
   let format_bad_deps ds =
-    let format_bad_dep (n, ns) = Printf.sprintf {|Widget "%s" depends on non-existent widgets: %s|} n (String.concat ", " ns) in
+    let format_bad_dep (n, ns) =
+      Printf.sprintf {|Widget "%s": is set to run after non-existent widgets: %s|}
+        n (String.concat ", " ns)
+    in
     let bad_deps = List.map format_bad_dep ds |> String.concat "\n" in
     Printf.sprintf "Found dependencies on non-existent widgets\n%s" bad_deps
   in
@@ -129,7 +133,9 @@ let order_widgets widget_hash =
   let res = Tsort.sort dep_graph in
   match res with
   | Tsort.Sorted ws -> Ok ws
-  | Tsort.ErrorCycle ws -> Error (Printf.sprintf "Found a circular dependency between widgets: %s" (String.concat " " ws))
+  | Tsort.ErrorCycle ws ->
+    Error (Printf.sprintf "There is a dependency cycle between following widgets: %s"
+      (String.concat ", " ws))
 
 (* Splits the list of widgets into those that should run before and after metadata extraction.
    The reason to do this is to allow widget outputs to serve as metadata sources:
@@ -150,7 +156,9 @@ let partition_widgets all_widgets index_deps =
     (* The list or widgets is empty, but the list is dependencies is not,
        that means index extraction depends on widgets that don't exist
        in the config *)
-    | _ as ds, []  -> Error (Printf.sprintf "Index extraction depends on non-existent widgets: %s" (String.concat " " ds))
+    | _ as ds, []  ->
+      Error (Printf.sprintf "Index extraction is set to run after non-existent widgets: %s"
+        (String.concat " " ds))
   in aux index_deps [] all_widgets
 
 let get_widgets settings soupault_config plugins index_deps =
