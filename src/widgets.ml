@@ -114,13 +114,15 @@ let load_widgets settings soupault_config plugins =
     Ok widgets_hash
   with Widget_error msg -> Error msg
 
-let get_widget_order hash =
+let order_widgets widget_hash =
   let format_bad_deps ds =
     let format_bad_dep (n, ns) = Printf.sprintf {|Widget "%s" depends on non-existent widgets: %s|} n (String.concat ", " ns) in
     let bad_deps = List.map format_bad_dep ds |> String.concat "\n" in
     Printf.sprintf "Found dependencies on non-existent widgets\n%s" bad_deps
   in
-  let dep_graph = CCHashtbl.map_list (fun k v -> (k, Config.find_strings_or ~default:[] v.config ["after"])) hash in
+  let dep_graph = CCHashtbl.map_list
+    (fun k v -> (k, Config.find_strings_or ~default:[] v.config ["after"])) widget_hash
+  in
   let bad_deps = Tsort.find_nonexistent_nodes dep_graph in
   if bad_deps <> [] then Error (format_bad_deps bad_deps) else
   let res = Tsort.sort dep_graph in
@@ -128,9 +130,12 @@ let get_widget_order hash =
   | Tsort.Sorted ws -> Ok ws
   | Tsort.ErrorCycle ws -> Error (Printf.sprintf "Found a circular dependency between widgets: %s" (String.concat " " ws))
 
-(* Splits the list of widgets into parts that should run before and after index extraction.
+(* Splits the list of widgets into those that should run before and after metadata extraction.
+   The reason to do this is to allow widget outputs to serve as metadata sources:
+   for example, a plugin may insert estimated reading time into pages,
+   and that data can then be extracted to render it on the section index page.
 
-   The assumption is that the [all_widgets] list is already sorted in topological order.
+   Assumes that the widget list list is already sorted in the topological order.
  *)
 let partition_widgets all_widgets index_deps =
   let rec aux index_deps before_index after_index =
@@ -149,18 +154,23 @@ let partition_widgets all_widgets index_deps =
 
 let get_widgets settings soupault_config plugins index_deps =
   let (let*) = Stdlib.Result.bind in
-  let () = Logs.info @@ fun m -> m "Loading widgets" in
-  let* wh = load_widgets settings soupault_config plugins in
-  let* wo = get_widget_order wh in
-  let* before_index, after_index = partition_widgets wo index_deps in
+  let* widget_hash = load_widgets settings soupault_config plugins in
+  let* widget_order = order_widgets widget_hash in
+  (* If indexing is disabled, there is no point in partitioning them --
+     the whole point of "widgets that need to run before metadata extraction"
+     is moot in that case. *)
+  if not settings.index then Ok (widget_order, [], widget_hash) else
+  let () = Logs.debug @@ fun m -> m "Widget processing order: %s"
+    (String.concat " " widget_order)
+  in
+  let* before_index, after_index = partition_widgets widget_order index_deps in
   let () =
-    Logs.debug @@ fun m -> m "Widget processing order: %s" (String.concat " " wo);
     if index_deps <> [] then begin
       Logs.debug @@ fun m -> m "Widgets that will run before metadata extraction: %s" (String.concat " " before_index);
       Logs.debug @@ fun m -> m "Widgets that will run after metadata extraction: %s" (String.concat " " after_index)
     end
   in
-  Ok (before_index, after_index, wh)
+  Ok (before_index, after_index, widget_hash)
 
 (** Check if a widget should run or not.
 
