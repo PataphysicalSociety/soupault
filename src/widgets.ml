@@ -14,6 +14,7 @@ type 'a widget = {
 (* The widgets datastructure is a widget priority list plus a hash with actual widgets *)
 type 'a widgets = string list * (string, 'a widget) Hashtbl.t
 
+
 (* Option monad *)
 let (>>=) = Option.bind
 
@@ -115,18 +116,152 @@ let load_widgets settings soupault_config plugins =
     Ok widgets_hash
   with Widget_error msg -> Error msg
 
-let order_widgets widget_hash =
-  let () = Logs.info @@ fun m -> m "Determining widget execution order" in
+(* Widget dependency handling functions. *)
+
+(* This type is only used inside this module,
+   as a clean way to inject metadata extraction
+   as a special kind of a dependency
+   into the widget dependency graph. *)
+type action = Widget of string | MetadataExtraction
+
+let string_of_action action =
+  match action with
+  | Widget s -> s
+  | MetadataExtraction ->
+    (* XXX: We use this function to render widget names for debug purposes
+       and to convert the topologically sorted list of actions
+       to a list of widget names.
+
+       This shouldn't be a problem because if indexing is disabled,
+       MetadataExtraction will not be in the list at all;
+       and if it's enabled, then the list will be split at that element.
+       Thus it will never be added to any lists that we use to
+       process widgets in a correct order.
+
+       The fun fact is that
+       "<metadata extraction>" is also a valid widget name,
+       so there is a slight potential for confusion,
+       if someone writes [widgets."<metadata extraction>"].
+
+       But since TOML allows completely arbitrary keys,
+       there is no way to produce a debug output in a way
+       that unambiguously separates widget names from that virtual step.
+     *)
+    "<metadata extraction>"
+
+(* For debug purposes. *)
+let dump_dependency_graph dg =
+  List.map (fun (k, v) -> Printf.sprintf "%s -> %s"
+    (string_of_action k)
+    (List.map string_of_action v |> String.concat ", ")) dg |> String.concat "\n"
+
+(* Builds a complete list of dependencies of a node,
+   both direct and transitive.
+ *)
+let find_dependencies graph node =
+  let rec aux graph node =
+    let deps = List.assoc node graph in
+    List.concat (List.map (aux graph) deps) |> List.append deps
+  in aux graph node |> CCList.uniq ~eq:(=)
+
+(* Sorts the list of actions in a topological order.
+   The list of actions may contain widgets
+   and a special, unique, virtual step -- metadata extraction.
+
+   One widget can be set to run only after another
+   (the `after = ` option, so we need to sort them according
+   to that option, at the very least. 
+
+   Moreover, the user can tell soupault to extract page metadata
+   only after processing certain widgets, using `index.extract_after_widgets`.
+
+   That is to allow widgets to serve as metadata producers:
+   a widget inserts something into the page (e.g., word count),
+   then its output is added to the site index entry for that page.
+
+   Metadata extraction certainly must run only
+   after all widgets from the `index.extract_after_widgets` list
+   are processed.
+
+   However, we also need to ensure that metadata extraction
+   runs as early as possible:
+   immediately after all widgets from `index.extract_after_widgets`
+   (and their own dependencies) are processed.
+
+   Most widgets are expected to be consumers of the site index
+   rather than producers, so placing metadata extraction
+   later in the list of actions than it absolutely has to be
+   would deprive those widgets of the opportunity to use the index.
+
+   For this reason, we need to produce an extension
+   of the widget dependency graph that includes
+   metadata extraction as a new vertex
+   and a bunch of new edges.
+
+   One set of edges is explicit: those from `index.extract_after_widgets`.
+
+   The other set is to express the idea
+   that if a widget is not in `index.extract_after_widgets`
+   and is not a dependency of anything that is,
+   then it depends on the virtual `MetadataExtraction` action.
+
+   The output either does not contain `MetadataExtraction`
+   or it will be removed from the list
+   by the partition_widgets function,
+   so it will not cause widget lookup errors down the line.
+  *)
+let order_actions settings widget_hash =
+  let () = Logs.info @@ fun m -> m "Determining widget processing order" in
   let format_bad_deps ds =
     let format_bad_dep (n, ns) =
       Printf.sprintf {|Widget "%s": is set to run after non-existent widgets: %s|}
-        n (String.concat ", " ns)
+        (string_of_action n) (String.concat ", " (List.map string_of_action ns))
     in
     let bad_deps = List.map format_bad_dep ds |> String.concat "\n" in
     Printf.sprintf "Found dependencies on non-existent widgets\n%s" bad_deps
   in
-  let dep_graph = CCHashtbl.map_list
-    (fun k v -> (k, Config.find_strings_or ~default:[] v.config ["after"])) widget_hash
+  let get_direct_deps widget =
+    Config.find_strings_or ~default:[] widget.config ["after"] |> List.map (fun x -> Widget x)
+  in
+  (* Build the graph of direct widget dependencies
+     (excluding dependencies related to the virtual step of metadata extraction).
+   *)
+  let direct_dep_graph = CCHashtbl.map_list
+    (fun k v -> (Widget k, get_direct_deps v)) widget_hash
+  in
+  (* Build a list of all all dependencies of metadata extraction --
+     direct and transitive.
+   *)
+  let index_deps = List.map (fun x -> Widget x) settings.index_extract_after_widgets in
+  let index_deps =
+    List.concat @@ List.map (find_dependencies direct_dep_graph) index_deps |>
+    List.append index_deps |>
+    CCList.uniq ~eq:(=)
+  in
+  (* Add the metadata extraction step as a special kind of a build action,
+     if indexing is enabled.
+  *)
+  let dep_graph =
+    if settings.index then
+      begin
+        (* Add the dependency on metadata extraction to all widgets
+           that are not in index.extract_after_widgets
+           or in transitive dependencies of those widgets,
+           so that widgets can benefit from access to the site index.
+         *)
+        let dep_graph = List.map
+          (fun (name, deps) ->
+            if not (Utils.in_list name index_deps)
+            then (name, MetadataExtraction :: deps)
+            else (name, deps))
+          direct_dep_graph
+        in
+        (MetadataExtraction, index_deps) :: dep_graph
+      end
+    else direct_dep_graph
+  in
+  let () =
+    Logs.debug @@ fun m -> m "Widget dependency graph:\n%s" (dump_dependency_graph dep_graph)
   in
   let bad_deps = Tsort.find_nonexistent_nodes dep_graph in
   if bad_deps <> [] then Error (format_bad_deps bad_deps) else
@@ -135,51 +270,60 @@ let order_widgets widget_hash =
   | Tsort.Sorted ws -> Ok ws
   | Tsort.ErrorCycle ws ->
     Error (Printf.sprintf "There is a dependency cycle between following widgets: %s"
-      (String.concat ", " ws))
+      (String.concat ", " (List.map string_of_action ws)))
 
-(* Splits the list of widgets into those that should run before and after metadata extraction.
-   The reason to do this is to allow widget outputs to serve as metadata sources:
-   for example, a plugin may insert estimated reading time into pages,
-   and that data can then be extracted to render it on the section index page.
+(* Splits the list of actions (widget calls and the special MetadataExtraction step)
+   into those that should run before and after metadata extraction.
+
+   The MetadataExtraction item, if it's there, is always removed from the list
+   during that process.
 
    Assumes that the widget list list is already sorted in the topological order.
  *)
-let partition_widgets all_widgets index_deps =
-  let rec aux index_deps before_index after_index =
-    match index_deps, after_index with
-    (* All dependencies are removed, nothing else to do *)
-    | [], ws -> Ok (List.rev before_index, ws)
-    (* There are still dependencies to remove *)
-    | _, w :: ws' ->
-      let index_deps = CCList.remove ~eq:(=) ~key:w index_deps in
-      aux index_deps (w :: before_index) ws'
-    (* The list or widgets is empty, but the list is dependencies is not,
-       that means index extraction depends on widgets that don't exist
-       in the config *)
-    | _ as ds, []  ->
-      Error (Printf.sprintf "Index extraction is set to run after non-existent widgets: %s"
-        (String.concat " " ds))
-  in aux index_deps [] all_widgets
+let partition_widgets sorted_action_list =
+  let rec aux before_indexing remaining_actions =
+    match remaining_actions with
+    | [] ->
+      (List.rev before_indexing, [])
+    | action :: actions ->
+      begin match action with
+      | Widget _ as w -> aux (w :: before_indexing) actions
+      | MetadataExtraction ->
+        (List.rev before_indexing, actions)
+      end
+  in
+  let before_indexing, after_indexing = aux [] sorted_action_list in
+  (List.map string_of_action before_indexing,
+   List.map string_of_action after_indexing)
 
 let get_widgets settings soupault_config plugins index_deps =
   let (let*) = Stdlib.Result.bind in
   let* widget_hash = load_widgets settings soupault_config plugins in
-  let* widget_order = order_widgets widget_hash in
-  (* If indexing is disabled, there is no point in partitioning them --
-     the whole point of "widgets that need to run before metadata extraction"
-     is moot in that case. *)
-  if not settings.index then Ok (widget_order, [], widget_hash) else
-  let () = Logs.debug @@ fun m -> m "Widget processing order: %s"
-    (String.concat " " widget_order)
-  in
-  let* before_index, after_index = partition_widgets widget_order index_deps in
-  let () =
-    if index_deps <> [] then begin
-      Logs.debug @@ fun m -> m "Widgets that will run before metadata extraction: %s" (String.concat " " before_index);
-      Logs.debug @@ fun m -> m "Widgets that will run after metadata extraction: %s" (String.concat " " after_index)
+  let* widget_order = order_actions settings widget_hash in
+  if not settings.index then
+    (* If indexing is disabled, there is no point in partitioning the widget order list --
+       the whole concept of "widgets that need to run before metadata extraction"
+       is moot in that case. *)
+    begin
+      let widget_order = List.map string_of_action widget_order in
+      let () = Logs.debug @@ fun m -> m "Widget processing order: %s"
+        (String.concat " " widget_order)
+       in
+       Ok (widget_order, [], widget_hash)
     end
-  in
-  Ok (before_index, after_index, widget_hash)
+  else
+    begin
+      let before_index, after_index = partition_widgets widget_order in
+      let () =
+        if index_deps <> [] then begin
+          Logs.debug @@ fun m -> m "Widgets that will run before metadata extraction: %s"
+            (String.concat " " before_index);
+          Logs.debug @@ fun m -> m "Widgets that will run after metadata extraction: %s"
+            (String.concat " " after_index)
+        end
+      in
+      Ok (before_index, after_index, widget_hash)
+    end
 
 (** Check if a widget should run or not.
 
