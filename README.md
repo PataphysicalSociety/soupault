@@ -4,13 +4,13 @@ soupault
 ![Build](https://github.com/PataphysicalSociety/soupault/actions/workflows/main.yml/badge.svg)
 ![GitHub all releases](https://img.shields.io/github/downloads/PataphysicalSociety/soupault/total)
 
-Soupault is an HTML manipulation tool. It can be any of:
+Soupault is an HTML manipulation tool. It can be:
 
-* static site generator,
-* HTML processor,
-* metadata extractor,
+* a static site generator,
+* an HTML processor,
+* a metadata extractor,
 
-or all of them at the same time.
+or all of the above.
 
 Soupault works with the HTML element tree of the page, so it can do many things that traditionally could be done with client-side JS:
 inject new HTML into existing complete pages, create a table of contents that preserves the `id` elements of HTML headings and more.
