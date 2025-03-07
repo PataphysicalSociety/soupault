@@ -213,13 +213,7 @@ type settings = {
 type state = {
   soupault_settings: settings;
   soupault_config: Otoml.t;
-
   site_index: index_entry list;
-
-  (* A variable accessible to all plugins
-     that can be used to share data between them.
-   *)
-  global_data : Ezjsonm.value ref;
 }
 
 let config_file = "soupault.toml"

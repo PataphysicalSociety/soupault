@@ -873,8 +873,7 @@ let main cli_options =
     let state = {
       soupault_settings = settings;
       soupault_config = config;
-      site_index = [];
-      global_data = (ref (`O []));
+      site_index = []
     }
     in
     let pre_index_widgets, post_index_widgets, widget_hash = widget_data in

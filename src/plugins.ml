@@ -20,10 +20,6 @@ let list_plugins config =
   | None -> []
   | Some ps' -> ps'
 
-let make_plugin_function name lua_source =
-  let plugin_env_ref = Plugin_api.make_lua_hash () in
-  Plugin_api.run_plugin name lua_source plugin_env_ref
-
 let rec _load_plugins soupault_config ps hash =
   let (let*) = Stdlib.Result.bind in
   match ps with
@@ -34,7 +30,7 @@ let rec _load_plugins soupault_config ps hash =
     let default_filename = Printf.sprintf "<inline Lua source for plugin %s>" p in
     let ident = Printf.sprintf "plugin %s" p in
     let* (file_name, source) = Utils.load_plugin_code plugin_cfg default_filename ident in
-    let () =  Hashtbl.add hash p (make_plugin_function file_name source) in
+    let () =  Hashtbl.add hash p (Plugin_api.run_plugin file_name source) in
     _load_plugins soupault_config ps' hash
 
 let get_plugins soupault_config =

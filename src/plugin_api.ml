@@ -1232,48 +1232,10 @@ let run_lua lua_state filename lua_code =
       | None -> Ok ()
     end
 
-(* Extracts the variable for global data shared between all plugins and hooks
-   to pass it on to the next plugin or hook.
-   There are two reasons why we embed and project the data to and from Lua every time.
-
-   1. Proximal reason: to avoid a circular dependency between [Plugin_api] and [Defaults].
-      Using the [I.Value.value] type in [Defaults] would create a cycle,
-      and breaking the cycle may be more trouble than it's worth —
-      most of the time, the amount of global data is unlikely to be large enough
-      to require enough CPU time or memory allocations to create a serious performance impact.
-
-   2. Long-term reason: when soupault gets support for a scripting language other than Lua,
-      global data will need to be passed between plugins written in different languages,
-      and we'll have to embed it into the target interpreter every time anyway.
- *)
-let extract_global_data lua_state =
-  let gd = get_global lua_state "global_data" I.Value.value in
-  match gd with
-  | Error msg -> Printf.ksprintf plugin_error "Cannot extract the global_data table: %s" msg
-  | Ok data -> begin
-      let () =
-        (* Technically, there's nothing wrong with using the global_data variable to pass any values.
-           But it's a table by default and the expectation is that plugins will add key-value pairs to it.
-           If they overwrite it entirely, it's unusual and probably warrants a warning.
-         *)
-        if not (I.Value.table.is data)
-        then Logs.warn @@ fun m -> m "Lua code set the global_data variable to a value other than a table!"
-      in
-      let data_json = json_of_lua data in
-      match data_json with
-      | Error msg ->
-        (* This may happen if people use non-string, non-numeric values for table keys.
-           Quite unlikely but technically not impossible.
-         *)
-        Printf.ksprintf plugin_error "Cannot extract the global_data variable from Lua: %s" msg
-      | Ok j -> j
-    end
-
-let run_plugin filename lua_code plugin_env_ref soupault_state widget_config index page =
+let run_plugin filename lua_code soupault_state widget_config index page =
   let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
-  let plugin_env = !plugin_env_ref in
   let lua_state = I.mk () in
   let settings = soupault_state.soupault_settings in
   let () =
@@ -1292,19 +1254,6 @@ let run_plugin filename lua_code plugin_env_ref soupault_state widget_config ind
       "force", I.Value.bool.embed settings.force;
       "build_dir", lua_str.embed settings.build_dir;
       "site_dir", lua_str.embed settings.site_dir;
-      (* Restore the persistent data from previous plugin runs *)
-      "persistent_data", plugin_env;
-      (* Inject the global state data. *)
-      "global_data", lua_of_json !(soupault_state.global_data)
     ] lua_state
   in
-  let res = run_lua lua_state filename lua_code in
-  (* NOTE: here we save the modified global data whether the plugin execution succeeded or not.
-     Plugins certainly can produce useful data before failing,
-     there's a plugin API function to signal an error,
-     and the user can choose to ignore page processing errors with [settings.strict = false].
-     So, it's probably wrong to discard the data if a plugin produces any before it fails.
-   *)
-  let global_data = extract_global_data lua_state in
-  let () = soupault_state.global_data := global_data in
-  res
+  run_lua lua_state filename lua_code
