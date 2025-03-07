@@ -418,7 +418,7 @@ let valid_settings = [
   "clean_urls"; "page_file_extensions";
   "ignore_extensions"; "default_extension"; "keep_extensions";
   "ignore_path_regexes"; "ignore_directories";
-  "complete_page_selector"; "generator_mode"; "process_pages_first";
+  "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery";
   "force"; "caching"; "cache_dir";
   "page_character_encoding";
@@ -457,7 +457,6 @@ let _update_settings settings config =
        default_extension = find_string_or ~default:settings.default_extension st ["default_extension"];
        complete_page_selector = find_string_or ~default:settings.complete_page_selector st ["complete_page_selector"];
        generator_mode = find_bool_or ~default:settings.generator_mode st ["generator_mode"];
-       process_pages_first = find_strings_or ~default:[] st ["process_pages_first"];
 
        plugin_dirs = find_strings_or ~default:settings.plugin_dirs st ["plugin_dirs"];
        plugin_discovery = find_bool_or ~default:settings.plugin_discovery st ["plugin_discovery"];

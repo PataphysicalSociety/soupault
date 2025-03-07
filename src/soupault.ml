@@ -889,14 +889,6 @@ let main cli_options =
     let* () = Hooks.run_startup_hook state hooks in
     let () = Logs.info @@ fun m -> m "Discovering website files in %s" settings.site_dir in
     let (page_files, asset_files) = Site_dir.get_site_files settings in
-    (* If [settings.process_pages_first] is set, extract those pages and move them to the head of the list.
-       For an empty list it would return the original list, but it would require traversing that list twice,
-       so it's better to avoid it unless it's actually required. *)
-    let* page_files =
-      if settings.process_pages_first <> []
-      then Site_dir.reorder_pages settings page_files
-      else Ok page_files
-    in
     let () = Logs.info @@ fun m -> m "Processing asset files" in
     let* () =
       if not settings.index_only
