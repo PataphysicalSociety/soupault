@@ -25,39 +25,16 @@ let list_section_files settings path =
   let other_files = List.find_all (fun f -> not (is_page_file f)) files in
   page_files, other_files
 
-let split_pages settings ps =
-  let find_index = fun p -> (FP.basename p |> FP.chop_extension) = settings.index_page in
-  let index_page = List.find_opt find_index ps in
-  match index_page with
-  | None -> ps, []
-  | Some p ->
-    if Autoindex.index_extraction_should_run settings p then
-      (* The main idea of this option is to allow hand-made clean URLs.
-         If it's an index page, but force_indexing_path_regex or a leaf file market
-         forced treating it as a normal page, we ignore the fact that it looks like
-         an index page.
-       *)
-      let () = Logs.debug @@ fun m -> m "Index page %s is treated as a normal page" p in
-      ps, []
-    else
-      let ps = CCList.remove ~eq:(=) ~key:p ps in
-      ps, [p]
-
 (* Build a list of site source files to be processed.
 
    There are two kinds of files: page files and asset files.
    Additionally we split page files into section index files
    and normal pages.
 
+   Page files are parsed into HTML element trees
+   and manipulated in various ways.
+
    Asset files are simply copied over to their new location.
-
-   Page files are converted to HTML (if they aren't HTML already),
-   parsed and modified. We also extract metadata from them.
-
-   Metadata extracted from normal pages is inserted into section
-   index pages.
-   This means we can only process index pages after all normal pages
-   are processed, and this is why we build a separate list of index pages.
  *)
 let get_site_files settings =
   let rec aux path nav_path =
@@ -65,15 +42,14 @@ let get_site_files settings =
     (* Remove ignored dirs *)
     let dirs = List.filter (fun d -> not (Utils.in_list (FP.basename d) settings.ignore_directories)) dirs in
     let section_page_files, section_asset_files = list_section_files settings path in
-    let section_page_files, section_index_files = split_pages settings section_page_files in
     let asset_path = File_path.concat_path (settings.build_dir :: nav_path) in
     let section_asset_files = List.map (fun x -> (x, asset_path)) section_asset_files in
     (* Collect files from subdirs *)
     List.fold_left
-      (fun (p, i, a) d ->
-        let (p', i', a') = aux d (nav_path @ [FP.basename d]) in
-        (p @ p'), (i @ i'), (a @ a'))
-      (section_page_files, section_index_files, section_asset_files)
+      (fun (p, a) d ->
+        let (p', a') = aux d (nav_path @ [FP.basename d]) in
+        (p @ p'), (a @ a'))
+      (section_page_files, section_asset_files)
       dirs
   in aux settings.site_dir []
 

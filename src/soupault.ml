@@ -888,14 +888,14 @@ let main cli_options =
     let* () = make_build_dir settings.build_dir in
     let* () = Hooks.run_startup_hook state hooks in
     let () = Logs.info @@ fun m -> m "Discovering website files in %s" settings.site_dir in
-    let (content_files, index_files, asset_files) = Site_dir.get_site_files settings in
+    let (page_files, asset_files) = Site_dir.get_site_files settings in
     (* If [settings.process_pages_first] is set, extract those pages and move them to the head of the list.
        For an empty list it would return the original list, but it would require traversing that list twice,
        so it's better to avoid it unless it's actually required. *)
-    let* content_files =
+    let* page_files =
       if settings.process_pages_first <> []
-      then Site_dir.reorder_pages settings content_files
-      else Ok content_files
+      then Site_dir.reorder_pages settings page_files
+      else Ok page_files
     in
     let () = Logs.info @@ fun m -> m "Processing asset files" in
     let* () =
@@ -904,14 +904,9 @@ let main cli_options =
       else Ok ()
     in
     let	() = Logs.info @@ fun m -> m "Loading page files" in
-    let* content_pages = load_page_files state hooks content_files in
-    let* index_pages = load_page_files state hooks index_files in
-    (* Assemble complete pages from bodies and templates,
-       if running in generator mode, if required. *)
+    let* page_sources = load_page_files state hooks page_files in
     let () = Logs.info @@ fun m -> m "Processing pages" in
-    let* content_pages = Utils.map_result (make_page settings) content_pages in
-    let* index_pages = Utils.map_result (make_page settings) index_pages in
-    let pages = List.append content_pages index_pages in
+    let* pages = Utils.map_result (make_page settings) page_sources in
     (* Run widgets that are scheduled to run before index extraction,
        so that they may produce metadata that the user wants to extract.
        We run those widgets on all pages right away to keep things simpler,
