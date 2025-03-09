@@ -39,17 +39,17 @@ let breadcrumbs _ config _ page =
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
   let () = Config.check_options valid_options config {|widget "breadcrumbs"|} in
   let min_depth = Config.find_integer_or ~default:1 config ["min_depth"] in
-  let selector = Config.find_string_result config ["selector"] in
+  let selectors = Config.find_strings_result config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
-  match selector with
+  match selectors with
   | Error _ as e -> e
-  | Ok selector ->
-    let container = Soup.select_one selector soup in
+  | Ok selectors ->
+    let container = Html_utils.select_any_of selectors soup in
     let (let*) = Stdlib.Result.bind in
     begin
       match container with
       | None ->
-        let () = Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nowhere to insert the breadcrumbs|} selector in
+        let () = Widget_utils.no_container_action selectors "nowhere to insert the breadcrumbs" in
         Ok ()
       | Some container ->
         let path_length = List.length page.nav_path in

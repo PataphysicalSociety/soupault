@@ -112,7 +112,7 @@ let footnotes _ config _ page =
     ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class";
      "back_links"; "back_link_id_append"; "link_id_prepend"; "action"] in
   let () = Config.check_options valid_options config {|widget "footnotes"|} in
-  let* selector = Config.find_string_result config ["selector"] in
+  let* selectors = Config.find_strings_result config ["selector"] in
   let action = OH.find_string_opt config ["action"] in
   let note_selector = Config.find_strings_or ~default:[".footnote"] config ["footnote_selector"] in
   let* ref_tmpl = Config.find_string_or ~default:"<sup></sup>" config ["ref_template"] |> Html_utils.check_template "*" in
@@ -121,10 +121,10 @@ let footnotes _ config _ page =
   let back_links = Config.find_bool_or ~default:true config ["back_links"] in
   let back_link_append = Config.find_string_or ~default:"-ref" config ["back_link_id_append"] in
   let link_prepend = Config.find_string_or ~default:"" config ["link_id_prepend"] in
-  let container = Soup.select_one selector soup in
+  let container = Html_utils.select_any_of selectors soup in
   match container with
   | None ->
-    let () = Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nowhere to insert the footnotes|} selector in
+    let () = Widget_utils.no_container_action selectors "nowhere to insert the footnotes" in
     Ok ()
   | Some container ->
     let notes = Html_utils.select_all note_selector soup in

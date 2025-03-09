@@ -15,25 +15,25 @@ let delete_element _ config _ page =
   ]
   in
   let () = Config.check_options valid_options config {|widget "delete_element"|} in
-  let selector = Config.find_string_result config ["selector"] in
+  let selectors = Config.find_strings_result config ["selector"] in
   let when_empty = Config.find_bool_or ~default:false config ["only_if_empty"] in
   let when_no_child = Otoml.Helpers.find_string_opt config ["when_no_child"] in
   let delete_all = Config.find_bool_or ~default:true config ["delete_all"] in
-  match selector with
+  match selectors with
   | Error _ as e -> e
-  | Ok selector ->
+  | Ok selectors ->
     let nodes =
-      if delete_all then (Soup.select selector soup |> Soup.to_list)
-      else (Soup.select_one selector soup |> (fun n -> match n with Some n -> [n] | None -> []))
+      if delete_all then Html_utils.select_all selectors soup
+      else (Html_utils.select_any_of selectors soup |> (fun n -> match n with Some n -> [n] | None -> []))
     in
     begin
       match nodes with
-      | [] ->
-         Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nothing to delete|} selector
+      | [] -> Widget_utils.no_container_action selectors "nothing to delete"
       | ns ->
         let _delete when_empty when_no_child n =
           if not (Html_utils.is_empty n) && when_empty then
-            Logs.debug @@ fun m -> m {|Element matching selector "%s" is not empty, not deleting it|} selector
+            Logs.debug @@ fun m -> m {|Element matching a selector from %s is not empty, not deleting it|}
+              (Utils.format_list ~quote:false selectors)
           else
             begin
               match when_no_child with
@@ -41,8 +41,9 @@ let delete_element _ config _ page =
               | Some child_selector ->
                 let child = Soup.select_one child_selector n in
                 if Option.is_none child then Soup.delete n
-                else Logs.debug @@ fun m -> m {|Element matching selector "%s" matches selector "%s", not deleting it|}
-                  selector child_selector
+                else Logs.debug @@ fun m -> m {|Element that maches a selector from %s\
+                   has a child that matches selector "%s", not deleting it|}
+                  (Utils.format_list ~quote:false selectors) child_selector
             end
         in List.iter (_delete when_empty when_no_child) ns
     end;

@@ -207,16 +207,16 @@ let toc _ config _ page =
     min_headings = Config.find_integer_or ~default:0 config ["min_headings"];
     ignore_heading_selectors = Config.find_strings_or ~default:[] config ["ignore_heading_selectors"];
   } in
-  let selector = Config.find_string_result config ["selector"] in
+  let selectors = Config.find_strings_result config ["selector"] in
   let action = OH.find_string_opt config ["action"] in
-  match selector with
+  match selectors with
   | Error _ as e -> e
-  | Ok selector ->
+  | Ok selectors ->
     begin
-      let container = Soup.select_one selector soup in
+      let container = Html_utils.select_any_of selectors soup in
       match container with
       | None ->
-        let () = Logs.debug @@ fun m -> m {|Page has no elements matching selector "%s", nowhere to insert the ToC|} selector in
+        let () = Widget_utils.no_container_action selectors "nowhere to insert the table of contents" in
         Ok ()
       | Some container ->
         begin
