@@ -83,7 +83,7 @@ let wrap _ config _ page =
     begin
       match containers with
       | [] ->
-        let () = no_container_action selectors in Ok ()
+        let () = no_container_action selectors "nothing to wrap" in Ok ()
       | _ ->
         let* wrapper_str = Config.find_string_result config ["wrapper"] in
         let* () = Utils.iter_result (wrap_elem wrapper_selector wrapper_str) containers in

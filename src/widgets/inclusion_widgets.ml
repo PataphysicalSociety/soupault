@@ -17,18 +17,18 @@ let insert_html state config _ page =
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "insert_html"|} in
-  let selector = get_selectors config in
+  let selectors = get_selectors config in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
-  match selector with
+  match selectors with
   | Error _ as e -> e
-  | Ok selector ->
-    let container = Html_utils.select_any_of selector soup in
+  | Ok selectors ->
+    let container = Html_utils.select_any_of selectors soup in
     begin
       match container with
       | None ->
-        let () = no_container_action selector in Ok ()
+        let () = no_container_action selectors "nowhere to insert the snippet" in Ok ()
       | Some container ->
         let* html_str = Config.find_string_result config ["html"] in
         let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings html_str in
@@ -42,18 +42,18 @@ let include_file state config _ page =
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "include"|} in
-  let selector = get_selectors config in
+  let selectors = get_selectors config in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
-  match selector with
+  match selectors with
   | Error _ as e -> e
-  | Ok selector ->
-    let container = Html_utils.select_any_of selector soup in
+  | Ok selectors ->
+    let container = Html_utils.select_any_of selectors soup in
     begin
       match container with
       | None ->
-        let () = no_container_action selector in Ok ()
+        let () = no_container_action selectors "nowhere to insert the file contents" in Ok ()
       | Some container ->
         let* file = Config.find_string_result config ["file"] in
         let* content = Utils.read_file file in
@@ -76,18 +76,18 @@ let include_program_output state config _ page =
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "exec"|} in
-  let selector = get_selectors config in
+  let selectors = get_selectors config in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
-  match selector with
+  match selectors with
   | Error _ as e -> e
-  | Ok selector ->
-    let container = Html_utils.select_any_of selector soup in
+  | Ok selectors ->
+    let container = Html_utils.select_any_of selectors soup in
     begin
       match container with
       | None ->
-        let () = no_container_action selector in Ok ()
+        let () = no_container_action selectors "nowhere to insert the program output" in Ok ()
       | Some container ->
         let env_array = make_program_env page in
         let* cmd = Config.find_string_result config ["command"] in
