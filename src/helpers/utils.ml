@@ -290,3 +290,11 @@ let string_of_encoding enc =
   else if enc == ebcdic then "ebcdic"
   (* Should not happen. *)
   else internal_error {|Unrecognized page character encoding!|}
+
+(* Format a list of strings for log messages
+   where multiple items like selectors are used. *)
+let format_list ?(quote=true) xs =
+  let xs =
+    if quote then List.map (Printf.sprintf {|"%s"|}) xs else xs
+  in
+  Printf.sprintf "[%s]" (String.concat ", " xs)
