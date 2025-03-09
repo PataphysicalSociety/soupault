@@ -415,8 +415,8 @@ let valid_settings = [
   "default_content_selector"; "default_template_file"; "default_content_action"; 
   "doctype"; "keep_doctype";
   "index_page"; "index_file";
-  "clean_urls"; "page_file_extensions";
-  "ignore_extensions"; "default_extension"; "keep_extensions";
+  "clean_urls"; "clean_url_trailing_slash";
+  "page_file_extensions"; "ignore_extensions"; "default_extension"; "keep_extensions";
   "ignore_path_regexes"; "ignore_directories";
   "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery";
@@ -449,6 +449,7 @@ let _update_settings settings config =
        default_template = find_string_or ~default:settings.default_template st ["default_template_file"];
        default_content_action = find_string_or ~default:settings.default_content_action st ["default_content_action"];
        clean_urls = find_bool_or ~default:settings.clean_urls st ["clean_urls"];
+       clean_url_trailing_slash = find_bool_or ~default:settings.clean_url_trailing_slash st ["clean_url_trailing_slash"];
        page_extensions = find_strings_or ~default:settings.page_extensions st ["page_file_extensions"];
        ignore_extensions = find_strings_or ~default:[] st ["ignore_extensions"];
        ignore_path_regexes = find_strings_or ~default:[] st ["ignore_path_regexes"];

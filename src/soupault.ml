@@ -403,7 +403,11 @@ let make_page_file_path settings page_file target_dir =
 let make_page_url settings nav_path orig_path target_dir page_file =
   let orig_page_file_name = FP.basename page_file in
   let target_page =
-    if settings.clean_urls then target_dir |> FP.basename
+    if settings.clean_urls then
+      begin
+        let url = target_dir |> FP.basename in
+        if settings.clean_url_trailing_slash then url ^ "/" else url
+      end
     else make_page_file_path settings orig_page_file_name ""
   in
   let path =

@@ -117,6 +117,16 @@ type settings = {
   (* Use clean URLs if true (mirror the site dir structure exactly when false). *)
   clean_urls : bool;
 
+  (* Whether to add a trailing slash to clean URLs.
+     Many web servers redirect https://example.com/foo to https://example.com/foo/
+     so URLs without trailing slashes can slow down page loading
+     due to the time required to handle an HTTP redirect
+     and may negatively impact search engine optimization.
+     Soupault now adds a trailing slash by default,
+     but gives the user an option to disable that.
+    *)
+  clean_url_trailing_slash : bool;
+
   (* What files to consider pages rather than assets. *)
   page_extensions : string list;
 
@@ -261,6 +271,7 @@ let default_settings = {
   page_templates = [];
   default_content_selector = "body";
   clean_urls = true;
+  clean_url_trailing_slash = true;
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
   ignore_extensions = [];
   ignore_path_regexes = [];
