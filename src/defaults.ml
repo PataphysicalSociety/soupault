@@ -305,7 +305,7 @@ let default_settings = {
   plugin_dirs = ["plugins"];
   plugin_discovery = true;
 
-  caching = false;
+  caching = true;
   cache_dir = ".soupault-cache";
 
   force = false;

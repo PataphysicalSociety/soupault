@@ -116,10 +116,11 @@ let make_default_config settings = Printf.sprintf {|
   plugin_discovery = true
   plugin_dirs = ["plugins"]
 
-  # Soupault can cache outputs of external programs
-  # (page preprocessors and preprocess_element widget commands).
-  # It's disabled by default but you can enable it and configure the cache directory name/path
-  caching = false
+  # Soupault caches outputs of external programs
+  # (page preprocessors and preprocess_element widget commands)
+  # to speed up repeated builds.
+  # You can disable caching if you don't want it, or set a different cache directory path.
+  caching = true
   cache_dir = ".soupault-cache"
 
   # Soupault supports a variety of page source character encodings,
