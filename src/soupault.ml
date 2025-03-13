@@ -880,6 +880,13 @@ let main cli_options =
       site_index = []
     }
     in
+    (* Clear cache if --force is given, to make it a cold build. *)
+    let () =
+      if settings.force then begin
+        Logs.info @@ fun m -> m "Clearing cache";
+        FileUtil.rm ~force:FileUtil.Force ~recurse:true [settings.cache_dir]
+      end
+    in
     let pre_index_widgets, post_index_widgets, widget_hash = widget_data in
     let () =
       Logs.info @@ fun m -> m "Starting website build";
