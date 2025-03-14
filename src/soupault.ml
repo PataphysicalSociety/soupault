@@ -336,13 +336,9 @@ let rec process_widgets state widget_list widget_hash page =
         | Soupault_error s -> Error s
         | Config.Config_error s -> Error s
       in
-      (* In non-strict mode, widget processing errors do not fail the build *)
-      match res, settings.strict with
-      | Ok _, _ -> process_widgets state ws widget_hash page
-      | Error _ as err, true -> err
-      | Error msg, false ->
-        let () = Logs.warn @@ fun m -> m {|Processing widget "%s" on page %s failed: %s|} w page.page_file msg in
-        process_widgets state ws widget_hash page
+      match res with
+      | Ok _ -> process_widgets state ws widget_hash page
+      | Error _ as err -> err
     end
 
 (* Removes index page's parent dir from its navigation path
@@ -553,7 +549,6 @@ type cli_options = {
   build_profiles_opt: string list;
   verbose_opt: bool option;
   debug_opt: bool option;
-  strict_opt: bool option;
   site_dir_opt: string option;
   build_dir_opt: string option;
   index_only_opt: bool option;
@@ -571,7 +566,6 @@ let default_cli_options = {
   config_file_opt = None;
   verbose_opt = None;
   debug_opt = None;
-  strict_opt = None;
   site_dir_opt = None;
   build_dir_opt = None;
   build_profiles_opt = [];
@@ -610,7 +604,7 @@ let get_args () =
     ("--config", Arg.String (fun s -> opts := {!opts with config_file_opt=(Some s)}), "<PATH>  Configuration file path");
     ("--verbose", Arg.Unit (fun () -> opts := {!opts with verbose_opt=(Some true)}), " Output build progress and informational messages");
     ("--debug", Arg.Unit (fun () -> opts := {!opts with debug_opt=(Some true)}), " Output debug information");
-    ("--strict", Arg.Bool (fun s -> opts := {!opts with strict_opt=(Some s)}), "<true|false>  Stop on page processing errors or not");
+    ("--strict", Arg.Bool (fun _ -> ()), "<true|false>  Obsolete, has no effect");
     ("--site-dir", Arg.String (fun s -> opts := {!opts with site_dir_opt=(Some s)}), "<DIR>  Directory with input files");
     ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=(Some s)}), "<DIR>  Output directory");
     ("--profile", Arg.String (fun s -> opts := {!opts with build_profiles_opt=(s :: !opts.build_profiles_opt)}), "<NAME>  Build profile (you can give this option more than once)");
@@ -648,7 +642,6 @@ let update_settings settings cli_options =
   let () =
     if Option.is_some cli_options.debug_opt then sr := {!sr with debug=(Option.get cli_options.debug_opt)};
     if Option.is_some cli_options.verbose_opt then sr := {!sr with verbose=(Option.get cli_options.verbose_opt)};
-    if Option.is_some cli_options.strict_opt then sr := {!sr with strict=(Option.get cli_options.strict_opt)};
     if Option.is_some cli_options.force_opt then sr := {!sr with force=(Option.get cli_options.force_opt)};
     if Option.is_some cli_options.site_dir_opt then sr := {!sr with site_dir=(Option.get cli_options.site_dir_opt)};
     if Option.is_some cli_options.build_dir_opt then sr := {!sr with build_dir=(Option.get cli_options.build_dir_opt)};

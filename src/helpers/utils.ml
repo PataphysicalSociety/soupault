@@ -30,15 +30,7 @@ let copy_file fs d =
   | FileUtil.MkdirError msg -> Error msg
 
 
-(* Result'y equivalents of higher-order list functions.
-   Since soupault has an option to stop on page processing errors or continue despite them
-   ([settings.strict] in the config or [--strict <true|false>>] in the command line),
-   there needs to be a way to iterate over page lists of collect data from page processing
-   that would allow ignoring errors.
-   Raising an exception isn't an option since it would interrupt the caller,
-   so the only way to achieve that is to make custom functions and use a sum type to signal errors.
-   The built-in result type suits that purpose perfectly.
- *)
+(* Result'y equivalents of higher-order list functions. *)
 
 (* Result-aware map -- no option to ignore errors,
     since that would violate the natural invariant

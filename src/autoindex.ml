@@ -318,7 +318,7 @@ let insert_indices state page =
     let* pages = insert_index state page view in
     Ok (List.append pages acc)
   in
-  Utils.fold_left_result ~ignore_errors:(not settings.strict)
+  Utils.fold_left_result ~ignore_errors:false
     (insert_index_get_pages state page) [] settings.index_views
 
 let index_extraction_should_run settings page_file =

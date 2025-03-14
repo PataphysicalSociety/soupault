@@ -78,9 +78,6 @@ type settings = {
   (* Show debug information. *)
   debug : bool;
 
-  (* Stop on page processing errors. *)
-  strict : bool;
-
   (* HTML doctype to insert in generated pages. *)
   doctype : string;
 
@@ -258,7 +255,6 @@ let default_sort_options = {
 let default_settings = {
   verbose = false;
   debug = false;
-  strict = true;
   doctype = "<!DOCTYPE html>";
   keep_doctype = false;
   build_dir = "build";

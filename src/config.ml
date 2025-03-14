@@ -426,6 +426,13 @@ let valid_settings = [
   "soupault_version";
 ]
 
+let check_deprecated_settings settings_table =
+  let strict = OH.find_boolean_opt ~strict:false settings_table ["strict"] in
+  match strict with
+  | Some _ ->
+    Logs.warn @@ fun m -> m "settings.strict option is deprecated and has no effect"
+  | None -> ()
+
 let _update_settings settings config =
   let st = find_table_opt [Defaults.settings_table] config in
   match st with
@@ -434,11 +441,11 @@ let _update_settings settings config =
      settings
   | Some st ->
     let () = check_options valid_settings st {|table "settings"|} in
+    let () = check_deprecated_settings st in
     let settings = update_page_template_settings settings config in
     {settings with
        verbose = find_bool_or ~default:settings.verbose st ["verbose"];
        debug = find_bool_or ~default:settings.debug st ["debug"];
-       strict = find_bool_or ~default:settings.strict st ["strict"];
        site_dir = find_string_or ~default:settings.site_dir st ["site_dir"] |> String.trim;
        build_dir = find_string_or ~default:settings.build_dir st ["build_dir"] |> String.trim |> File_path.normalize_path;
        default_content_selector = find_string_or ~default:settings.default_content_selector st ["default_content_selector"];
@@ -526,7 +533,6 @@ let inject_options settings config =
   let inject_default_settings settings config =
       inject_option ["settings"; "verbose"] (boolean settings.verbose) config |>
       inject_option ["settings"; "debug"] (boolean settings.debug) |>
-      inject_option ["settings"; "strict"] (boolean settings.strict) |>
       inject_option ["settings"; "force"] (boolean settings.force) |>
       inject_option ["settings"; "doctype"] (string settings.doctype) |>
       inject_option ["settings"; "keep_doctype"] (boolean settings.keep_doctype) |>

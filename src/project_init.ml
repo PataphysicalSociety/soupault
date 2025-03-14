@@ -31,9 +31,6 @@ let make_default_config settings = Printf.sprintf {|
   # Trying to process this config with an older version will result in an error message
   soupault_version = "%s"
 
-  # Stop on page processing errors?
-  strict = true
-
   # Display progress?
   verbose = true
 
