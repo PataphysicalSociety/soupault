@@ -49,34 +49,29 @@ let map_result f xs =
   in
   aux f xs []
 
-(* Result-aware iteration that can either stop on errors or ignore them. *)
-let rec iter_result ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> ('b, string) result) xs =
+(* Result-aware iteration. *)
+let rec iter_result (f: 'a -> ('b, 'err) result) (xs: 'a list) =
   match xs with
   | [] -> Ok ()
   | x :: xs ->
     let res = f x in
     begin
       match res with
-      | Ok _ -> iter_result ~ignore_errors:ignore_errors ~fmt:fmt f xs
-      | Error msg as e ->
-        if ignore_errors then let () = Logs.warn @@ fun m -> m "%s" (fmt msg) in Ok ()
-        else e
+      | Ok _ -> iter_result f xs
+      | (Error _) as e -> e
     end
 
 (* Result-aware fold that can either stop on errors or ignore them. *)
-let rec fold_left_result ?(ignore_errors=false) ?(fmt=(fun x -> x)) (f: 'a -> 'b -> ('c, string) result) acc xs =
+let rec fold_left_result
+  (f: 'acc -> 'a -> ('acc, 'err) result) (acc: 'acc) (xs: 'a list) =
   match xs with
   | [] -> Ok acc
   | x :: xs ->
     let acc' = f acc x in
     begin
       match acc' with
-      | Ok acc' -> fold_left_result ~ignore_errors:ignore_errors ~fmt:fmt f acc' xs
-      | Error msg as e ->
-        if ignore_errors then
-          let () = Logs.warn @@ fun m -> m "%s" (fmt msg) in
-          fold_left_result ~ignore_errors:ignore_errors ~fmt:fmt f acc xs
-        else e
+      | Ok acc' -> fold_left_result f acc' xs
+      | (Error _) as e -> e
     end
 
 (* List helpers. *)
