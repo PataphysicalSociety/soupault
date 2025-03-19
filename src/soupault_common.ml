@@ -1,7 +1,7 @@
 (* Common exceptions and helpers. *)
 
-(* Indicates a page processing error.
-   Such errors are ignored when [settings.strict] is set to false.
+(* Indicates an unrecoverable website processing error.
+   Such errors always stop the build.
  *)
 exception Soupault_error of string
 let soupault_error s = raise (Soupault_error s)
