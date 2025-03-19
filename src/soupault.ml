@@ -987,9 +987,8 @@ let main cli_options =
 
 let () =
   let cli_options = get_args () in
-  let res = main cli_options in
-  match res with
+  match (main cli_options) with
   | Ok _ -> exit 0
-  | Error e ->
+  | Error e | exception Soupault_error e ->
     Logs.err @@ fun m -> m "%s" e;
     exit 1
