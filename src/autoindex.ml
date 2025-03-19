@@ -21,7 +21,8 @@ let json_of_string_opt s =
   | Some s -> `String s
 
 (* Extract index fields from a page using selectors from the index config. *)
-let rec get_fields strip_tags fields soup =
+let get_fields strip_tags fields soup =
+  let exception Missing_field of string in
   let get_content f elem =
     match f.extract_attribute with
     | None -> string_of_elem ~strip_tags:strip_tags elem
@@ -41,26 +42,37 @@ let rec get_fields strip_tags fields soup =
       let e = Html_utils.select_any_of f.field_selectors soup >>= get_content f in
       match e, f.default_field_value with
       | None, None ->
-        if f.required_field then soupault_error @@
-          Printf.sprintf {|required index field "%s" is missing|} f.field_name
+        if f.required_field then raise (Missing_field
+          (Printf.sprintf {|required index field "%s" is missing|} f.field_name))
         else `Null
       | None, Some v -> `String v
       | Some e, _ -> `String e
   in
-  match fields with
-  | [] -> []
-  | f :: fs ->
-    let field = (f.field_name, get_field f soup) in
-    field :: (get_fields strip_tags fs soup)
+  let rec get_fields_aux fields =
+    match fields with
+    | [] -> []
+    | f :: fs ->
+      let field = (f.field_name, get_field f soup) in
+      field :: (get_fields_aux fs)
+  in
+  try Ok (get_fields_aux fields)
+  with
+  | Missing_field msg -> Error msg
 
 (* Prepares a complete entry together with built-in meta-fields. *)
 let get_index_entry settings page =
-  {
-    index_entry_url = page.url;
-    index_entry_page_file = page.page_file;
-    index_entry_nav_path = page.nav_path;
-    fields = get_fields settings.index_strip_tags settings.index_fields page.element_tree
-  }
+  let fields = get_fields settings.index_strip_tags settings.index_fields page.element_tree in
+  match fields with
+  | Ok fields ->
+    {
+      index_entry_url = page.url;
+      index_entry_page_file = page.page_file;
+      index_entry_nav_path = page.nav_path;
+      fields = fields
+    }
+  | Error msg ->
+    Printf.ksprintf soupault_error "Failed to extract index data from page %s: %s"
+      page.page_file msg
 
 let json_of_entry = Utils.json_of_index_entry
 
