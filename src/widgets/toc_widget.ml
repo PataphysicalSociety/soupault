@@ -3,6 +3,8 @@ module OH = Otoml.Helpers
 open Defaults
 include Soupault_common
 
+let (let*) = Result.bind
+
 (** The table of contents widget *)
 
 type toc_settings = {
@@ -207,37 +209,34 @@ let toc _ config _ page =
     min_headings = Config.find_integer_or ~default:0 config ["min_headings"];
     ignore_heading_selectors = Config.find_strings_or ~default:[] config ["ignore_heading_selectors"];
   } in
-  let selectors = Config.find_strings_result config ["selector"] in
+  let* selectors = Config.find_strings_result config ["selector"] in
   let action = OH.find_string_opt config ["action"] in
-  match selectors with
-  | Error _ as e -> e
-  | Ok selectors ->
-    begin
-      let container = Html_utils.select_any_of selectors soup in
-      match container with
-      | None ->
-        let () = Widget_utils.no_container_action selectors "nowhere to insert the table of contents" in
-        Ok ()
-      | Some container ->
-        begin
-          let counter = make_counter 0 in
-          let headings = Html_utils.find_headings soup in
-          let headings = List.filter (fun e -> not @@ ignored_heading settings soup e) headings in
-          (* Don't do anything if the page has fewer headings than set by the min_headings option. *)
-          if ((List.length headings) < settings.min_headings) then Ok () else
-          let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
-          let headings_tree = headings |> Toc_tree.from_list Html_utils.get_heading_level in
-          match headings_tree with
-          | [] ->
-            let () = Logs.debug @@ fun m -> m "Page has no headings, nothing to build a ToC from" in
-            Ok ()
-          | _ ->
-            let toc_container = make_toc_container settings 1 in
-            let _ = List.iter (_make_toc settings 2 counter toc_container) headings_tree in
-            let () =
-              Html_utils.insert_element action container toc_container;
-              if settings.link_here then List.iter (fun h -> add_section_link settings h) headings
-            in
-            Ok ()
-        end
-    end
+  begin
+    let container = Html_utils.select_any_of selectors soup in
+    match container with
+    | None ->
+      let () = Widget_utils.no_container_action selectors "nowhere to insert the table of contents" in
+      Ok ()
+    | Some container ->
+      begin
+        let counter = make_counter 0 in
+        let headings = Html_utils.find_headings soup in
+        let headings = List.filter (fun e -> not @@ ignored_heading settings soup e) headings in
+        (* Don't do anything if the page has fewer headings than set by the min_headings option. *)
+        if ((List.length headings) < settings.min_headings) then Ok () else
+        let () = List.iter (fun h -> make_heading_linkable settings counter h) headings in
+        let headings_tree = headings |> Toc_tree.from_list Html_utils.get_heading_level in
+        match headings_tree with
+        | [] ->
+          let () = Logs.debug @@ fun m -> m "Page has no headings, nothing to build a ToC from" in
+          Ok ()
+        | _ ->
+          let toc_container = make_toc_container settings 1 in
+          let _ = List.iter (_make_toc settings 2 counter toc_container) headings_tree in
+          let () =
+            Html_utils.insert_element action container toc_container;
+            if settings.link_here then List.iter (fun h -> add_section_link settings h) headings
+          in
+          Ok ()
+      end
+  end

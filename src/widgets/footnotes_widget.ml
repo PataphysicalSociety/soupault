@@ -4,7 +4,7 @@ open Defaults
 
 module OH = Otoml.Helpers
 
-let (let*) = Stdlib.Result.bind
+let (let*) = Result.bind
 
 (** Makes a unique id for a footnote element--
     the footnote text that is taken out of the document body and

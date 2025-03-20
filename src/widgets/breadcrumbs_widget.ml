@@ -2,6 +2,8 @@
 
 open Defaults
 
+let (let*) = Result.bind
+
 let make_breadcrumbs nav_path bc_tmpl prepend append between =
   let rec aux xs bc_soup acc_href =
     let box_string s = Template.jingoo_of_json (`String s) in
@@ -39,27 +41,23 @@ let breadcrumbs _ config _ page =
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
   let () = Config.check_options valid_options config {|widget "breadcrumbs"|} in
   let min_depth = Config.find_integer_or ~default:1 config ["min_depth"] in
-  let selectors = Config.find_strings_result config ["selector"] in
+  let* selectors = Config.find_strings_result config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
-  match selectors with
-  | Error _ as e -> e
-  | Ok selectors ->
-    let container = Html_utils.select_any_of selectors soup in
-    let (let*) = Stdlib.Result.bind in
-    begin
-      match container with
-      | None ->
-        let () = Widget_utils.no_container_action selectors "nowhere to insert the breadcrumbs" in
-        Ok ()
-      | Some container ->
-        let path_length = List.length page.nav_path in
-        if path_length < min_depth then Ok () else
-        let bc_tmpl_str = Config.find_string_or ~default:{|<a href="{{url}}">{{name}}</a>|} config ["breadcrumb_template"] in
-        let* _  = check_breadcrumb_template bc_tmpl_str in
-        let bc_tmpl = Template.of_string bc_tmpl_str in
-        let prepend = Config.find_string_or ~default:"" config ["prepend"] in
-        let append = Config.find_string_or ~default:"" config ["append"] in
-        let between = Config.find_string_or ~default:"" config ["between"] in
-        let breadcrumbs = make_breadcrumbs page.nav_path bc_tmpl prepend append between in
-        Ok (Html_utils.insert_element action container breadcrumbs)
-    end
+  let container = Html_utils.select_any_of selectors soup in
+  let (let*) = Stdlib.Result.bind in
+  begin match container with
+  | None ->
+    let () = Widget_utils.no_container_action selectors "nowhere to insert the breadcrumbs" in
+    Ok ()
+  | Some container ->
+    let path_length = List.length page.nav_path in
+    if path_length < min_depth then Ok () else
+    let bc_tmpl_str = Config.find_string_or ~default:{|<a href="{{url}}">{{name}}</a>|} config ["breadcrumb_template"] in
+    let* _  = check_breadcrumb_template bc_tmpl_str in
+    let bc_tmpl = Template.of_string bc_tmpl_str in
+    let prepend = Config.find_string_or ~default:"" config ["prepend"] in
+    let append = Config.find_string_or ~default:"" config ["append"] in
+    let between = Config.find_string_or ~default:"" config ["between"] in
+    let breadcrumbs = make_breadcrumbs page.nav_path bc_tmpl prepend append between in
+    Ok (Html_utils.insert_element action container breadcrumbs)
+  end

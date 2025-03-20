@@ -1,6 +1,6 @@
 open Defaults
 
-let (>>=) = Option.bind
+let (let*) = Result.bind
 
 (* Title *)
 let set_title _ config _ page =
@@ -46,6 +46,7 @@ let set_title _ config _ page =
     Ok ()
   | Some title_node ->
     if (not (Html_utils.is_empty title_node)) && keep then Ok () else
+    let (>>=) = Option.bind in
     let title_string =
       Html_utils.select_any_of selectors soup >>= Html_utils.get_element_text
         |> make_title_string default_title prepend append in

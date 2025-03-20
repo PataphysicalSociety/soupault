@@ -5,7 +5,7 @@ module OH = Otoml.Helpers
 open Defaults
 open Widget_utils
 
-let (let*) = Stdlib.Result.bind
+let (let*) = Result.bind
 
 (** Deletes an element from the tree *)
 let delete_element _ config _ page =
@@ -15,39 +15,33 @@ let delete_element _ config _ page =
   ]
   in
   let () = Config.check_options valid_options config {|widget "delete_element"|} in
-  let selectors = Config.find_strings_result config ["selector"] in
+  let* selectors = Config.find_strings_result config ["selector"] in
   let when_empty = Config.find_bool_or ~default:false config ["only_if_empty"] in
   let when_no_child = Otoml.Helpers.find_string_opt config ["when_no_child"] in
   let delete_all = Config.find_bool_or ~default:true config ["delete_all"] in
-  match selectors with
-  | Error _ as e -> e
-  | Ok selectors ->
-    let nodes =
-      if delete_all then Html_utils.select_all selectors soup
-      else (Html_utils.select_any_of selectors soup |> (fun n -> match n with Some n -> [n] | None -> []))
-    in
-    begin
-      match nodes with
-      | [] -> Widget_utils.no_container_action selectors "nothing to delete"
-      | ns ->
-        let _delete when_empty when_no_child n =
-          if not (Html_utils.is_empty n) && when_empty then
-            Logs.debug @@ fun m -> m {|Element matching a selector from %s is not empty, not deleting it|}
-              (Utils.format_list ~quote:false selectors)
-          else
-            begin
-              match when_no_child with
-              | None -> Soup.delete n
-              | Some child_selector ->
-                let child = Soup.select_one child_selector n in
-                if Option.is_none child then Soup.delete n
-                else Logs.debug @@ fun m -> m {|Element that maches a selector from %s\
-                   has a child that matches selector "%s", not deleting it|}
-                  (Utils.format_list ~quote:false selectors) child_selector
-            end
-        in List.iter (_delete when_empty when_no_child) ns
-    end;
-    Ok ()
+  let nodes =
+    if delete_all then Html_utils.select_all selectors soup
+    else (Html_utils.select_any_of selectors soup |> (fun n -> match n with Some n -> [n] | None -> []))
+  in
+  begin match nodes with
+  | [] -> Ok (Widget_utils.no_container_action selectors "nothing to delete")
+  | ns ->
+    let _delete when_empty when_no_child n =
+      if not (Html_utils.is_empty n) && when_empty then
+        Logs.debug @@ fun m -> m {|Element matching a selector from %s is not empty, not deleting it|}
+          (Utils.format_list ~quote:false selectors)
+      else
+        begin match when_no_child with
+        | None -> Soup.delete n
+        | Some child_selector ->
+          let child = Soup.select_one child_selector n in
+          if Option.is_none child then Soup.delete n
+          else Logs.debug @@ fun m -> m {|Element that maches a selector from %s\
+            has a child that matches selector "%s", not deleting it|}
+            (Utils.format_list ~quote:false selectors) child_selector
+        end
+      in Ok (List.iter (_delete when_empty when_no_child) ns)
+    end
 
 (** Wraps elements matching certain selectors into an HTML snippet. *)
 let wrap _ config _ page =
@@ -71,22 +65,18 @@ let wrap _ config _ page =
   in
   let valid_options = List.append Config.common_widget_options ["selector"; "wrapper"; "wrap_all"; "wrapper_selector"] in
   let () = Config.check_options valid_options config {|widget "wrap"|} in
-  let selectors = get_selectors config in
+  let* selectors = get_selectors config in
   let wrapper_selector = OH.find_string_opt config ["wrapper_selector"] in
   let wrap_all = Config.find_bool_or ~default:true config ["wrap_all"] in
-  match selectors with
-  | Error _ as e -> e
-  | Ok selectors ->
-    let containers =
-      if wrap_all then Html_utils.select_all selectors soup
-      else (match Html_utils.select_any_of selectors soup with None -> [] | Some e -> [e])
-    in
-    begin
-      match containers with
-      | [] ->
-        let () = no_container_action selectors "nothing to wrap" in Ok ()
-      | _ ->
-        let* wrapper_str = Config.find_string_result config ["wrapper"] in
-        let* () = Utils.iter_result (wrap_elem wrapper_selector wrapper_str) containers in
-        Ok ()
-    end
+  let containers =
+    if wrap_all then Html_utils.select_all selectors soup
+    else (match Html_utils.select_any_of selectors soup with None -> [] | Some e -> [e])
+  in
+  begin match containers with
+  | [] ->
+    Ok (no_container_action selectors "nothing to wrap")
+  | _ ->
+    let* wrapper_str = Config.find_string_result config ["wrapper"] in
+    let* () = Utils.iter_result (wrap_elem wrapper_selector wrapper_str) containers in
+    Ok ()
+  end
