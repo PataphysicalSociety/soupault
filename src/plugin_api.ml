@@ -149,6 +149,10 @@ module Html = struct
 
   type 'a t = soup_wrapper
 
+  let _handle_selector_error func selector msg =
+    plugin_error @@ Printf.sprintf "%s called with invalid CSS selector '%s': %s"
+      func selector msg
+
   let from_soup s = SoupNode s
 
   let from_element e = ElementNode e
@@ -195,7 +199,7 @@ module Html = struct
     let* elems =
       try to_general soup |> Soup.select selector |> Soup.to_list |> List.map (fun x -> ElementNode x) |> return
       with Soup.Parse_error msg ->
-        plugin_error @@ Printf.sprintf "HTML.select called with invalid CSS selector '%s': %s" selector msg
+        _handle_selector_error "HTML.select" selector msg
     in Some elems
 
   let select_one soup selector =
@@ -203,31 +207,32 @@ module Html = struct
     let* n =
       try to_general soup |> Soup.select_one selector
       with Soup.Parse_error msg ->
-        plugin_error @@ Printf.sprintf "HTML.select_one called with invalid CSS selector '%s': %s" selector msg
+        _handle_selector_error "HTML.select_one" selector msg
     in Some (ElementNode n)
 
   let select_any_of soup selectors =
     let* soup = soup in
     let* n =
       try to_general soup |> Html_utils.select_any_of selectors
-      with Soupault_error msg -> plugin_error msg
+      with Soup.Parse_error msg ->
+        _handle_selector_error "HTML.select_any_of" (Utils.format_list selectors) msg
     in Some (ElementNode n)
 
   let select_all_of soup selectors =
     let* soup = soup in
     try to_general soup |> Html_utils.select_all selectors |> List.map (fun x -> ElementNode x) |> return
-    with Soupault_error msg ->
-      plugin_error msg
+    with Soup.Parse_error msg ->
+      _handle_selector_error "HTML.select_all_of" (Utils.format_list selectors) msg
 
   let matches_selector soup elem selector =
     try Soup.matches_selector (to_soup soup) selector (to_element elem)
-    with Soupault_error msg ->
-      plugin_error msg
+    with Soup.Parse_error msg ->
+      _handle_selector_error "HTML.matches_selector" selector msg
 
   let matches_any_of_selectors soup elem selectors =
     try Html_utils.matches_any_of selectors (to_soup soup) (to_element elem)
-    with Soupault_error msg ->
-      plugin_error msg
+    with Soup.Parse_error msg ->
+      _handle_selector_error "HTML.matches_any_of_selectors" (Utils.format_list selectors) msg
 
   let children node =
     let* node = node in
