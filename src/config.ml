@@ -8,6 +8,18 @@ open Otoml
 exception Config_error of string
 let config_error err = raise (Config_error err)
 
+let check_selector f opt_name s =
+  let res = Html_utils.check_selector opt_name s in
+  match res with
+  | Ok () -> ()
+  | Error msg -> Printf.ksprintf f "%s" msg
+
+let check_selectors f opt_name s =
+  let res = Html_utils.check_selectors opt_name s in
+  match res with
+  | Ok () -> ()
+  | Error msg -> Printf.ksprintf f "%s" msg
+
 let required_option res =
   match res with
   | Ok v -> v
@@ -205,6 +217,7 @@ let get_index_queries index_table =
     (match selectors with
     | [] -> config_error {|"selector" option is required and must be a string or a list of strings|}
     | _ ->
+      let () = check_selectors index_view_error "selector" selectors in
       {
         field_name = k;
         field_selectors = selectors;
@@ -273,7 +286,7 @@ let _get_index_view st view_name =
         else IndexTemplate t
       with _ ->
         (* Jingoo does not provide meaningful parse error reporting as of 1.4.4. *)
-        config_error (Printf.sprintf "Failed to parse template:\n%s" tmpl)
+        index_view_error (Printf.sprintf "Failed to parse template:\n%s" tmpl)
     end
   in
   let _get_index_processor name st =
@@ -311,6 +324,7 @@ let _get_index_view st view_name =
     | _ -> config_error {|options "index_item_template", "index_template", and "index_processor" are mutually exclusive, please pick only one|}
   in
   let selector = OH.find_string st ["index_selector"] in
+  let () = check_selector index_view_error "index_selector" selector in
   let action = OH.find_string_opt st ["action"] in
   let index_processor = _get_index_processor view_name st in
   let max_items = OH.find_integer_opt ~strict:true st ["max_items"] in
@@ -384,6 +398,13 @@ let update_page_template_settings settings config =
       let path_options = get_path_options config in
       let file = OH.find_string_opt config ["file"] in
       let content_selector = OH.find_string_opt config ["content_selector"] in
+      let () =
+        match content_selector with
+        | None -> ()
+        | Some cs ->
+          check_selector config_error
+            (Printf.sprintf "templates.%s.content_selector" name) cs
+      in
       let content_action = OH.find_string_opt config ["content_action"] in
       match file with
       | None -> Printf.ksprintf config_error {|Missing required option "file" in [templates.%s]|} name
@@ -443,12 +464,16 @@ let _update_settings settings config =
     let () = check_options valid_settings st {|table "settings"|} in
     let () = check_deprecated_settings st in
     let settings = update_page_template_settings settings config in
+    let default_content_selector = find_string_or ~default:settings.default_content_selector st ["default_content_selector"] in
+    let () = check_selector config_error "settings.default_content_selector" default_content_selector in
+    let complete_page_selector = find_string_or ~default:settings.complete_page_selector st ["complete_page_selector"] in
+    let () = check_selector config_error "settings.complete_page_selector" complete_page_selector in
     {settings with
        verbose = find_bool_or ~default:settings.verbose st ["verbose"];
        debug = find_bool_or ~default:settings.debug st ["debug"];
        site_dir = find_string_or ~default:settings.site_dir st ["site_dir"] |> String.trim;
        build_dir = find_string_or ~default:settings.build_dir st ["build_dir"] |> String.trim |> File_path.normalize_path;
-       default_content_selector = find_string_or ~default:settings.default_content_selector st ["default_content_selector"];
+       default_content_selector = default_content_selector;
        doctype = find_string_or ~default:settings.doctype st ["doctype"];
        keep_doctype = find_bool_or ~default:settings.keep_doctype st ["keep_doctype"];
        index_page = find_string_or ~default:settings.index_page st ["index_page"];
@@ -463,7 +488,7 @@ let _update_settings settings config =
        ignore_directories = find_strings_or ~default:[] st ["ignore_directories"];
        keep_extensions = find_strings_or ~default:settings.keep_extensions st ["keep_extensions"];
        default_extension = find_string_or ~default:settings.default_extension st ["default_extension"];
-       complete_page_selector = find_string_or ~default:settings.complete_page_selector st ["complete_page_selector"];
+       complete_page_selector = complete_page_selector;
        generator_mode = find_bool_or ~default:settings.generator_mode st ["generator_mode"];
 
        plugin_dirs = find_strings_or ~default:settings.plugin_dirs st ["plugin_dirs"];

@@ -7,21 +7,22 @@ include Soupault_common
   so we fake it by trying to select from an empty element tree
   with a given selector.
  *)
-let check_selector s =
+let check_selector opt_name s =
   let soup = Soup.create_soup () in
   try
     let _ = Soup.select_one s soup in
     Ok ()
   with Soup.Parse_error msg ->
-    let msg = Printf.sprintf {|Invalid CSS selector "%s", parse error: %s|} s msg in
+    let msg = Printf.sprintf {|invalid CSS selector "%s" in option %s, parse error: %s|}
+      s opt_name msg in
     Error msg
 
-let rec check_selectors ss =
+let rec check_selectors opt_name ss =
   match ss with
   | [] -> Ok ()
   | s :: ss' ->
-    begin match (check_selector s) with
-    | Ok () -> check_selectors ss'
+    begin match (check_selector opt_name s) with
+    | Ok () -> check_selectors opt_name ss'
     | (Error _ as e) -> e
     end
 
