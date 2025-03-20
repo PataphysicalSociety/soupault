@@ -1,6 +1,30 @@
 open Defaults
 include Soupault_common
 
+(** Checks is a CSS selector is valid.
+
+  Lambdasoup does not have a built-in option for that purpose,
+  so we fake it by trying to select from an empty element tree
+  with a given selector.
+ *)
+let check_selector s =
+  let soup = Soup.create_soup () in
+  try
+    let _ = Soup.select_one s soup in
+    Ok ()
+  with Soup.Parse_error msg ->
+    let msg = Printf.sprintf {|Invalid CSS selector "%s", parse error: %s|} s msg in
+    Error msg
+
+let rec check_selectors ss =
+  match ss with
+  | [] -> Ok ()
+  | s :: ss' ->
+    begin match (check_selector s) with
+    | Ok () -> check_selectors ss'
+    | (Error _ as e) -> e
+    end
+
 (** Parse HTML in specific context.
 
   HTML parser behaviour depends on context. For example, when the result is supposed to be
