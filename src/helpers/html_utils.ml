@@ -78,14 +78,6 @@ let parse_page ?(fragment=true) settings page_source =
     let context = if fragment then (`Fragment "body") else `Document in
     parse_html ~context:context ~encoding:settings.page_character_encoding page_source
 
-(* Result-aware element selection functions *)
-let wrap_select f selector soup =
-  try Ok (f selector soup)
-  with Soup.Parse_error msg -> Error (Printf.sprintf {|Invalid CSS selector "%s", parse error: %s|} selector msg)
-
-let select selector soup = wrap_select Soup.select selector soup
-let select_one selector soup = wrap_select Soup.select_one selector soup
-
 (** Checks if a "template" has a specific element in it.
     For checking if there's any element at all, use "*" selector *)
 let check_template selector template =
@@ -98,8 +90,7 @@ let check_template selector template =
 (** Gets an element and returns Error if it doesn't exist,
     another bit of monadic convenience *)
 let get_required_element selector err soup =
-  let (let*) = Stdlib.Result.bind in
-  let* e = select_one selector soup in
+  let e = Soup.select_one selector soup in
   match e with
   | Some e -> Ok e
   | None -> Error err
@@ -127,10 +118,7 @@ let rec select_any_of selectors soup =
   match selectors with
   | [] -> None
   | s :: ss ->
-    let e =
-      try Soup.select_one s soup
-      with Soup.Parse_error msg -> Printf.ksprintf soupault_error "Invalid CSS selector '%s', parse error: %s" s msg
-    in
+    let e = Soup.select_one s soup in
     begin
       match e with
       | Some _ as e -> e
@@ -143,10 +131,7 @@ let select_all selectors soup =
     match selectors with
     | [] -> acc
     | s :: ss ->
-        let nodes =
-          try Soup.select s soup
-          with Soup.Parse_error msg -> Printf.ksprintf soupault_error "Invalid CSS selector '%s', parse error: %s" s msg
-        in
+        let nodes = Soup.select s soup in
 	let acc = List.append (Soup.to_list nodes) acc in
         aux ss soup acc
   in aux selectors soup []
