@@ -485,7 +485,6 @@ let extract_metadata state hooks page =
 let index_insertion_should_run settings index page_name =
   let aux settings page_name =
     if not settings.index then Some "indexing is disabled in the configuration" else
-    if settings.index_only then Some "running in the index-only mode" else
     if (page_name <> settings.index_page) then Some (Printf.sprintf "page name does not match %s" settings.index_page) else
     if index = [] then Some "index is empty" else None
   in
@@ -551,7 +550,6 @@ type cli_options = {
   debug_opt: bool option;
   site_dir_opt: string option;
   build_dir_opt: string option;
-  index_only_opt: bool option;
   dump_index_json_opt: string option;
   force_opt: bool option;
   caching_opt : bool option;
@@ -569,7 +567,6 @@ let default_cli_options = {
   site_dir_opt = None;
   build_dir_opt = None;
   build_profiles_opt = [];
-  index_only_opt = None;
   dump_index_json_opt = None;
   force_opt = None;
   caching_opt = None;
@@ -608,7 +605,6 @@ let get_args () =
     ("--site-dir", Arg.String (fun s -> opts := {!opts with site_dir_opt=(Some s)}), "<DIR>  Directory with input files");
     ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=(Some s)}), "<DIR>  Output directory");
     ("--profile", Arg.String (fun s -> opts := {!opts with build_profiles_opt=(s :: !opts.build_profiles_opt)}), "<NAME>  Build profile (you can give this option more than once)");
-    ("--index-only", Arg.Unit (fun () -> opts := {!opts with index_only_opt=(Some true)}), " Extract site index without generating pages");
     ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<FILE PATH>  Dump extracted index to a JSON file");
     ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=(Some true)}), " Force generating all target files");
     ("--no-caching", Arg.Unit (fun () -> opts := {!opts with caching_opt=(Some false)}), " Disable caching (overrides settings.caching)");
@@ -645,7 +641,6 @@ let update_settings settings cli_options =
     if Option.is_some cli_options.force_opt then sr := {!sr with force=(Option.get cli_options.force_opt)};
     if Option.is_some cli_options.site_dir_opt then sr := {!sr with site_dir=(Option.get cli_options.site_dir_opt)};
     if Option.is_some cli_options.build_dir_opt then sr := {!sr with build_dir=(Option.get cli_options.build_dir_opt)};
-    if Option.is_some cli_options.index_only_opt then sr := {!sr with index_only=(Option.get cli_options.index_only_opt)};
     if Option.is_some cli_options.dump_index_json_opt then sr := {!sr with dump_index_json=cli_options.dump_index_json_opt};
     if Option.is_some cli_options.caching_opt then sr := {!sr with caching=(Option.get cli_options.caching_opt)};
     sr := {!sr with build_profiles=cli_options.build_profiles_opt}
@@ -760,8 +755,6 @@ let initialize cli_options =
     begin
       if not settings.generator_mode then
         Logs.info @@ fun m -> m "Running in HTML processor mode, not using page templates";
-      if settings.index_only && not (settings.index && (settings.dump_index_json <> None)) then
-        Logs.warn @@ fun m -> m "--index-only is useless without index=true and dump_json options in the config!";
     end
   in
   if settings.site_dir = "" then (Error "site_dir must be a directory path, not an empty string")
@@ -893,11 +886,7 @@ let main cli_options =
     let () = Logs.info @@ fun m -> m "Discovering website files in %s" settings.site_dir in
     let (page_files, asset_files) = Site_dir.get_site_files settings in
     let () = Logs.info @@ fun m -> m "Processing asset files" in
-    let* () =
-      if not settings.index_only
-      then Utils.iter_result (fun (src, dst) -> process_asset_file settings src dst) asset_files
-      else Ok ()
-    in
+    let* () = Utils.iter_result (fun (src, dst) -> process_asset_file settings src dst) asset_files in
     let	() = Logs.info @@ fun m -> m "Loading page files" in
     let* page_sources = load_page_files state hooks page_files in
     let () = Logs.info @@ fun m -> m "Processing pages" in

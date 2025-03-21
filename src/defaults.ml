@@ -159,9 +159,6 @@ type settings = {
    *)
   build_profiles : string list;
 
-  (* Only extract the site index, don't generate any pages *)
-  index_only : bool;
-
   (* Enable site metadata extraction. *)
   index : bool;
 
@@ -279,8 +276,6 @@ let default_settings = {
   build_profiles = [];
 
   index = false;
-  index_only = false;
-
   dump_index_json = None;
   ignore_template_errors = false;
   index_extract_after_widgets = [];
