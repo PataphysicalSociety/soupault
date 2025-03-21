@@ -247,7 +247,7 @@ let get_index_queries index_table =
 let valid_index_options = [
   "fields"; "views"; (* subtables rather than options *)
   "index"; "dump_json"; "sort_by"; "sort_descending"; "sort_type"; "strict_sort"; "date_formats";
-  "ignore_template_errors"; "extract_after_widgets"; "strip_tags";
+  "extract_after_widgets"; "strip_tags";
   "force_indexing_path_regex"; "leaf_file";
   "profile"
 ] @ valid_path_options
@@ -373,7 +373,6 @@ let _get_index_settings settings config =
     {settings with
        index = find_bool_or ~default:settings.index st ["index"];
        dump_index_json = OH.find_string_opt st ["dump_json"];
-       ignore_template_errors = find_bool_or ~default:settings.ignore_template_errors st ["ignore_template_errors"];
        index_extract_after_widgets = find_strings_or ~default:[] st ["extract_after_widgets"];
        index_fields = get_index_queries st;
        index_strip_tags = find_bool_or ~default:settings.index_strip_tags st ["strip_tags"];
@@ -586,7 +585,6 @@ let inject_options settings config =
   in
   let inject_default_index_settings settings config =
       inject_option ["index"; "index"] (boolean settings.index) config |>
-      inject_option ["index"; "ignore_template_errors"] (boolean settings.ignore_template_errors) |>
       inject_option ["index"; "extract_after_widgets"] (array []) |>
       inject_option ["index"; "strip_tags"] (boolean settings.index_strip_tags) |>
       inject_option ["index"; "date_formats"] (array @@ List.map string settings.index_date_input_formats) |>

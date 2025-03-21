@@ -165,9 +165,6 @@ type settings = {
   (* Save site metadata to a JSON file. *)
   dump_index_json : string option;
 
-
-  ignore_template_errors : bool;
-
   (* The content model.
      Starting from 2.0.0 soupault doesn't have a built-in content model,
      users need to explicitly configure metadata field names
@@ -277,7 +274,6 @@ let default_settings = {
 
   index = false;
   dump_index_json = None;
-  ignore_template_errors = false;
   index_extract_after_widgets = [];
   index_fields = [];
   index_strip_tags = false;

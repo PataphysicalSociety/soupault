@@ -234,10 +234,10 @@ let render_index ?(item_template=true) soupault_config view template settings so
   with
   | Failure err ->
     (* Jingoo raises Failure on rendering errors, though it's not a frequent occurence. *)
-    let msg = Printf.sprintf "Index template rendering failed: %s" err in
-    if settings.ignore_template_errors
-    then let () = Logs.warn @@ fun m -> m "%s" msg in Ok ()
-    else Error msg
+    let msg = Printf.sprintf {|Failed to render the template for index view "%s": %s|}
+      view.index_view_name err
+    in
+    Error msg
   | _ ->
     (* Just in case something else happens *)
     Error ("Index template rendering failed for an undeterminable reason")
