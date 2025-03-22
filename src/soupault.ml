@@ -936,6 +936,7 @@ let main cli_options =
          Ok (List.append acc nps)) [] pages
     in
     let* new_pages = Utils.map_result (fun (path, etree) -> make_page_data state hooks path etree) new_page_sources in
+    let* new_pages = Utils.map_result (make_page settings) new_pages in
     (* Run the remaining widgets on all pages.
        We do it only after index insertion, so that widgets can modify
        HTML nodes that index processors may create. *)
