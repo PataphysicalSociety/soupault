@@ -4,32 +4,45 @@ soupault
 ![Build](https://github.com/PataphysicalSociety/soupault/actions/workflows/main.yml/badge.svg)
 ![GitHub all releases](https://img.shields.io/github/downloads/PataphysicalSociety/soupault/total)
 
-Soupault is an HTML manipulation tool. It can be:
-
-* a static site generator,
-* an HTML processor,
-* a metadata extractor,
-
-or all of the above.
+Soupault is an HTML manipulation tool. It can be a static site generator
+or an HTML (post-)processor for existing websites and allows you to define 
 
 Soupault works with the HTML element tree of the page, so it can do many things that traditionally could be done with client-side JS:
-inject new HTML into existing complete pages, create a table of contents that preserves the `id` elements of HTML headings and more.
+inject new HTML into existing complete pages, create a table of contents that respects and uses `id`'s of HTML headings and more.
 
-It also doesn't use front matter and extracts metadata from HTML instead, using a CSS3 selector to metadata field mapping,
-so even hand-written static pages can be indexed rather than treated as assets. For example:
+It also doesn't use front matter but extracts metadata from HTML instead: you tell it what to extract using CSS3 selectors,
+so even hand-written static pages can be indexed rather than treated as opaque assets.
+
+For example, here's what a content model for a blog may look like:
 
 ```toml
+# Post title
 [index.fields.title]
-  # Try to find <h1 id="post-title"> if it exists,
+  # Try to find <h1 id="post-title">,
   # else use the first <h1> 
   selector = ["h1#post-title", "h1"]
 
+  # Fail the build if post title cannot be found
+  required = true
+
+# Post excerpt
 [index.fields.excerpt]
+  # Use <p id="post-excerpt"> if a page has it,
+  # else use the first paragraph.
+  # This allows using a paragraph other than the first one
+  # as the post excerpt.
   selector = ["p#post-excerpt", "p"]
 
+# Post date
 [index.fields.date]
   selector = ["time#post-date", "time"]
+
+  # Extract the datetime="" attribute from the <time> element,
+  # if it's set.
   extract_attribute = "datetime"
+
+  # If there's no datetime attribute in <time>,
+  # then use that element's content
   fallback_to_content = true
 ```
 
@@ -50,11 +63,17 @@ Extracted metadata can then be rendered and injected into pages:
 Soupault is...
 
 * Durable and easy to upgrade or roll back: it's available as a statically-linked binary with no dependencies.
-* Extensible: you can bring your own [page preprocessors](https://soupault.app/reference-manual/#page-preprocessors) (e.g. Markdown to HTML convertors), pipe HTML elements through [external programs](https://soupault.app/reference-manual/#preprocess-element-widget), and load [Lua plugins](https://soupault.app/plugins/).
-* Flexible: most options are configurable, most built-in features can be reimplemented as Lua plugins, and there are [page processing hooks](https://soupault.app/reference-manual/#page-processing-hooks).
+* Extensible: you can bring your own [page preprocessors](https://soupault.app/reference-manual/#page-preprocessors)
+  (e.g., Markdown to HTML convertors), define [asset processors](https://soupault.app/reference-manual/#asset-processing)
+  (e.g., a Sass/Less compiler, an image optimizer),
+  pipe HTML elements through [external programs](https://soupault.app/reference-manual/#preprocess-element-widget),
+  and load [Lua plugins](https://soupault.app/plugins/).
+* Flexible: most options are configurable, most built-in features can be reimplemented as Lua plugins,
+  and there are [page processing hooks](https://soupault.app/reference-manual/#page-processing-hooks).
 
-Soupault is named after the French dadaist and surrealist writer [Philippe Soupault](https://en.wikipedia.org/wiki/Philippe_Soupault)
-because it's based on the [lambdasoup](http://aantron.github.io/lambdasoup/) library.
+Soupault is named after [Philippe Soupault](https://en.wikipedia.org/wiki/Philippe_Soupault),
+a French dadaist and surrealist writer and poet,
+because it uses [lambdasoup](http://aantron.github.io/lambdasoup/) library to work with tag soups.
 
 Visit [soupault.app](https://www.soupault.app) for details.
 
@@ -62,10 +81,15 @@ For support and discussion, write a message to the [mailing list](https://lists.
 
 # Installation
 
-Pre-built binaries are available for Linux, Windows, and macOS. You can download them from https://files.baturin.org/software/soupault
-and from Github releases (https://github.com/PataphysicalSociety/soupault/releases).
+Prebuilt binaries are available for Linux (x86-64 and Aarch64), Windows, and macOS (x86-64).
+You can download them from https://files.baturin.org/software/soupault
+and from GitHub releases (https://github.com/PataphysicalSociety/soupault/releases).
 
-You can verify release archive integrity using this signify/minisign key: `RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy`.
+You can verify release archive integrity using this minisign key:
+
+```
+minisign -VP RWRfW+gkhk/+iA7dOUtTio6G6KeJCiAEp4Zfozw7eqv2shN90+5z20Cy -m <file>
+```
 
 You can also install stable release versions from [OPAM](https://opam.ocaml.org):
 
@@ -83,7 +107,7 @@ To build static binaries, you need to install OCaml with musl runtime,
 then use the `static` Dune profile:
 
 ```
-# For OCaml 4.12.2, adjust for your desired version
+# For OCaml 4.14.2, adjust for your desired version
 opam switch create 4.14.2-musl ocaml-variants.4.14.2+options ocaml-option-musl ocaml-option-static
 opam switch 4.14.2-musl
 
