@@ -674,7 +674,7 @@ struct
     (* For the JSON module. *)
 
     let parse_json js =
-      try Ezjsonm.from_string js |> lua_of_json
+      try Ezjsonm.value_from_string js |> lua_of_json
       with
       | Ezjsonm.Parse_error (_, err) -> Printf.ksprintf plugin_error "JSON.from_string parse error: %s" err
       | Assert_failure (err, line, pos) -> Printf.ksprintf plugin_error "JSON.from_string internal error: %s:%d%d" err line pos
