@@ -5,9 +5,6 @@ open Soupault_common
 
 open Otoml
 
-exception Config_error of string
-let config_error err = raise (Config_error err)
-
 let check_selector f opt_name s =
   let res = Html_utils.check_selector opt_name s in
   match res with
@@ -90,24 +87,22 @@ let check_options ?(fmt=bad_option_msg) valid_options config ident =
 let read_config path =
   if not (config_exists path) then
     let () = Logs.warn @@ fun m -> m "Configuration file %s not found, using default settings" path in
-    Ok None
+    None
   else
   try
     let conf = Otoml.Parser.from_file path in
-    Ok (Some conf)
+    Some conf
   with
-  | Sys_error err -> Error (Printf.sprintf "Could not read config file: %s" err)
+  | Sys_error err -> Printf.ksprintf soupault_error "Could not read config file: %s" err
   | Otoml.Parse_error (pos, msg) ->
-    let msg = Printf.sprintf "Could not parse config file %s: %s"
+    Printf.ksprintf soupault_error "Could not parse config file %s: %s"
       path (Otoml.Parser.format_parse_error pos msg)
-    in Error msg
   | Otoml.Duplicate_key msg ->
     (* As of OTOML 1.0.4, parsing a syntactically correct config
        that contains duplicate table names raises Duplicate_key rather than Parse_error,
        so we need to handle it separately.
      *)
-     let msg = Printf.sprintf "Config file %s is malformed: %s" path msg in
-     Error msg
+    Printf.ksprintf soupault_error "Config file %s is malformed: %s" path msg
 
 (* Convenience accessor wrappers *)
 
@@ -118,8 +113,19 @@ let find_table_result err path config = find_opt config get_table path |> Option
 let find_result accessor config path =
   try Ok (Otoml.find config accessor path)
   with
-  | Otoml.Key_error _ -> Error (Printf.sprintf {|Missing required option "%s"|} (Otoml.string_of_path path))
-  | Otoml.Type_error msg -> Error (Printf.sprintf {|Wrong type for option "%s": %s|} (Otoml.string_of_path path) msg)
+  | Otoml.Key_error _ ->
+    Error (Printf.sprintf {|missing required option "%s"|} (Otoml.string_of_path path))
+  | Otoml.Type_error msg ->
+    Error (Printf.sprintf {|wrong type for option "%s": %s|} (Otoml.string_of_path path) msg)
+
+let find accessor config path =
+  let res = find_result accessor config path in
+  match res with
+  | Ok v -> v
+  | Error msg -> config_error msg
+
+let find_string ?(strict=false) config path =
+  find (Otoml.get_string ~strict:strict) config path
 
 let find_string_or ?(strict=false) ~default:default config path =
   OH.find_string_opt ~strict:strict config path |> Option.value ~default:default
@@ -133,7 +139,11 @@ let find_strings_or ~default:default config path =
 
 let find_strings_result ?(strict=false) config path =
   let get_strings = Otoml.get_array ~strict:false (Otoml.get_string ~strict:strict) in
-  find_result get_strings config path 
+  find_result get_strings config path
+
+let find_strings ?(strict=false) config path =
+  let get_strings = Otoml.get_array ~strict:false (Otoml.get_string ~strict:strict) in
+  find get_strings config path
 
 let find_bool_or ?(strict=false) ~default:default config path =
   OH.find_boolean_opt ~strict:strict config path |> Option.value ~default:default
@@ -542,10 +552,11 @@ let update_settings_unsafe settings config =
     _get_index_settings settings config
 
 let update_settings settings config =
-  try Ok (update_settings_unsafe settings config)
+  try update_settings_unsafe settings config
   with
-  | Config_error e -> Error e
-  | Otoml.Type_error e -> Error (Printf.sprintf "Incorrect config option value: %s" e)
+  | Config_error e -> soupault_error e
+  | Otoml.Type_error e ->
+    Printf.ksprintf soupault_error "Incorrect config option value: %s" e
 
 let inject_option path default config =
   let value = find_opt config (fun x -> x) path in

@@ -42,10 +42,9 @@ let set_title _ config _ page =
   let title_node = Soup.select_one "head title" soup in
   match title_node with
   | None ->
-    let () = Logs.debug @@ fun m -> m "Page does not have a <title> element, assuming you don't want to set it" in
-    Ok ()
+    Logs.debug @@ fun m -> m "Page does not have a <title> element, assuming you don't want to set it"
   | Some title_node ->
-    if (not (Html_utils.is_empty title_node)) && keep then Ok () else
+    if (not (Html_utils.is_empty title_node)) && keep then () else
     let (>>=) = Option.bind in
     let title_string =
       Html_utils.select_any_of selectors soup >>= Html_utils.get_element_text
@@ -54,5 +53,4 @@ let set_title _ config _ page =
        instead of expanding entities, so "&mdash;" becomes "&amp;mdash", which is not what we want.
        Soup.parse expands them, which is why it's used here *)
     let new_title_node = Printf.sprintf "<title>%s</title>" title_string |> Soup.parse in
-    let () = Soup.replace title_node new_title_node in
-    Ok ()
+    Soup.replace title_node new_title_node

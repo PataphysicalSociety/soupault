@@ -84,7 +84,7 @@ let load_hook hook_config ident =
   let res = Utils.load_plugin_code hook_config default_filename ident in
   match res with
   | Ok (file_name, source_code) -> (file_name, source_code)
-  | Error msg -> Config.config_error msg
+  | Error msg -> config_error msg
 
 (* Loads a single hook from its configuration. *)
 let get_hook config hooks_hash ident =
@@ -97,13 +97,11 @@ let get_hook config hooks_hash ident =
 
 (* Loads all hooks from the config. *)
 let get_hooks config =
-  try
-    let () = Logs.info @@ fun m -> m "Loading hooks" in
-    let () = check_hook_tables config in
-    let hooks_hash = Hashtbl.create 1024 in
-    let () = List.iter (get_hook config hooks_hash) hook_types in
-    Ok hooks_hash
-  with Config.Config_error msg -> Error msg
+  let () = Logs.info @@ fun m -> m "Loading hooks" in
+  let () = check_hook_tables config in
+  let hooks_hash = Hashtbl.create 1024 in
+  let () = List.iter (get_hook config hooks_hash) hook_types in
+  hooks_hash
 
 (* Hook functions *)
 
@@ -139,12 +137,19 @@ let run_pre_parse_hook soupault_state hook_config file_name lua_code page_file p
       "site_dir", lua_str.embed settings.site_dir;
     ] lua_state
   in
-  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the pre-parse hook on page %s" page_file in
-  let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () =
+    try Plugin_api.run_lua lua_state file_name lua_code
+    with Plugin_error msg ->
+      Printf.ksprintf soupault_error
+        "Failed to run pre-parse hook on page %s: %s" page_file msg
+  in
   let res = I.getglobal lua_state (I.Value.string.embed "page_source") in
-  if I.Value.string.is res then Ok (I.Value.string.project res)
-  else Error "pre-parse hook has not assigned a string to the page_source variable"
+  if I.Value.string.is res then I.Value.string.project res
+  else Printf.ksprintf soupault_error
+    "Failed to run the pre-parse hook on page %s:\
+       hook has not assigned a string to the page_source variable"
+    page_file
 
 (* pre-process hook runs just after a page source is parsed into an HTML element tree
    and before soupault itself does anything with it (before any widgets run).
@@ -171,12 +176,16 @@ let run_pre_process_hook soupault_state hook_config file_name lua_code page_file
       "site_dir", lua_str.embed settings.site_dir;
     ] lua_state
   in
-  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the pre-process hook on page %s" page_file in
-  let* () = Plugin_api.run_lua lua_state file_name lua_code in
-  let* target_file = Plugin_api.get_global lua_state "target_file" I.Value.string in
-  let* target_dir = Plugin_api.get_global lua_state "target_dir" I.Value.string in
-  Ok (target_dir, target_file, soup)
+  let () =
+    try Plugin_api.run_lua lua_state file_name lua_code
+    with Plugin_error msg ->
+      Printf.ksprintf soupault_error
+        "Failed to run the pre-process hook on page %s: %s" page_file msg
+  in
+  let target_file = Plugin_api.get_global lua_state "target_file" I.Value.string in
+  let target_dir = Plugin_api.get_global lua_state "target_dir" I.Value.string in
+  (target_dir, target_file, soup)
 
 (* post-index hook runs after soupault extracts index fields from a page.
 
@@ -225,9 +234,13 @@ let run_post_index_hook soupault_state hook_config file_name lua_code page entry
       "ignore_page", I.Value.bool.embed false;
     ] lua_state
   in
-  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the post-index hook on page %s" page.page_file in
-  let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () =
+    try Plugin_api.run_lua lua_state file_name lua_code
+    with Plugin_error msg ->
+      Printf.ksprintf soupault_error
+        "Failed to run the post-index hook on page %s: %s" page.page_file msg
+  in
   (* XXX: The assumption is that there's no way to completely unset a global
           in the Lua interpreter we are using,
           so if we added [ignore_page] to globals, retrieving it will never cause errors,
@@ -235,10 +248,13 @@ let run_post_index_hook soupault_state hook_config file_name lua_code page entry
    *)
   let index_fields = I.getglobal lua_state (I.Value.string.embed "index_fields") in
   if not (I.Value.table.is index_fields) then
-    Error "post-index hook has not assigned a table to the index_fields variable"
+    Printf.ksprintf soupault_error
+      "Failed to run the post-index hook on page %s:\
+         hook has not assigned a table to the index_fields variable"
+      page.page_file
   else
-    let* fields = Plugin_api.json_of_lua index_fields in
-    Ok (assoc_of_json fields)
+    let fields = Plugin_api.json_of_lua index_fields in
+    assoc_of_json fields
 
 (* render hook replaces the normal page rendering process.
 
@@ -270,12 +286,19 @@ let run_render_hook soupault_state hook_config file_name lua_code page =
       "site_dir", lua_str.embed settings.site_dir;
     ] lua_state
   in
-  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the render hook on page %s" page.page_file in
-  let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () =
+    try Plugin_api.run_lua lua_state file_name lua_code
+    with Plugin_error msg ->
+      Printf.ksprintf soupault_error
+        "Failed to run the render hook on page %s: %s" page.page_file msg
+  in
   let res = I.getglobal lua_state (I.Value.string.embed "page_source") in
-  if I.Value.string.is res then Ok (I.Value.string.project res)
-  else Error "render hook has not assigned a string to the page_source variable"
+  if I.Value.string.is res then I.Value.string.project res
+  else Printf.ksprintf soupault_error
+    "Failed to run the render hook on page %s: \
+       hook has not assigned a string to the page_source variable"
+    page.page_file
 
 let run_save_hook soupault_state hook_config file_name lua_code page page_source =
   let open Defaults in
@@ -283,7 +306,7 @@ let run_save_hook soupault_state hook_config file_name lua_code page page_source
   let lua_state = I.mk () in
   let index_entry_json = get_index_entry_json soupault_state.site_index page.page_file in
   let settings = soupault_state.soupault_settings in
-   let () =
+  let () =
     (* Set up the hook environment *)
     I.register_globals [
       "page_source", lua_str.embed page_source;
@@ -301,10 +324,11 @@ let run_save_hook soupault_state hook_config file_name lua_code page page_source
       "site_dir", lua_str.embed settings.site_dir;
     ] lua_state
   in
-  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m "Running the save hook on page %s" page.page_file in
-  let* () = Plugin_api.run_lua lua_state file_name lua_code in
-  Ok ()
+  try Plugin_api.run_lua lua_state file_name lua_code
+  with Plugin_error msg ->
+    Printf.ksprintf soupault_error
+      "Failed to run the save hook on page %s: %s" page.page_file msg
 
 (** These two hooks are executed only once rather than for every page:
     before the first page is processed and after the last page is processed. *)
@@ -320,7 +344,7 @@ let run_startup_hook soupault_state hooks =
   let open Defaults in
   let hook = Hashtbl.find_opt hooks "startup" in
   match hook with
-  | None -> Ok ()
+  | None -> ()
   | Some (file_name, source_code, hook_config) ->
     let lua_str = I.Value.string in
     let lua_state = I.mk () in
@@ -335,16 +359,18 @@ let run_startup_hook soupault_state hooks =
         "site_dir", lua_str.embed settings.site_dir;
       ] lua_state
     in
-    let (let*) = Result.bind in
     let () = Logs.info @@ fun m -> m "Running the startup hook" in
-    let* () = Plugin_api.run_lua lua_state file_name source_code in
-    Ok()
+    begin
+      try Plugin_api.run_lua lua_state file_name source_code
+      with Plugin_error msg ->
+        Printf.ksprintf soupault_error "Failed to run startup hook" msg
+    end
 
 let run_post_build_hook soupault_state site_index hooks =
   let open Defaults in
   let hook = Hashtbl.find_opt hooks "post-build" in
   match hook with
-  | None -> Ok ()
+  | None -> ()
   | Some (file_name, source_code, hook_config) ->
     let lua_str = I.Value.string in
     let lua_state = I.mk () in
@@ -366,20 +392,21 @@ let run_post_build_hook soupault_state site_index hooks =
        there's no reason to update the global data variable --
        there's no plugin code left to run that could use it at that point.
      *)
-    Plugin_api.run_lua lua_state file_name source_code
-
+    try Plugin_api.run_lua lua_state file_name source_code
+    with Plugin_error msg ->
+      Printf.ksprintf soupault_error
+        "Failed to run the post-build hook: %s" msg
 
 (* Lua index processors aren't actually hooks but their execution process is similar. *)
 
 let run_lua_index_processor soupault_state index_view_config view_name file_name lua_code page =
   let page_from_lua p =
-    let page_json = match Plugin_api.json_of_lua p with Ok p -> p | Error msg -> hook_error msg in
-    match page_json with
+    match (Plugin_api.json_of_lua p) with
     | `O [("page_file", `String page_file);
           ("page_content", `String page_content)] ->
        let soup = Html_utils.parse_page ~fragment:true soupault_state.soupault_settings page_content in
        (page_file, soup)
-    | _ ->
+    | _ | exception Plugin_error _ ->
       hook_error {|generated page must be a table with fields "page_file" (string) and "page_content" (string)|}
   in
   let open Defaults in
@@ -411,12 +438,18 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
      *)
     I.register_globals ["pages", table_list.embed []] lua_state;
   in
-  let (let*) = Result.bind in
   let () = Logs.info @@ fun m -> m {|Running Lua index processor %s for index view "%s" on page %s|}
     file_name view_name page.page_file
   in
-  let* () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () = Plugin_api.run_lua lua_state file_name lua_code in
   let res = I.getglobal lua_state (I.Value.string.embed "pages") in
-  if not (table_list.is res) then Error "Index processor has not assigned a list of tables to the pages variable" else
-  try Ok ((I.Value.list I.Value.value).project res |> List.map page_from_lua)
-  with Hook_error msg -> Error (Printf.sprintf "Index processor generated a page incorrectly: %s" msg)
+  if not (table_list.is res)
+  then Printf.ksprintf soupault_error
+    "Index processor error for view %s on page %s has assigned a list of tables to the pages variable"
+    view_name page.page_file
+  else
+    try (I.Value.list I.Value.value).project res |> List.map page_from_lua
+    with Hook_error msg ->
+      Printf.ksprintf soupault_error
+        "Index processor for view %s on page %s generated a page incorrectly: %s"
+       view_name page.page_file msg

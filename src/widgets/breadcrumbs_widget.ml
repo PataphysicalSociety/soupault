@@ -1,8 +1,7 @@
 (* Breadcrumbs *)
 
 open Defaults
-
-let (let*) = Result.bind
+open Soupault_common
 
 let make_breadcrumbs nav_path bc_tmpl prepend append between =
   let rec aux xs bc_soup acc_href =
@@ -31,33 +30,31 @@ let make_breadcrumbs nav_path bc_tmpl prepend append between =
   in
   bc_soup
 
-let check_breadcrumb_template tmpl_str =
-  try let _ = Template.of_string tmpl_str in Ok ()
-  with _ -> Error "Failed to parse breadcrumb template (consult Jingoo documentation for a syntax reference)"
-
 let breadcrumbs _ config _ page =
   let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in
   let () = Config.check_options valid_options config {|widget "breadcrumbs"|} in
   let min_depth = Config.find_integer_or ~default:1 config ["min_depth"] in
-  let* selectors = Config.find_strings_result config ["selector"] in
+  let selectors = Config.find_strings config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let container = Html_utils.select_any_of selectors soup in
-  let (let*) = Stdlib.Result.bind in
   begin match container with
   | None ->
-    let () = Widget_utils.no_container_action selectors "nowhere to insert the breadcrumbs" in
-    Ok ()
+    Widget_utils.no_container_action selectors "nowhere to insert the breadcrumbs"
   | Some container ->
     let path_length = List.length page.nav_path in
-    if path_length < min_depth then Ok () else
+    if path_length < min_depth then () else
     let bc_tmpl_str = Config.find_string_or ~default:{|<a href="{{url}}">{{name}}</a>|} config ["breadcrumb_template"] in
-    let* _  = check_breadcrumb_template bc_tmpl_str in
-    let bc_tmpl = Template.of_string bc_tmpl_str in
+    let bc_tmpl =
+      (try Template.of_string bc_tmpl_str
+       with _ -> widget_error
+         "failed to parse breadcrumb template\
+         (consult Jingoo documentation for a syntax reference)")
+    in
     let prepend = Config.find_string_or ~default:"" config ["prepend"] in
     let append = Config.find_string_or ~default:"" config ["append"] in
     let between = Config.find_string_or ~default:"" config ["between"] in
     let breadcrumbs = make_breadcrumbs page.nav_path bc_tmpl prepend append between in
-    Ok (Html_utils.insert_element action container breadcrumbs)
+    Html_utils.insert_element action container breadcrumbs
   end

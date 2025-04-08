@@ -8,7 +8,7 @@ exception Widget_error of string
 
 type 'a widget = {
   config: Otoml.t;
-  func: Defaults.state -> Otoml.t -> Defaults.index -> Defaults.page_data -> (unit, string) result
+  func: Defaults.state -> Otoml.t -> Defaults.index -> Defaults.page_data -> unit
 }
 
 (* The widgets datastructure is a widget priority list plus a hash with actual widgets *)
@@ -113,8 +113,9 @@ let load_widgets settings soupault_config plugins =
   let widgets_hash = Hashtbl.create 1024 in
   try
     let () = _load_widgets settings soupault_config plugins ws widgets_hash in
-    Ok widgets_hash
-  with Widget_error msg -> Error msg
+    widgets_hash
+  with Widget_error msg ->
+    Printf.ksprintf soupault_error "Failed to load widgets: %s" msg
 
 (* Widget dependency handling functions. *)
 
@@ -264,13 +265,14 @@ let order_actions settings widget_hash =
     Logs.debug @@ fun m -> m "Widget dependency graph:\n%s" (dump_dependency_graph dep_graph)
   in
   let bad_deps = Tsort.find_nonexistent_nodes dep_graph in
-  if bad_deps <> [] then Error (format_bad_deps bad_deps) else
+  if bad_deps <> [] then soupault_error (format_bad_deps bad_deps) else
   let res = Tsort.sort dep_graph in
   match res with
-  | Tsort.Sorted ws -> Ok ws
+  | Tsort.Sorted ws -> ws
   | Tsort.ErrorCycle ws ->
-    Error (Printf.sprintf "There is a dependency cycle between following widgets: %s"
-      (String.concat ", " (List.map string_of_action ws)))
+    Printf.ksprintf soupault_error
+      "There is a dependency cycle between following widgets: %s"
+      (String.concat ", " (List.map string_of_action ws))
 
 (* Splits the list of actions (widget calls and the special MetadataExtraction step)
    into those that should run before and after metadata extraction.
@@ -297,9 +299,8 @@ let partition_widgets sorted_action_list =
    List.map string_of_action after_indexing)
 
 let get_widgets settings soupault_config plugins index_deps =
-  let (let*) = Stdlib.Result.bind in
-  let* widget_hash = load_widgets settings soupault_config plugins in
-  let* widget_order = order_actions settings widget_hash in
+  let widget_hash = load_widgets settings soupault_config plugins in
+  let widget_order = order_actions settings widget_hash in
   if not settings.index then
     (* If indexing is disabled, there is no point in partitioning the widget order list --
        the whole concept of "widgets that need to run before metadata extraction"
@@ -309,7 +310,7 @@ let get_widgets settings soupault_config plugins index_deps =
       let () = Logs.debug @@ fun m -> m "Widget processing order: %s"
         (String.concat " " widget_order)
        in
-       Ok (widget_order, [], widget_hash)
+       (widget_order, [], widget_hash)
     end
   else
     begin
@@ -322,7 +323,7 @@ let get_widgets settings soupault_config plugins index_deps =
             (String.concat " " after_index)
         end
       in
-      Ok (before_index, after_index, widget_hash)
+      (before_index, after_index, widget_hash)
     end
 
 (** Check if a widget should run or not.

@@ -285,7 +285,7 @@ let relative_links state config _ page =
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
   let only_regex = OH.find_string_opt config ["only_target_regex"] in
   if (Option.is_some exclude_regex) && (Option.is_some only_regex)
-  then Config.config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
+  then config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
   else begin
     let exclude_regex = Option.value ~default:default_exclude_regex exclude_regex in
     let check_file = Config.find_bool_or ~default:false config ["check_file"] in
@@ -296,8 +296,7 @@ let relative_links state config _ page =
     | ns ->
       let relativize_target = relativize_link_target state page check_file only_regex exclude_regex in
       List.iter (fun elem -> process_attrs relativize_target elem) ns
-    end;
-    Ok ()
+    end
   end
 
 (** Converts all internal links to absolute. *)
@@ -313,7 +312,7 @@ let absolute_links state config _ page =
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
   let only_regex = OH.find_string_opt config ["only_target_regex"] in
   if (Option.is_some exclude_regex) && (Option.is_some only_regex)
-  then Config.config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
+  then config_error "exclude_target_regex and only_target_regex options are mutually exclusive"
   else begin
     let exclude_regex = Option.value ~default:default_exclude_regex exclude_regex in
     let check_file = Config.find_bool_or ~default:false config ["check_file"] in
@@ -324,7 +323,6 @@ let absolute_links state config _ page =
     | ns ->
       let absolutize_target = absolutize_link_target state page prefix check_file only_regex exclude_regex in
       List.iter (fun elem -> process_attrs absolutize_target elem) ns
-    end;
-    Ok ()
+    end
   end
 

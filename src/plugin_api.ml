@@ -1,9 +1,8 @@
 open Soupault_common
 
-exception Plugin_error of string
+(* Used internally to handle early exit
+   initiated by calling [Plugin.exit] Lua function. *)
 exception Plugin_exit of string option
-
-let plugin_error err = raise (Plugin_error err)
 
 (* Please note that these functions use "string, regex" argument order.
    This inconsistency with internal regex functions is unfortunate,
@@ -1209,32 +1208,32 @@ let json_of_lua v =
     | `Float f -> string_of_float f
     | `String s -> s
     | _ ->
-      plugin_error @@ Printf.sprintf "Wrong type for a table key: only int, float, and string are supported but %s found"
+      plugin_error @@ Printf.sprintf "wrong type for a table key: only int, float,\
+         and string are supported but %s found"
         (V.to_string v)
   in
-  try Ok (project_lua_value v)
-  with Plugin_error msg -> Error msg
+  project_lua_value v
 
 let get_global state name vmap =
   let value = I.getglobal state (I.Value.string.embed name) in
-  if not (I.Value.(vmap.is) value) then Error (Printf.sprintf "wrong Lua type for variable %s" name)
-  else Ok (I.Value.(vmap.project) value)
+  if not (I.Value.(vmap.is) value)
+  then plugin_error @@ Printf.sprintf "wrong Lua type for variable %s" name
+  else I.Value.(vmap.project) value
 
 let make_lua_hash () = ref (I.Value.Table.of_list [] |> I.Value.table.embed)
 
 let run_lua lua_state filename lua_code =
   try
-    let _ = I.dostring ~file:filename lua_state lua_code in
-    Ok ()
+    ignore @@ I.dostring ~file:filename lua_state lua_code
   with
-  | Failure msg -> Error (Printf.sprintf "Lua code execution failed:\n%s" msg)
-  | Plugin_error msg -> Error msg
-  | Luascanner.Scan msg -> Error (Printf.sprintf "Lua syntax error: %s" msg)
+  | Failure msg -> plugin_error (Printf.sprintf "Lua code execution failed:\n%s" msg)
+  | Luascanner.Scan msg -> plugin_error (Printf.sprintf "Lua syntax error: %s" msg)
   | Plugin_exit msgo ->
     begin
       match msgo with
-      | Some msg -> let () = Logs.info @@ fun m -> m "Plugin exited with message: %s" msg in Ok ()
-      | None -> Ok ()
+      | Some msg ->
+        Logs.info @@ fun m -> m "Plugin exited with message: %s" msg
+      | None -> ()
     end
 
 let run_plugin filename lua_code soupault_state widget_config index page =

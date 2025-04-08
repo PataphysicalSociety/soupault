@@ -1,5 +1,4 @@
 open Defaults
-include Soupault_common
 
 (** Checks is a CSS selector is valid.
 
@@ -81,12 +80,14 @@ let parse_page ?(fragment=true) settings page_source =
 
 (** Checks if a "template" has a specific element in it.
     For checking if there's any element at all, use "*" selector *)
-let check_template selector template =
+let check_template err_func selector template =
   let soup = Soup.parse template in
   let content_container = Soup.select_one selector soup in
   match content_container with
-  | None -> Error (Printf.sprintf {|Template "%s" has no element matching selector "%s"|} template selector)
-  | Some _ -> Ok template
+  | None ->
+    err_func @@ Printf.sprintf
+      {|Template "%s" has no element matching selector "%s"|} template selector
+  | Some _ -> template
 
 (** Gets an element and returns Error if it doesn't exist,
     another bit of monadic convenience *)

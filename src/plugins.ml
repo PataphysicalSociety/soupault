@@ -34,12 +34,14 @@ let rec _load_plugins soupault_config ps hash =
     _load_plugins soupault_config ps' hash
 
 let get_plugins soupault_config =
-  let (let*) = Stdlib.Result.bind in
   let () = Logs.info @@ fun m -> m "Loading explicitly configured plugins" in
   let hash = Hashtbl.create 1024 in
   let plugins = list_plugins soupault_config in
-  let* () = _load_plugins soupault_config plugins hash in
-  Ok hash
+  let res = _load_plugins soupault_config plugins hash in
+  match res with
+  | Ok () -> hash
+  | Error msg ->
+    Printf.ksprintf soupault_error "Failed to load plugins: %s" msg
 
 let rec lookup_plugin_file plugin_dirs file_name =
   match plugin_dirs with

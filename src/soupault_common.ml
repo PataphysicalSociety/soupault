@@ -2,6 +2,10 @@
 
 (* Indicates an unrecoverable website processing error.
    Such errors always stop the build.
+
+   This exception is handled in the outermost layer of soupault.ml
+   and shouldn't be caught anywhere else.
+   More specific exceptions are re-raised as [Soupault_error].
  *)
 exception Soupault_error of string
 let soupault_error s = raise (Soupault_error s)
@@ -25,12 +29,41 @@ let internal_error err =
       Logs.err @@ fun m ->  m "Please report a bug and attach the message and the exception trace to your report."
   in raise (Internal_error err)
 
-(* Indicates that soupault encountered a file name that is impossible in the operating system it's running on.
+(* Indicates that soupault encountered a file name
+   that is impossible in the operating system it's running on.
 
    When it occurs inside soupault's own code (as opposed to plugin code),
-   it should always be re-raised as Internal_error.
+   it should always be re-raised as [Internal_error].
+
+   When it occurs in plugin code, it must be re-raised as [Plugin_error].
  *)
 exception Malformed_file_name of string
+
+(* Indicates a configuration error.
+
+   If it occurs while executing a widget,
+   it must be re-raised as [Widget_error].
+ *)
+exception Config_error of string
+let config_error msg = raise (Config_error msg)
+
+(* Indicates an error during plugin execution.
+
+   Must be re-raised as [Widget_error]
+   if it occurs during widget plugin execution,
+   or as [Soupault_error] if it occurs in hooks, etc.
+ *)
+exception Plugin_error of string
+let plugin_error err = raise (Plugin_error err)
+
+(* Indicates an error during widget execution.
+
+   Must be re-raised as [Soupault_error]
+   by the widget handling function,
+   with information about the widget that failed.
+ *)
+exception Widget_error of string
+let widget_error err = raise (Widget_error err)
 
 (* Custom infix operators *)
 

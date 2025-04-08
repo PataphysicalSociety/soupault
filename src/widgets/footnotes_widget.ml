@@ -1,10 +1,9 @@
 (* Footnotes *)
 
 open Defaults
+open Soupault_common
 
 module OH = Otoml.Helpers
-
-let (let*) = Result.bind
 
 (** Makes a unique id for a footnote element--
     the footnote text that is taken out of the document body and
@@ -112,11 +111,17 @@ let footnotes _ config _ page =
     ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class";
      "back_links"; "back_link_id_append"; "link_id_prepend"; "action"] in
   let () = Config.check_options valid_options config {|widget "footnotes"|} in
-  let* selectors = Config.find_strings_result config ["selector"] in
+  let selectors = Config.find_strings config ["selector"] in
   let action = OH.find_string_opt config ["action"] in
   let note_selector = Config.find_strings_or ~default:[".footnote"] config ["footnote_selector"] in
-  let* ref_tmpl = Config.find_string_or ~default:"<sup></sup>" config ["ref_template"] |> Html_utils.check_template "*" in
-  let* note_tmpl = Config.find_string_or ~default:"<p></p>" config ["footnote_template"] |> Html_utils.check_template "*" in
+  let ref_tmpl =
+    Config.find_string_or ~default:"<sup></sup>" config ["ref_template"] |>
+    Html_utils.check_template widget_error "*"
+  in
+  let note_tmpl =
+    Config.find_string_or ~default:"<p></p>" config ["footnote_template"] |>
+    Html_utils.check_template widget_error "*"
+  in
   let fn_link_class = OH.find_string_opt config ["footnote_link_class"] in
   let back_links = Config.find_bool_or ~default:true config ["back_links"] in
   let back_link_append = Config.find_string_or ~default:"-ref" config ["back_link_id_append"] in
@@ -124,11 +129,9 @@ let footnotes _ config _ page =
   let container = Html_utils.select_any_of selectors soup in
   match container with
   | None ->
-    let () = Widget_utils.no_container_action selectors "nowhere to insert the footnotes" in
-    Ok ()
+    Widget_utils.no_container_action selectors "nowhere to insert the footnotes"
   | Some container ->
     let notes = Html_utils.select_all note_selector soup in
     let container_content = Soup.create_soup () in
     let () = move_footnotes fn_link_class back_links ref_tmpl note_tmpl notes container_content back_link_append link_prepend 0 in
-    Ok (Html_utils.insert_element action container (Soup.coerce container_content))
-
+    Html_utils.insert_element action container (Soup.coerce container_content)

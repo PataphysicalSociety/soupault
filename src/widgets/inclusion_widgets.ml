@@ -1,7 +1,6 @@
 open Defaults
+open Soupault_common
 open Widget_utils
-
-let (let*) = Result.bind
 
 let html_of_string ?(parse=true) ?(body_context=true) settings html_str =
   let context = if body_context then `Fragment "body" else `Fragment "head" in
@@ -17,18 +16,18 @@ let insert_html state config _ page =
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "html"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "insert_html"|} in
-  let* selectors = get_selectors config in
+  let selectors = Config.find_strings config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   let container = Html_utils.select_any_of selectors soup in
   begin match container with
   | None ->
-    let () = no_container_action selectors "nowhere to insert the snippet" in Ok ()
+    no_container_action selectors "nowhere to insert the snippet"
   | Some container ->
-    let* html_str = Config.find_string_result config ["html"] in
+    let html_str = Config.find_string config ["html"] in
     let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings html_str in
-    Ok (Html_utils.insert_element action container content)
+    Html_utils.insert_element action container content
   end
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
@@ -38,19 +37,22 @@ let include_file state config _ page =
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "file"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "include"|} in
-  let* selectors = get_selectors config in
+  let selectors = Config.find_strings config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   let container = Html_utils.select_any_of selectors soup in
   begin match container with
   | None ->
-    let () = no_container_action selectors "nowhere to insert the file contents" in Ok ()
+    no_container_action selectors "nowhere to insert the file contents"
   | Some container ->
-    let* file = Config.find_string_result config ["file"] in
-    let* content = Utils.read_file file in
+    let file = Config.find_string config ["file"] in
+    let content =
+      (try Soup.read_file file
+      with Sys_error msg -> widget_error msg)
+    in
     let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings content in
-    Ok (Html_utils.insert_element action container content)
+    Html_utils.insert_element action container content
   end
 
 (* External program output inclusion *)
@@ -68,21 +70,24 @@ let include_program_output state config _ page =
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options ["selector"; "command"; "parse"; "action"; "html_context_body"] in
   let () = Config.check_options valid_options config {|widget "exec"|} in
-  let* selectors = get_selectors config in
+  let selectors = Config.find_strings config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
   let parse_content = Config.find_bool_or ~default:true config ["parse"] in
   let container = Html_utils.select_any_of selectors soup in
-  begin match container with
+  match container with
   | None ->
-    let () = no_container_action selectors "nowhere to insert the program output" in Ok ()
+    no_container_action selectors "nowhere to insert the program output"
   | Some container ->
     let env_array = make_program_env page in
-    let* cmd = Config.find_string_result config ["command"] in
-    let* content = Process_utils.get_program_output ~env:env_array ~debug:settings.debug cmd in
-    let content = html_of_string ~parse:parse_content ~body_context:html_body_context settings content in
-    Ok (Html_utils.insert_element action container content)
-  end
+    let cmd = Config.find_string config ["command"] in
+    let content = Process_utils.get_program_output ~env:env_array ~debug:settings.debug cmd in
+    begin match content with
+    | Ok content ->
+      let content_etree = html_of_string ~parse:parse_content ~body_context:html_body_context settings content in
+      Html_utils.insert_element action container content_etree
+    | Error msg -> widget_error msg
+    end
 
 let make_node_env node =
   let make_var l r = Printf.sprintf "%s=%s" l r in
@@ -104,8 +109,7 @@ let preprocess_element state config _ page =
     | Some output ->
       let () = Logs.info @@ fun m -> m {|The result of executing command "%s" was found in cache|} command in
       let content = html_of_string ~parse:parse ~body_context:body_context settings output in
-      let () = Html_utils.insert_element action node content in
-      Ok ()
+      Html_utils.insert_element action node content
     | None ->
       let () = Logs.info @@ fun m -> m "Executing command: %s" command in
       let node_env = make_node_env node in
@@ -117,9 +121,8 @@ let preprocess_element state config _ page =
         | Ok output ->
           let () = Cache.cache_object settings page.page_file command input output in
           let content = html_of_string ~parse:parse ~body_context:body_context settings output in
-          let () = Html_utils.insert_element action node content in
-          Ok ()
-        | (Error _) as e -> e
+          Html_utils.insert_element action node content
+        | Error msg -> widget_error msg
       end
   in
   (* Retrieve configuration options *)
@@ -129,7 +132,7 @@ let preprocess_element state config _ page =
   let action = Config.find_string_or ~default:"replace_content" config ["action"] in
   let parse = Config.find_bool_or ~default:true config ["parse"]  in
   let html_body_context = Config.find_bool_or ~default:true config ["html_context_body"] in
-  let* selectors = Config.find_strings_result config ["selector"] in
-  let* command = Config.find_string_result config ["command"] in
+  let selectors = Config.find_strings config ["selector"] in
+  let command = Config.find_string config ["command"] in
   let nodes = Html_utils.select_all selectors soup in
-  Utils.iter_result (run_command page command (Some action) parse html_body_context) nodes
+  List.iter (run_command page command (Some action) parse html_body_context) nodes

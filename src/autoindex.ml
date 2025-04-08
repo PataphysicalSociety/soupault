@@ -174,8 +174,7 @@ let compare_entries settings sort_options l r =
   if sort_options.sort_descending then (~- result) else result
 
 let sort_entries settings sort_options es =
-  try Ok (List.sort (compare_entries settings sort_options) es)
-  with Soupault_error msg -> Error msg
+  List.sort (compare_entries settings sort_options) es
 
 let json_of_entries = Utils.json_of_index_entries
 
@@ -229,18 +228,15 @@ let render_index ?(item_template=true) soupault_config view template settings so
         in
         [Template.render template env |> Soup.parse]
     in
-    let () = List.iter (Html_utils.insert_element view.index_action soup) entries in
-    Ok ()
+    List.iter (Html_utils.insert_element view.index_action soup) entries
   with
   | Failure err ->
     (* Jingoo raises Failure on rendering errors, though it's not a frequent occurence. *)
-    let msg = Printf.sprintf {|Failed to render the template for index view "%s": %s|}
+    Printf.ksprintf soupault_error {|Failed to render the template for index view "%s": %s|}
       view.index_view_name err
-    in
-    Error msg
   | _ ->
     (* Just in case something else happens *)
-    Error ("Index template rendering failed for an undeterminable reason")
+    Printf.ksprintf soupault_error "Index template rendering failed for an undeterminable reason"
 
 (* Renders index with help from an external executable. *)
 let run_index_processor view cmd ic index =
@@ -250,8 +246,10 @@ let run_index_processor view cmd ic index =
   let output = (Process_utils.get_program_output ~input:(Some json) cmd) in
   begin
     match output with
-    | Error _ as e -> e
-    | Ok output -> Ok (Html_utils.insert_element view.index_action ic (Soup.parse output))
+    | Error msg ->
+        Printf.ksprintf soupault_error "Failed to run the index processor for index view %s: %s"
+          view.index_view_name msg
+    | Ok output -> Html_utils.insert_element view.index_action ic (Soup.parse output)
   end
 
 let view_includes_page settings page_file view entry =
@@ -302,20 +300,19 @@ let insert_index state page view =
   | None ->
     let () = Logs.debug @@ fun m -> m {|Page "%s" doesn't have an element matching selector "%s", ignoring index view "%s"|}
       page.page_file view.index_selector view.index_view_name
-    in Ok []
+    in []
   | Some ic ->
     begin
       let () = Logs.info @@ fun m -> m {|Rendering index view "%s" on page %s|} view.index_view_name page.page_file in
-      let (let*) = Result.bind in
       let index = List.filter (view_includes_page settings page.page_file view) state.site_index in
-      let* index = sort_entries settings (get_sort_options settings view) index in
+      let index = sort_entries settings (get_sort_options settings view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl ->
-        let* () = render_index soupault_config view tmpl settings ic index in Ok []
+        let () = render_index soupault_config view tmpl settings ic index in []
       | Defaults.IndexTemplate tmpl ->
-        let* () = render_index ~item_template:false soupault_config view tmpl settings ic index in Ok []
+        let () = render_index ~item_template:false soupault_config view tmpl settings ic index in []
       | Defaults.ExternalIndexer cmd ->
-        let* () = run_index_processor view cmd ic index in Ok []
+        let () = run_index_processor view cmd ic index in []
       | Defaults.LuaIndexer (file_name, lua_code) ->
         let index_view_config = Otoml.find soupault_config Otoml.get_table ["index"; "views"; view.index_view_name] |> Otoml.table in
         (* Give the Lua index processor a filtered index view rather than the original full version. *)
@@ -324,13 +321,12 @@ let insert_index state page view =
     end
 
 let insert_indices state page =
-  let (let*) = Result.bind in
   let settings = state.soupault_settings in
   let insert_index_get_pages state page acc view =
-    let* pages = insert_index state page view in
-    Ok (List.append pages acc)
+    let pages = insert_index state page view in
+    List.append pages acc
   in
-  Utils.fold_left_result
+  List.fold_left
     (insert_index_get_pages state page) [] settings.index_views
 
 let index_extraction_should_run settings page_file =
