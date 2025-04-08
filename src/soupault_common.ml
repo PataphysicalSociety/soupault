@@ -64,8 +64,3 @@ let plugin_error err = raise (Plugin_error err)
  *)
 exception Widget_error of string
 let widget_error err = raise (Widget_error err)
-
-(* Custom infix operators *)
-
-let (+/) left right =
-    FilePath.concat left right

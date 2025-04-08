@@ -373,7 +373,7 @@ let fix_nav_path settings path page_name =
  *)
 let make_page_dir_name settings target_dir page_name =
   if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
-  else target_dir +/ page_name
+  else FilePath.concat target_dir page_name
 
 (*  Generates page file name.
 
@@ -389,13 +389,13 @@ let make_page_dir_name settings target_dir page_name =
     In short, that's what Jekyll et al. always did to non-blog pages.
  *)
 let make_page_file_path settings page_file target_dir =
-  if settings.clean_urls then (target_dir +/ settings.index_file) else
+  if settings.clean_urls then (FilePath.concat target_dir settings.index_file) else
   let page_file = FP.basename page_file in
   let extension = File_path.get_extension page_file in
   let page_file =
     if Utils.in_list extension settings.keep_extensions then page_file
     else FP.add_extension (FP.chop_extension page_file) settings.default_extension
-  in target_dir +/ page_file
+  in FilePath.concat target_dir page_file
 
 let make_page_url settings nav_path orig_path target_dir page_file =
   let orig_page_file_name = FP.basename page_file in
