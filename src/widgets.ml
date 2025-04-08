@@ -309,9 +309,9 @@ let get_widgets settings soupault_config plugins index_deps =
       let () =
         if index_deps <> [] then begin
           Logs.debug @@ fun m -> m "Widgets that will run before metadata extraction: %s"
-            (String.concat " " before_index);
+            (String.concat ", " before_index);
           Logs.debug @@ fun m -> m "Widgets that will run after metadata extraction: %s"
-            (String.concat " " after_index)
+            (String.concat ", " after_index)
         end
       in
       (before_index, after_index, widget_hash)
