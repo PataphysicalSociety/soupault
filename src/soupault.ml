@@ -1,10 +1,6 @@
 open Soupault_common
 open Defaults
 
-(* Result monad *)
-let (>>=) = Stdlib.Result.bind
-let (let*) = (>>=)
-
 let mkdir dir =
   (* Note: FileUtil.mkdir returns success if the directory
      already exists, this is why it's not checked before creation. *)
