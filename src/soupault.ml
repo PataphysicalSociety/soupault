@@ -1,9 +1,6 @@
 open Soupault_common
 open Defaults
 
-module FU = FileUtil
-module FP = FilePath
-
 (* Result monad *)
 let (>>=) = Stdlib.Result.bind
 let (let*) = (>>=)
@@ -11,7 +8,7 @@ let (let*) = (>>=)
 let mkdir dir =
   (* Note: FileUtil.mkdir returns success if the directory
      already exists, this is why it's not checked before creation. *)
-  try Ok (FU.mkdir ~parent:true dir)
+  try Ok (FileUtil.mkdir ~parent:true dir)
   with FileUtil.MkdirError e -> Error e
 
 (*** Logging setup ***)
@@ -98,10 +95,10 @@ let setup_logging verbose debug =
 (*** Filesystem stuff ***)
 
 let list_dirs path =
-    FU.ls path |> FU.filter FU.Is_dir
+    FileUtil.ls path |> FileUtil.filter FileUtil.Is_dir
 
 let make_build_dir build_dir =
-  if (FU.test FU.Exists build_dir) then () else
+  if (FileUtil.test FileUtil.Exists build_dir) then () else
   let () = Logs.info @@ fun m -> m {|Build directory "%s" does not exist, creating|} build_dir in
   let res = mkdir build_dir in
   match res with
@@ -390,25 +387,25 @@ let make_page_dir_name settings target_dir page_name =
  *)
 let make_page_file_path settings page_file target_dir =
   if settings.clean_urls then (FilePath.concat target_dir settings.index_file) else
-  let page_file = FP.basename page_file in
+  let page_file = FilePath.basename page_file in
   let extension = File_path.get_extension page_file in
   let page_file =
     if Utils.in_list extension settings.keep_extensions then page_file
-    else FP.add_extension (FP.chop_extension page_file) settings.default_extension
+    else FilePath.add_extension (FilePath.chop_extension page_file) settings.default_extension
   in FilePath.concat target_dir page_file
 
 let make_page_url settings nav_path orig_path target_dir page_file =
-  let orig_page_file_name = FP.basename page_file in
+  let orig_page_file_name = FilePath.basename page_file in
   let target_page =
     if settings.clean_urls then
       begin
-        let url = target_dir |> FP.basename in
+        let url = target_dir |> FilePath.basename in
         if settings.clean_url_trailing_slash then url ^ "/" else url
       end
     else make_page_file_path settings orig_page_file_name ""
   in
   let path =
-    if ((FP.chop_extension orig_page_file_name) = settings.index_page) then orig_path
+    if ((FilePath.chop_extension orig_page_file_name) = settings.index_page) then orig_path
     else (List.append nav_path [target_page])
   in
   (* URL path should be absolute *)
@@ -416,18 +413,18 @@ let make_page_url settings nav_path orig_path target_dir page_file =
 
 (* Assembles a page data structure. *)
 let make_page_data state hooks page_file element_tree =
-  let page_name = FP.basename page_file |> FP.chop_extension in
+  let page_name = FilePath.basename page_file |> FilePath.chop_extension in
   (* The "navigation path" of a page is a list of its parent dirs
      excluding site_dir — e.g., ["pets", "cats"] for "site/pets/cats/fluffy.html"
    *)
-  let orig_nav_path = FP.dirname page_file |> File_path.split_path |> CCList.drop 1 in
+  let orig_nav_path = FilePath.dirname page_file |> File_path.split_path |> CCList.drop 1 in
   (* With a caveat — see above in [fix_nav_path].
      We need to avoid index pages referring to themselves.
    *)
   let settings = state.soupault_settings in
   let nav_path = fix_nav_path settings orig_nav_path page_name in
   let target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
-    FP.concat settings.build_dir
+    FilePath.concat settings.build_dir
   in
   let target_file = make_page_file_path settings page_file target_dir in
   let (target_dir, target_file, element_tree) =
@@ -660,7 +657,7 @@ let update_settings settings cli_options =
 
 let check_project_dir settings =
   let () =
-    if (not (FU.test FU.Exists settings.default_template)) && settings.generator_mode then
+    if (not (FileUtil.test FileUtil.Exists settings.default_template)) && settings.generator_mode then
     (* Don't make this fatal just yet, because:
          a) either it will blow up very soon after anyway, when soupault gets to the first page
          b) or ther user specified a custom template for every path.
@@ -668,7 +665,7 @@ let check_project_dir settings =
     Logs.warn @@ fun m -> m {|Default template is required in generator mode, but template file "%s" does not exist|}
       settings.default_template
   in let () =
-    if (not (FU.test FU.Is_dir settings.site_dir))
+    if (not (FileUtil.test FileUtil.Is_dir settings.site_dir))
     then begin
       (* If there's no site_dir under the current working directory,
          then either the user accidentally ran soupault in a completely wrong directory
