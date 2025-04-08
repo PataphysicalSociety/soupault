@@ -35,8 +35,8 @@ let delete_element _ config _ page =
         | Some child_selector ->
           let child = Soup.select_one child_selector n in
           if Option.is_none child then Soup.delete n
-          else Logs.debug @@ fun m -> m {|Element that maches a selector from %s\
-            has a child that matches selector "%s", not deleting it|}
+          else Logs.debug @@ fun m -> m "Element that maches a selector from %s\
+            has a child that matches selector \"%s\", not deleting it"
             (Utils.format_list ~quote:false selectors) child_selector
         end
       in List.iter (_delete when_empty when_no_child) ns
