@@ -29,51 +29,6 @@ let copy_file fs d =
   | FileUtil.CpError msg -> Error msg
   | FileUtil.MkdirError msg -> Error msg
 
-
-(* Result'y equivalents of higher-order list functions. *)
-
-(* Result-aware map -- no option to ignore errors,
-    since that would violate the natural invariant
-    [len xs = len (map (f, xs))]. *)
-let map_result f xs =
-  let rec aux f xs acc = 
-    match xs with
-    | [] -> Ok acc
-    | x :: xs' ->
-      let res = f x in
-      begin
-        match res with
-        | Ok v -> aux f xs' (v :: acc)
-        | (Error _) as e -> e
-      end
-  in
-  aux f xs []
-
-(* Result-aware iteration. *)
-let rec iter_result (f: 'a -> ('b, 'err) result) (xs: 'a list) =
-  match xs with
-  | [] -> Ok ()
-  | x :: xs ->
-    let res = f x in
-    begin
-      match res with
-      | Ok _ -> iter_result f xs
-      | (Error _) as e -> e
-    end
-
-(* Result-aware fold that can either stop on errors or ignore them. *)
-let rec fold_left_result
-  (f: 'acc -> 'a -> ('acc, 'err) result) (acc: 'acc) (xs: 'a list) =
-  match xs with
-  | [] -> Ok acc
-  | x :: xs ->
-    let acc' = f acc x in
-    begin
-      match acc' with
-      | Ok acc' -> fold_left_result f acc' xs
-      | (Error _) as e -> e
-    end
-
 (* List helpers. *)
 
 (* Exception-safe list tail function that assumes that empty list's tail is an empty list. *)
