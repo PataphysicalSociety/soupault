@@ -156,15 +156,6 @@ let dump_dependency_graph dg =
     (string_of_action k)
     (List.map string_of_action v |> String.concat ", ")) dg |> String.concat "\n"
 
-(* Builds a complete list of dependencies of a node,
-   both direct and transitive.
- *)
-let find_dependencies graph node =
-  let rec aux graph node =
-    let deps = List.assoc node graph in
-    List.concat (List.map (aux graph) deps) |> List.append deps
-  in aux graph node |> CCList.uniq ~eq:(=)
-
 (* Sorts the list of actions in a topological order.
    The list of actions may contain widgets
    and a special, unique, virtual step -- metadata extraction.
@@ -235,7 +226,7 @@ let order_actions settings widget_hash =
    *)
   let index_deps = List.map (fun x -> Widget x) settings.index_extract_after_widgets in
   let index_deps =
-    List.concat @@ List.map (find_dependencies direct_dep_graph) index_deps |>
+    List.concat @@ List.map (Tsort.find_dependencies direct_dep_graph) index_deps |>
     List.append index_deps |>
     CCList.uniq ~eq:(=)
   in
