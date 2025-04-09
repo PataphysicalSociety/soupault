@@ -102,12 +102,6 @@ let page_included settings options site_dir page_file =
     (* Pages without any limiting options are included by default. *)
     true
   | _, _, _ ->
-    let () = Logs.debug @@ fun m -> m "page_included checks for %s: regex=%b, page=%b, section=%b"
-      page_file
-      (List.exists (regex_matches page_file) options.regexes)
-      (List.exists (page_matches site_dir page_file) options.pages)
-      (List.exists (section_matches ~include_subsections:options.include_subsections settings site_dir page_file) options.sections)
-    in
     (List.exists (regex_matches page_file) options.regexes) ||
     (List.exists (page_matches site_dir page_file) options.pages) ||
     (List.exists (section_matches ~include_subsections:options.include_subsections settings site_dir page_file) options.sections)
