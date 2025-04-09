@@ -252,6 +252,7 @@ let render_html_builtin settings soup =
    if the render hook is not configured or the page is excluded from it.
  *)
 let render_html state hooks page =
+  let () = Logs.info @@ fun m -> m "Rendering page %s" page.page_file in
   let settings = state.soupault_settings in
   let hook = Hashtbl.find_opt hooks "render" in
   match hook with
