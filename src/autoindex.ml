@@ -208,15 +208,10 @@ let take_entries view entries =
    through [index_template, but the original [index_item_template] option remains
    for compatibility and because for some users it may be all they need.
  *)
-let render_index ?(item_template=true) soupault_config view template settings soup entries =
+let render_index ?(item_template=true) soupault_config view template soup entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
   let entries = take_entries view entries in
   try
-    let () =
-      (* Debug output *)
-      if settings.debug then
-      Logs.debug @@ fun m -> m "Index data (pretty-printed): %s" (json_string_of_entries ~minify:false entries)
-    in
     let entries =
       if item_template then
         List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
@@ -308,9 +303,9 @@ let insert_index state page view =
       let index = sort_entries settings (get_sort_options settings view) index in
       match view.index_processor with
       | Defaults.IndexItemTemplate tmpl ->
-        let () = render_index soupault_config view tmpl settings ic index in []
+        let () = render_index soupault_config view tmpl ic index in []
       | Defaults.IndexTemplate tmpl ->
-        let () = render_index ~item_template:false soupault_config view tmpl settings ic index in []
+        let () = render_index ~item_template:false soupault_config view tmpl ic index in []
       | Defaults.ExternalIndexer cmd ->
         let () = run_index_processor view cmd ic index in []
       | Defaults.LuaIndexer (file_name, lua_code) ->
