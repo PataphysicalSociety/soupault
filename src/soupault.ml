@@ -838,6 +838,7 @@ let process_asset_file settings src_path dst_path =
   match processor with
   | None ->
     (* Utils.copy_file takes care of missing directories if needed. *)
+    let () = Logs.debug @@ fun m -> m "Copying asset file %s to %s" src_path dst_path in
     let res = Utils.copy_file [src_path] dst_path in
     begin match res with
     | Ok () -> ()
