@@ -3,6 +3,10 @@ type page_data = {
   page_file: string;
   element_tree: Soup.soup Soup.node;
   nav_path : string list;
+
+  (* Target dir before its possible modification
+     by the pre-parse hook. *)
+  orig_target_dir: string;
   target_dir: string;
   target_file: string;
   url: string;

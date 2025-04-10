@@ -420,12 +420,12 @@ let make_page_data state hooks page_file element_tree =
    *)
   let settings = state.soupault_settings in
   let nav_path = fix_nav_path settings orig_nav_path page_name in
-  let target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
+  let orig_target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
     FilePath.concat settings.build_dir
   in
-  let target_file = make_page_file_path settings page_file target_dir in
+  let target_file = make_page_file_path settings page_file orig_target_dir in
   let (target_dir, target_file, element_tree) =
-    run_pre_process_hook state hooks page_file target_dir target_file element_tree
+    run_pre_process_hook state hooks page_file orig_target_dir target_file element_tree
   in
   let url = make_page_url settings nav_path orig_nav_path target_dir page_file in
   let page = {
@@ -433,6 +433,7 @@ let make_page_data state hooks page_file element_tree =
     nav_path = nav_path;
     url = url;
     page_file = page_file;
+    orig_target_dir = orig_target_dir;
     target_dir = target_dir;
     target_file = target_file
   }
@@ -804,6 +805,33 @@ let check_version settings =
         exit 1
       end
 
+(* Adjusts asset files paths
+   in the case when the pre-process hook modified the target dir.
+ *)
+let reparent_asset_files pages asset_files =
+  let reparent_asset new_dir old_dir (src_path, dst_path) =
+    if not ((old_dir = dst_path) || (FilePath.is_subdir dst_path old_dir))
+    then (src_path, dst_path)
+    else begin
+      let new_dst_path = CCString.replace ~sub:old_dir ~by:new_dir dst_path in
+      let () = Logs.debug @@
+        fun m -> m "Target directory for asset file %s is set to %s" src_path new_dst_path
+      in
+      (src_path, new_dst_path)
+    end
+  in
+  let rec aux pages asset_files =
+    match pages with
+    | [] -> asset_files
+    | p :: ps ->
+      if p.orig_target_dir = p.target_dir
+      then aux ps asset_files
+      else aux ps
+        (List.map (reparent_asset p.target_dir p.orig_target_dir) asset_files)
+  in
+  let () = Logs.debug @@ fun m -> m "Adjusting asset file paths when necessary" in
+  aux pages asset_files
+
 let process_asset_file settings src_path dst_path =
   let () = Logs.debug @@ fun m -> m "Processing asset file %s" src_path in
   let processor = find_preprocessor settings.asset_processors src_path in
@@ -897,10 +925,11 @@ let main cli_options =
     let () = Hooks.run_startup_hook state hooks in
     let () = Logs.info @@ fun m -> m "Discovering website files in %s" settings.site_dir in
     let (page_files, asset_files) = Site_dir.get_site_files settings in
+    let () = Logs.info @@ fun m -> m "Loading page files" in
+    let page_sources = load_page_files state hooks page_files in
+    let asset_files = reparent_asset_files page_sources asset_files in
     let () = Logs.info @@ fun m -> m "Processing asset files" in
     let () = List.iter (fun (src, dst) -> process_asset_file settings src dst) asset_files in
-    let	() = Logs.info @@ fun m -> m "Loading page files" in
-    let page_sources = load_page_files state hooks page_files in
     let () = Logs.info @@ fun m -> m "Processing pages" in
     let pages = List.map (make_page settings) page_sources in
     (* Run widgets that are scheduled to run before index extraction,
