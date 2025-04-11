@@ -330,9 +330,13 @@ let process_widgets state widget_list widget_hash page =
     if not (Widgets.widget_should_run settings widget_name widget page.page_file) then () else
     let () = Logs.info @@ fun m -> m {|Processing widget "%s" on page %s|} widget_name page.page_file in
     try widget.func state widget.config index page
-    with Widget_error msg | Config_error msg ->
+    with
+    | Widget_error msg ->
       soupault_error @@ Printf.sprintf "Failed to process widget %s on page %s: %s"
         widget_name page.page_file msg
+    | Config_error msg | Otoml.Type_error msg ->
+      soupault_error @@ Printf.sprintf "Incorrect configuration for widget %s: %s"
+        widget_name msg
   in
   List.iter (process_widget state widget_hash page) widget_list
 
