@@ -331,7 +331,7 @@ let process_widgets state widget_list widget_hash page =
     let () = Logs.info @@ fun m -> m {|Processing widget "%s" on page %s|} widget_name page.page_file in
     try widget.func state widget.config index page
     with
-    | Widget_error msg ->
+    | Widget_error msg | Plugin_error msg ->
       soupault_error @@ Printf.sprintf "Failed to process widget %s on page %s: %s"
         widget_name page.page_file msg
     | Config_error msg | Otoml.Type_error msg ->
