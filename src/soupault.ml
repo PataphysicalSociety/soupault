@@ -616,7 +616,7 @@ let get_args () =
     ("--site-dir", Arg.String (fun s -> opts := {!opts with site_dir_opt=(Some s)}), "<DIR>  Directory with input files");
     ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=(Some s)}), "<DIR>  Output directory");
     ("--profile", Arg.String (fun s -> opts := {!opts with build_profiles_opt=(s :: !opts.build_profiles_opt)}), "<NAME>  Build profile (you can give this option more than once)");
-    ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<FILE PATH>  Dump extracted index to a JSON file");
+    ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<PATH>  Dump extracted index to a JSON file");
     ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=(Some true)}), " Force generating all target files");
     ("--no-caching", Arg.Unit (fun () -> opts := {!opts with caching_opt=(Some false)}), " Disable caching (overrides settings.caching)");
   ]
