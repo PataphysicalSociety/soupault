@@ -1,3 +1,40 @@
+# 5.0.0 (2025-04-17)
+
+## Removed features
+
+* `index.index_first` is no longer a valid configuration option.
+  If you use it, simply remove it from the config — index data is now always available to all pages
+  (more on that later).
+* `settings.process_pages_first` is no longer a valid option — there is no sequential page processing anymore
+  so the concept of "processing specific pages first" no longer applies.
+  It should have no effect on any websites.
+* There is no separate `post-save` hook anymore. If you used it, move the code to the `save` hook instead.
+* There is no way to make the `post-index` hook tell soupault to ignore a page
+  (previously that was possble to do by setting the undocumented `ingore_page` variable).
+* `persistent_data` and `global_data` variables are no longer available in the plugin environment.
+  If you want to share data, place it in the page or in the index entry.
+
+## Deprecated options
+
+* `settings.strict` and `--strict <true|false>` options are not deprecated
+  and will be removed in future releases.
+  All built-in errors are now treated as fatal and cannot be ignored.
+
+## Behavior changes
+
+* Site index is now available to all pages by default.
+* If a website requires more RAM to process than the machine has available,
+  soupault now can run out or memory, like most other static site generators
+  (that's the compromise required to make index data available to all pages).
+* Metadata extraction now occurs as early as possible — just after all widgets listed in `index.extract_after_widgets`.
+* Caching is now enabled by default.
+
+## New features
+
+### New plugin functions
+
+* `HTML.is_text(node)` — returns true if the node is a text node.
+
 # 4.11.0 (2024-09-06)
 
 ## New features
