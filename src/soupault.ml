@@ -13,21 +13,18 @@ let mkdir dir =
 
    As of now, soupault officially supports two kinds of OSes: UNIX-like and Windows.
 
-   On UNIX-like systems, most terminals support ANSI colors,
+   All terminals in modern UNIX-like systems and Windows Terminal (built-in since Windows 11/2025)
+   support ANSI color codes,
    so we enable color by default but give the user an option to disable it
    by using the NO_COLOR environment variable (see https://no-color.org).
 
    We also disable coloring if soupault is sending its output to a pipe rather than a terminal,
    as any well-behaved program should.
 
-   On Windows, most terminals still don't support colors,
-   so we always disable colors on that platform.
-
    If a portable way to test terminal color capabilities is ever developed,
    of course it would be nice to make this check more granular.
  *)
 let get_color_style () =
-  if Sys.win32 then `None else
   let no_color = Sys.getenv_opt "NO_COLOR" |> Option.is_some in
   (* Logs always go to stderr, so we don't check if stdout is a TTY. *)
   let interactive = Unix.isatty (Unix.descr_of_out_channel stderr) in
