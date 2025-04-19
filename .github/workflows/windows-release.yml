@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - windows-2022
+          - windows-2025
 
     runs-on: ${{ matrix.os }}
 
@@ -22,15 +22,17 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 5
+          ocaml-compiler: 5.3.0
 
-      - run: opam install . --deps-only --with-test
+      - name: Build soupault
+        shell: pwsh
+        run: |
+          opam install . --deps-only --with-test --yes
+          opam exec -- dune build
+          opam exec -- dune runtest
 
-      - run: opam exec -- dune build
-
-      - run: opam exec -- dune runtest
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload the executable
+        uses: actions/upload-artifact@v4
         with:
           name: soupault
           path: _build/default/src/soupault.exe
