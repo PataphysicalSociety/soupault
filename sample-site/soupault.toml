@@ -28,12 +28,21 @@
   selector = "#footer"
   file = "templates/footer.html"
 
-# Run `date -R` and insert its output
+# If the system is Unix-like Run `date -R` and insert its output
 # into the <span id="generated-on"> element
-[widgets.generated-on]
+[widgets.generated-on_unix]
   widget = "exec"
   selector = "#generated-on"
+  os_family = "unix"
   command = "date -R"
+
+# If the system is Microsoft Windows (or a compatible),
+# then use 'date /T' command for <span id="generated-on">
+[widgets.generated-on_windows]
+  widget = "exec"
+  selector = "#generated-on"
+  os_family = "windows"
+  command = "date /T"
 
 [widgets.last-modified]
   widget = "exec"

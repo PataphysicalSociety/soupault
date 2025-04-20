@@ -23,6 +23,37 @@ let html_of_string ?(parse=true) ?(context=None) settings html_str =
     Html_utils.parse_html
       ~encoding:settings.page_character_encoding html_str |> Soup.coerce
 
+(* XXX: I'm not a fan of "stringly-typed" options but I don't see a choice here.
+   The reason to use string values "unix" and "windows" 
+   instead of a flag like "only_on_unix"
+   is that in the future this option may need to support OS families other than UNIX and Windows
+   (e.g., VMS, or who knows what new OSes may appear),
+   or it may be extended to support granular checks like "linux" and "macos"
+   in addition to broad OS families.
+ *)
+let os_matches config =
+  let res = Otoml.Helpers.find_string_opt config ["os_family"] in
+  (* If the [os_family] option is not specified,
+     the widget is not restricted to any OS and should always run.
+   *)
+  if Option.is_none res then true else
+  let os = Option.get res in
+  match os with
+  | "unix" ->
+    if Sys.unix then true
+    else begin
+      let () = Logs.debug @@ fun m -> m "Skipping widget because it is configured to only run on Unix-like systems" in
+      false
+    end
+  | "windows" ->
+    if Sys.win32 then true
+    else begin
+      let () = Logs.debug @@ fun m -> m "Skipping widget because it is configured to only run on Windows" in
+      false
+    end
+  | _ ->
+    Printf.ksprintf soupault_error "Incorrect value for the os_family option: unknown OS '%s'" os
+
 (** Widgets that include external resources into the page *)
 
 (** Inserts an HTML snippet from the [html] config option
@@ -105,9 +136,11 @@ let include_program_output state config _ page =
      "parse";
      "html_context";
      "action";
+     "os_family";
     ]
   in
   let () = Config.check_options valid_options config {|widget "exec"|} in
+  if not (os_matches config) then () else
   let selectors = Config.find_strings config ["selector"] in
   let action = Otoml.Helpers.find_string_opt config ["action"] in
   let html_context = Otoml.Helpers.find_string_opt config ["html_context"] in
@@ -173,6 +206,7 @@ let preprocess_element state config _ page =
     ]
   in
   let () = Config.check_options valid_options config {|widget "preprocess_element"|} in
+  if not (os_matches config) then () else
   (* This widget replaces the original element with its preprocessed version by default. *)
   let action = Config.find_string_or ~default:"replace_content" config ["action"] in
   let parse = Config.find_bool_or ~default:true config ["parse"]  in
