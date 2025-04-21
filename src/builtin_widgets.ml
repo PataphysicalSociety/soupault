@@ -12,4 +12,5 @@ let widgets = [
   ("preprocess_element", Inclusion_widgets.preprocess_element);
   ("relative_links", Link_widgets.relative_links);
   ("absolute_links", Link_widgets.absolute_links);
+  ("element_template", Html_widgets.element_template);
 ]
