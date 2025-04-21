@@ -186,13 +186,6 @@ let load_plugin_code plugin_config default_filename ident =
      with Sys_error msg ->
        Error (Printf.sprintf "Could not read file %s: %s" file msg)
 
-(* Warns about a deprecated option *)
-let deprecation_warning f opt msg config =
-  let value = f opt config in
-  match value with
-  | None -> ()
-  | Some _ -> Logs.warn @@ fun m -> m "Deprecated option %s: %s" opt msg
-
 (* Converts a string encoding name to Markup's internal encoding type. *)
 let encoding_of_string name =
   let open Markup.Encoding in
