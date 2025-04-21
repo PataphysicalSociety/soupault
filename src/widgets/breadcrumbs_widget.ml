@@ -41,7 +41,7 @@ let breadcrumbs _ config _ page =
   let container = Html_utils.select_any_of selectors soup in
   begin match container with
   | None ->
-    Widget_utils.no_container_action selectors "nowhere to insert the breadcrumbs"
+    Utils.no_container_action selectors "nowhere to insert the breadcrumbs"
   | Some container ->
     let path_length = List.length page.nav_path in
     if path_length < min_depth then () else

@@ -129,7 +129,7 @@ let footnotes _ config _ page =
   let container = Html_utils.select_any_of selectors soup in
   match container with
   | None ->
-    Widget_utils.no_container_action selectors "nowhere to insert the footnotes"
+    Utils.no_container_action selectors "nowhere to insert the footnotes"
   | Some container ->
     let notes = Html_utils.select_all note_selector soup in
     let container_content = Soup.create_soup () in

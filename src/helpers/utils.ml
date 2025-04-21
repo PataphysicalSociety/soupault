@@ -239,3 +239,8 @@ let format_list ?(quote=true) xs =
     if quote then List.map (Printf.sprintf {|"%s"|}) xs else xs
   in
   Printf.sprintf "[%s]" (String.concat ", " xs)
+
+(* A shorthand for a common widget debug message. *)
+let no_container_action selectors message =
+  Logs.debug @@ fun m -> m {|Page has no elements matching selectors "%s": %s|}
+    (selectors |> format_list ~quote:false) message

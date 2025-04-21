@@ -1,6 +1,5 @@
 open Defaults
 open Soupault_common
-open Widget_utils
 
 let html_of_string ?(parse=true) ?(context=None) settings html_str =
   if not parse then Soup.create_text html_str else
@@ -78,7 +77,7 @@ let insert_html state config _ page =
   let container = Html_utils.select_any_of selectors soup in
   begin match container with
   | None ->
-    no_container_action selectors "nowhere to insert the snippet"
+    Utils.no_container_action selectors "nowhere to insert the snippet"
   | Some container ->
     let html_str = Config.find_string config ["html"] in
     let content = html_of_string ~parse:parse_content ~context:html_context settings html_str in
@@ -106,7 +105,7 @@ let include_file state config _ page =
   let container = Html_utils.select_any_of selectors soup in
   begin match container with
   | None ->
-    no_container_action selectors "nowhere to insert the file contents"
+    Utils.no_container_action selectors "nowhere to insert the file contents"
   | Some container ->
     let file = Config.find_string config ["file"] in
     let content =
@@ -148,7 +147,7 @@ let include_program_output state config _ page =
   let container = Html_utils.select_any_of selectors soup in
   match container with
   | None ->
-    no_container_action selectors "nowhere to insert the program output"
+    Utils.no_container_action selectors "nowhere to insert the program output"
   | Some container ->
     let env_array = make_program_env page in
     let cmd = Config.find_string config ["command"] in

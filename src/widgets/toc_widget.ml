@@ -215,7 +215,7 @@ let toc _ config _ page =
     let container = Html_utils.select_any_of selectors soup in
     match container with
     | None ->
-      Widget_utils.no_container_action selectors "nowhere to insert the table of contents"
+      Utils.no_container_action selectors "nowhere to insert the table of contents"
     | Some container ->
       begin
         let counter = make_counter 0 in

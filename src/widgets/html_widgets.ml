@@ -4,7 +4,6 @@ module OH = Otoml.Helpers
 
 open Defaults
 open Soupault_common
-open Widget_utils
 
 (** Deletes an element from the tree *)
 let delete_element _ config _ page =
@@ -23,7 +22,7 @@ let delete_element _ config _ page =
     else (Html_utils.select_any_of selectors soup |> (fun n -> match n with Some n -> [n] | None -> []))
   in
   begin match nodes with
-  | [] -> Widget_utils.no_container_action selectors "nothing to delete"
+  | [] -> Utils.no_container_action selectors "nothing to delete"
   | ns ->
     let _delete when_empty when_no_child n =
       if not (Html_utils.is_empty n) && when_empty then
@@ -74,7 +73,7 @@ let wrap _ config _ page =
   in
   begin match containers with
   | [] ->
-    no_container_action selectors "nothing to wrap"
+    Utils.no_container_action selectors "nothing to wrap"
   | _ ->
     let wrapper_str = Config.find_string config ["wrapper"] in
     List.iter (wrap_elem wrapper_selector wrapper_str) containers
