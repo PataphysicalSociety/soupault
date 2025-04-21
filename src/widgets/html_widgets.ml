@@ -79,3 +79,43 @@ let wrap _ config _ page =
     let wrapper_str = Config.find_string config ["wrapper"] in
     List.iter (wrap_elem wrapper_selector wrapper_str) containers
   end
+
+(* Renders a template using attributes and content of an element
+   and replaces the original element with the rendered template.
+ *)
+let element_template _ config _ page =
+  let transform_element content_key template elem =
+    (* Create an environment with element attributes and content. *)
+    let attrs = Soup.fold_attributes
+      (fun acc name value -> (name, Jingoo.Jg_types.box_string value) :: acc) [] elem
+    in
+    let inner_html = Html_utils.inner_html elem in
+    (* The content key is configurable. *)
+    let env = (content_key, Jingoo.Jg_types.box_string inner_html) :: attrs in
+    let res = Template.render template env in
+    let new_soup = Soup.parse res in
+    Soup.replace elem new_soup
+  in
+  let soup = page.element_tree in
+  let valid_options = List.append Config.common_widget_options [
+    (* Selector(s) of elements that are supposed to be transformed
+       using a template.
+     *)
+    "selector";
+
+    (* Template source code. *)
+    "template";
+
+    (* The template environment key associated with the element content.
+       It's configurable in case someone wants to use [content]
+       as an attribute name.
+     *)
+    "content_key";
+  ]
+  in
+  let () = Config.check_options valid_options config {|widget "element_template"|} in
+  let selectors = Config.find_strings config ["selector"] in
+  let content_key = Config.find_string_or ~default:"content" config ["content_key"] in
+  let template = Config.find_string config ["template"] |> Template.of_string in
+  let elems = Html_utils.select_all selectors soup in
+  List.iter (transform_element content_key template) elems
