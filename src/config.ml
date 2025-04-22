@@ -130,16 +130,9 @@ let find_string ?(strict=false) config path =
 let find_string_or ?(strict=false) ~default:default config path =
   OH.find_string_opt ~strict:strict config path |> Option.value ~default:default
 
-let find_string_result ?(strict=false) config path =
-  find_result (Otoml.get_string ~strict:strict) config path
-
 let find_strings_or ~default:default config path =
   try OH.find_strings config path 
   with Key_error _ -> default
-
-let find_strings_result ?(strict=false) config path =
-  let get_strings = Otoml.get_array ~strict:false (Otoml.get_string ~strict:strict) in
-  find_result get_strings config path
 
 let find_strings ?(strict=false) config path =
   let get_strings = Otoml.get_array ~strict:false (Otoml.get_string ~strict:strict) in
@@ -148,14 +141,8 @@ let find_strings ?(strict=false) config path =
 let find_bool_or ?(strict=false) ~default:default config path =
   OH.find_boolean_opt ~strict:strict config path |> Option.value ~default:default
 
-let find_bool_result ?(strict=false) config path =
-  find_result (Otoml.get_boolean ~strict:strict) config path
-
 let find_integer_or ?(strict=false) ~default:default config path =
   OH.find_integer_opt ~strict:strict config path |> Option.value ~default:default
-
-let find_integer_result ?(strict=false) config path =
-  find_result (Otoml.get_integer ~strict:strict) config path
 
 let get_path_options config =
   {

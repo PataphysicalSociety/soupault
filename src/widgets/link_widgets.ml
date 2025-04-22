@@ -306,7 +306,7 @@ let absolute_links state config _ page =
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
   in
   let () = Config.check_options valid_options config {|widget "absolute_links"|} in
-  let prefix = Config.find_string_result config ["prefix"] |> Config.required_option in
+  let prefix = Config.find_string config ["prefix"] in
   (* Strip trailing slashes to avoid duplicate slashes after concatenation *)
   let prefix = Regex_utils.Internal.replace ~regex:"/+$" ~sub:"" prefix in
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in
