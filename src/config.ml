@@ -465,7 +465,7 @@ let _update_settings settings config =
     let () = check_selector config_error "settings.default_content_selector" default_content_selector in
     let complete_page_selector = find_string_or ~default:settings.complete_page_selector st ["complete_page_selector"] in
     let () = check_selector config_error "settings.complete_page_selector" complete_page_selector in
-    {settings with
+    let settings = {settings with
        verbose = find_bool_or ~default:settings.verbose st ["verbose"];
        debug = find_bool_or ~default:settings.debug st ["debug"];
        site_dir = find_string_or ~default:settings.site_dir st ["site_dir"] |> String.trim;
@@ -508,7 +508,20 @@ let _update_settings settings config =
 
        page_preprocessors = _get_page_preprocessors config;
        asset_processors = _get_asset_processors config;
-     }
+    }
+    in
+    (* Update the list of extensions that are considered pages rather than assets.
+       It should include:
+         1. Extensions explicitly configured in settings.page_file_extensions
+         2. Extensions from settings.markdown_extensions
+         3. All extensions that are associated with preprocessors
+     *)
+    let page_preprocessor_extensions = List.map (fun (k, _) -> k) settings.page_preprocessors in
+    let page_extensions =
+      settings.page_extensions @ settings.markdown_extensions @ page_preprocessor_extensions |>
+      CCList.uniq ~eq:(=)
+    in
+    {settings with page_extensions=page_extensions}
 
 let valid_tables = [
   "settings";
@@ -547,11 +560,13 @@ let update_settings settings config =
   | Otoml.Type_error e ->
     Printf.ksprintf soupault_error "Incorrect config option value: %s" e
 
-let inject_option path default config =
+let inject_option path new_value config =
   let value = find_opt config (fun x -> x) path in
   match value with
-  | Some _ -> config
-  | None -> update config path (Some default)
+  | Some orig_value ->
+    if new_value = orig_value then config
+    else update config path (Some new_value)
+  | None -> update config path (Some new_value)
 
 let inject_options settings config =
   let inject_default_settings settings config =

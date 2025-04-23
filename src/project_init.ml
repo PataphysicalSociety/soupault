@@ -51,7 +51,7 @@ let make_default_config settings = Printf.sprintf {|
   #
   # Note that for formats other than HTML, you need to specify an external program
   # for converting them to HTML (see below).
-  page_file_extensions = ["htm", "html", "md", "rst", "adoc"]
+  page_file_extensions = ["htm", "html"]
 
   # Soupault has built-in support for CommonMark
   # If you use Markdown and want to use the built-in parser,
