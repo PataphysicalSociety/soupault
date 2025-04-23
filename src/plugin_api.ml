@@ -992,6 +992,8 @@ struct
        "slugify_soft", V.efunc (V.string **->> V.string) (fun s -> Regex_utils.Internal.replace ~regex:{|\s+|} ~sub:"-" s);
        "slugify_ascii", V.efunc (V.string **->> V.string) Utils.slugify;
        "join", V.efunc (V.string **-> V.list V.string **->> V.string) String.concat;
+       "to_integer", V.efunc (V.string **->> V.option V.int) (fun s -> try Some (int_of_string s) with _ -> None);
+       "to_float", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
        "render_template", V.efunc (V.string **-> V.value **->> V.string) render_template;
        "base64_encode", V.efunc (V.string **->> V.option V.string) base64_encode;
