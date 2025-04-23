@@ -1079,6 +1079,7 @@ struct
       "length", V.efunc (V.table **->> V.int) V.Luahash.length;
       "is_empty", V.efunc (V.table **->> V.bool) (fun t -> (V.Luahash.length t) = 0);
       "copy", V.efunc (V.table **->> V.table) V.Luahash.copy;
+      "sort", V.efunc (V.func (V.value **-> V.value **->> V.int) **-> V.list V.value **->> V.list V.value) List.sort;
     ] g;
 
     C.register_module "Value" [
