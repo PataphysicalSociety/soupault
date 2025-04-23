@@ -53,6 +53,7 @@ depends: [
   "digestif" {>= "0.7.3"}
   "tsort" {>= "2.2.0"}
   "lua-ml" {>= "0.9.3"}
+  "cmarkit" {>= "0.3.0"}
 ]
 
 conflicts: [

@@ -131,6 +131,17 @@ type settings = {
   (* What files to consider pages rather than assets. *)
   page_extensions : string list;
 
+  (* Extensions for files to be processed by the built-in Markdown parser.
+     If an extension is in this list, the file is processed
+     by the built-in Markdown implementation
+     and is not considered for external preprocessors.
+
+     The list is empty by default,
+     so that people can choose to use the built-in parser
+     or an external preprocessor.
+   *)
+  markdown_extensions : string list;
+
   (* Files to ignore completely. *)
   ignore_extensions : string list;
   ignore_path_regexes: string list;
@@ -267,6 +278,7 @@ let default_settings = {
   clean_urls = true;
   clean_url_trailing_slash = true;
   page_extensions = ["htm"; "html"; "md"; "rst"; "adoc"];
+  markdown_extensions = [];
   ignore_extensions = [];
   ignore_path_regexes = [];
   ignore_directories = [];

@@ -22,4 +22,5 @@
    digestif
    camomile
    tsort
-   lua-ml))
+   lua-ml
+   cmarkit))

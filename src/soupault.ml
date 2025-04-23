@@ -123,9 +123,14 @@ let run_pre_process_hook state hooks page_file target_dir target_file content =
    This function is used for determining both page preprocessors (in the "[preprocessors]" config section)
    and asset processors ("[asset_processors]").
  *)
-let find_preprocessor preprocessors file_name =
+let find_preprocessor settings preprocessors file_name =
   try
     let ext = File_path.get_extension file_name in
+    (* If an extension configured for built-in format,
+       that takes priority over external preprocessors.
+       At the moment, Markdown/CommonMark is the only built-in format.
+     *)
+    if Utils.in_list ext settings.markdown_extensions then None else
     List.assoc_opt ext preprocessors
   with Utils.Malformed_file_name _ ->
     (* Since page file names come from directory listings,
@@ -181,8 +186,15 @@ let load_html state hooks page_file =
     with Sys_error msg ->
       Printf.ksprintf soupault_error "Failed to load page %s: %s" page_file msg
   in
-  let page_preprocessor = find_preprocessor settings.page_preprocessors page_file in
+  let process_builtin_format settings file_name page_source =
+    let ext = File_path.get_extension file_name in
+    if Utils.in_list ext settings.markdown_extensions
+    then Cmarkit.Doc.of_string ~strict:false page_source |> Cmarkit_html.of_doc ~safe:false
+    else page_source
+  in
+  let page_preprocessor = find_preprocessor settings settings.page_preprocessors page_file in
   let page_source = load_file page_preprocessor page_file in
+  let page_source = process_builtin_format settings page_file page_source in
   let pre_parse_hook = Hashtbl.find_opt hooks "pre-parse" in
   match pre_parse_hook with
   | Some (file_name, source_code, hook_config) ->
@@ -835,7 +847,7 @@ let reparent_asset_files pages asset_files =
 
 let process_asset_file settings src_path dst_path =
   let () = Logs.debug @@ fun m -> m "Processing asset file %s" src_path in
-  let processor = find_preprocessor settings.asset_processors src_path in
+  let processor = find_preprocessor settings settings.asset_processors src_path in
   match processor with
   | None ->
     (* Utils.copy_file takes care of missing directories if needed. *)
