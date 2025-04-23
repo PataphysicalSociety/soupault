@@ -7,12 +7,12 @@ let default_template = {|
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title> <!-- set automatically, see soupault.conf --> </title>
+    <title> <!-- set automatically, see soupault.toml --> </title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
     <!-- your page content will be inserted here,
-         see the default_content_selector option in soupault.conf -->
+         see the default_content_selector option in soupault.toml -->
   </body>
 </html>
 |}
