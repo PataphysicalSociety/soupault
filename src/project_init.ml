@@ -53,6 +53,12 @@ let make_default_config settings = Printf.sprintf {|
   # for converting them to HTML (see below).
   page_file_extensions = ["htm", "html", "md", "rst", "adoc"]
 
+  # Soupault has built-in support for CommonMark
+  # If you use Markdown and want to use the built-in parser,
+  # use this option to specify file extensions
+  # that you want to be interpreted as Markdown files.
+  markdown_extensions = ["md"]
+
   # By default, soupault uses "clean URLs",
   # that is, $site_dir/page.html is converted to $build_dir/page/index.html
   # You can make it produce $build_dir/page.tml instead by changing this option to false
@@ -133,7 +139,8 @@ let sample_config = {|
 
 # It is possible to store pages in any format if you have a program
 # that converts it to HTML and writes it to standard output.
-# Example:
+# For example, if you want to use cmark instead of the built-in Markdown,
+# remove settings.markdown_extensions and add this:
 #[preprocessors]
 #  md = "cmark --unsafe --smart"
 #  adoc = "asciidoctor -o -"
