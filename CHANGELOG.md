@@ -1,4 +1,4 @@
-# 5.0.0 (2025-04-17)
+# 5.0.0 (2025-04-24)
 
 ## Removed features
 
@@ -13,6 +13,43 @@
   (previously that was possble to do by setting the undocumented `ingore_page` variable).
 * `persistent_data` and `global_data` variables are no longer available in the plugin environment.
   If you want to share data, place it in the page or in the index entry.
+
+## New features
+
+### Built-in Markdown support
+
+Soupault now includes a built-in Markdown processor (compatible with CommonMark and popular extensions,
+based on CMarkit).
+
+Support for built-in Markdown needs to be explicitly enabled in the config:
+
+```toml
+[settings]
+  markdown_extensions = ["md"]
+```
+
+If enabled, it takes priority over page preprocessors — if `"md"` (or another extension)
+is in `settings.markdown_extensions`, soupault does not try to look up a preprocessor
+and processed it using the built-in implementation right away.
+
+### `element_template` widget
+
+The new `element_template` widget replaces an element with an HTML snippet produced by rendering
+a template using attributed and content of the source element.
+
+Its goal is to allow users to easily create "shortcodes" without writing Lua code.
+
+### `os_family` option for `exec` and `preprocess_element` widgets
+
+Those widgets now support a new `os_family` option to limit them to only one OS family
+and use different commands for those OSes. At the moment, it can be `"unix"` (any UNIX-like OS)
+or `"windows"` (Microsoft Windows or compatibles, such as ReactOS).
+
+### New plugin functions
+
+* `Table.sort(func, table)` — sorts a table with numeric indices using `func` for value comparison.
+* `String.to_integer` — converts a string to an integer (returns `nil` if conversion fails).
+* `String.to_float` — a clearer-named alias for `String.to_number`.
 
 ## Deprecated options
 
@@ -29,11 +66,16 @@
 * Metadata extraction now occurs as early as possible — just after all widgets listed in `index.extract_after_widgets`.
 * Caching is now enabled by default.
 
-## New features
+## Bug fixes
 
-### New plugin functions
-
-* `HTML.is_text(node)` — returns true if the node is a text node.
+* Clean URL in rendered index views now include trailing slashes,
+  which reduces the number of unncessessary redirects (GitHub issue #81).
+  The old behavior can be restored with `settings.clean_url_trailing_slash = false`.
+* Lists of selectors are now consistently supported in all built-in widgets (GitHub issue #77).
+* If the `pre-process` hook modifies the path of a leaf bundle,
+  its child asset paths are adjusted accordingly (GitHub issue #63).
+* `soupault --show-effective-config` now correctly updates values
+  that are overridden by commmand line options or internal processes.
 
 # 4.11.0 (2024-09-06)
 
