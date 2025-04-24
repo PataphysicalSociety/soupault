@@ -5,7 +5,8 @@ soupault
 ![GitHub all releases](https://img.shields.io/github/downloads/PataphysicalSociety/soupault/total)
 
 Soupault is an HTML manipulation tool. It can be a static site generator
-or an HTML (post-)processor for existing websites and allows you to define 
+or an HTML (post-)processor for existing websites and allows you to define your own content model
+and page processing rules using built-in actions, external executables, templates, or Lua plugins.
 
 Soupault works with the HTML element tree of the page, so it can do many things that traditionally could be done with client-side JS:
 inject new HTML into existing complete pages, create a table of contents that respects and uses `id`'s of HTML headings and more.
