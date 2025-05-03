@@ -453,6 +453,15 @@ let make_page_data state hooks page_file element_tree =
   in
   page
 
+(* Creates a directory for the page. *)
+let create_page_dir page =
+  begin match mkdir page.target_dir with
+  | Ok () -> ()
+  | Error msg ->
+    Printf.ksprintf soupault_error "Failed to create target directory %s for page %s: %s"
+      page.target_dir page.page_file msg
+  end
+
 let save_html state hooks page rendered_page_text =
   let write_page target_file page_text =
     let res = Utils.write_file target_file page_text in
@@ -463,19 +472,6 @@ let save_html state hooks page rendered_page_text =
         page.page_file page.target_file msg
   in
   let settings = state.soupault_settings in
-  (* Make sure the target directory exists before trying to write to it:
-     when clean URLs are used and the page is a non-index page,
-     the target directory (generated from its file name)
-     certainly will not exist at this point yet.
-   *)
-  let () =
-    begin match mkdir page.target_dir with
-    | Ok () -> ()
-    | Error msg ->
-      Printf.ksprintf soupault_error "Failed to create target directory %s for page %s: %s"
-        page.target_dir page.page_file msg
-    end
-  in
   let save_hook = Hashtbl.find_opt hooks "save" in
   match save_hook with
   | Some (file_name, source_code, hook_config) ->
@@ -946,6 +942,11 @@ let main cli_options =
     let () = List.iter (fun (src, dst) -> process_asset_file settings src dst) asset_files in
     let () = Logs.info @@ fun m -> m "Processing pages" in
     let pages = List.map (make_page settings) page_sources in
+    (* Create target directories for pages in advance,
+       so that widgets can, for example, create new asset files,
+       without having to deal with possibly non-existent target directories.
+     *)
+    let () = List.iter create_page_dir pages in
     (* Run widgets that are scheduled to run before index extraction,
        so that they may produce metadata that the user wants to extract.
        We run those widgets on all pages right away to keep things simpler,
