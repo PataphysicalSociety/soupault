@@ -3,10 +3,6 @@ open Defaults
 module FP = FilePath
 module FU = FileUtil
 
-(*** Filesystem stuff ***)
-let (+/) left right =
-    FP.concat left right
-
 let list_dirs path =
     FU.ls path |> FU.filter FU.Is_dir
 
