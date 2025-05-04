@@ -1,11 +1,11 @@
 open Soupault_common
 open Defaults
 
-let mkdir dir =
+let mkdir dir err_func =
   (* Note: FileUtil.mkdir returns success if the directory
      already exists, this is why it's not checked before creation. *)
-  try Ok (FileUtil.mkdir ~parent:true dir)
-  with FileUtil.MkdirError e -> Error e
+  try FileUtil.mkdir ~parent:true dir
+  with FileUtil.MkdirError msg -> err_func msg
 
 (*** Logging setup ***)
 
@@ -93,11 +93,9 @@ let list_dirs path =
 let make_build_dir build_dir =
   if (FileUtil.test FileUtil.Exists build_dir) then () else
   let () = Logs.info @@ fun m -> m {|Build directory "%s" does not exist, creating|} build_dir in
-  let res = mkdir build_dir in
-  match res with
-  | Ok () -> ()
-  | Error msg ->
-    Printf.ksprintf soupault_error "Failed to create build directory: %s" msg
+  mkdir build_dir
+    (fun m ->
+      Printf.ksprintf soupault_error "Failed to create build directory: %s" m)
 
 (* Wrappers for running hooks *)
 let run_pre_process_hook state hooks page_file target_dir target_file content =
@@ -455,12 +453,10 @@ let make_page_data state hooks page_file element_tree =
 
 (* Creates a directory for the page. *)
 let create_page_dir page =
-  begin match mkdir page.target_dir with
-  | Ok () -> ()
-  | Error msg ->
-    Printf.ksprintf soupault_error "Failed to create target directory %s for page %s: %s"
-      page.target_dir page.page_file msg
-  end
+  mkdir page.target_dir
+    (fun m -> Printf.ksprintf
+      soupault_error "Failed to create target directory %s for page %s: %s"
+      page.target_dir page.page_file m)
 
 let save_html state hooks page rendered_page_text =
   let write_page target_file page_text =
@@ -857,7 +853,11 @@ let process_asset_file settings src_path dst_path =
     end
   | Some template ->
     (* Assets are processed early, so directories may not exist yet, we may need to create them. *)
-    let () = FileUtil.mkdir ~parent:true dst_path in
+    let () =
+      mkdir dst_path
+       (fun m -> Printf.ksprintf soupault_error
+         "Failed to create directory for asset file %s: %s" src_path m)
+    in
     let file_name = FilePath.basename src_path in
     let jg_string = Jingoo.Jg_types.box_string in
     let env = [
