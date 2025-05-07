@@ -325,8 +325,8 @@ let insert_indices state page =
     (insert_index_get_pages state page) [] settings.index_views
 
 let index_extraction_should_run settings page_file =
-  (* If indexing is disabled in the config, it definitely should not run. *)
-  if not settings.index then false else
+  (* If soupault is running in HTML processor mode, it definitely should not run. *)
+  if not settings.generator_mode then false else
   (* ...as well as if indexing is disabled by build profile settings. *)
   if not (Utils.build_profile_matches settings.index_profile settings.build_profiles) then false else
     (* Metadata is not extracted from section index pages, unless forced by forced_indexing_path_regex.

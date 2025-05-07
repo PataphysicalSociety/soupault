@@ -234,9 +234,10 @@ let order_actions settings widget_hash =
      if indexing is enabled.
   *)
   let dep_graph =
-    if settings.index then
+    if settings.generator_mode then
       begin
-        (* Add the dependency on metadata extraction to all widgets
+        (* If soupault is running in generator mode and is supposed to do index extraction,
+           add the dependency on metadata extraction to all widgets
            that are not in index.extract_after_widgets
            or in transitive dependencies of those widgets,
            so that widgets can benefit from access to the site index.
@@ -292,7 +293,7 @@ let partition_widgets sorted_action_list =
 let get_widgets settings soupault_config plugins index_deps =
   let widget_hash = load_widgets settings soupault_config plugins in
   let widget_order = order_actions settings widget_hash in
-  if not settings.index then
+  if not settings.generator_mode then
     (* If indexing is disabled, there is no point in partitioning the widget order list --
        the whole concept of "widgets that need to run before metadata extraction"
        is moot in that case. *)

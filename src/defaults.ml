@@ -174,9 +174,6 @@ type settings = {
    *)
   build_profiles : string list;
 
-  (* Enable site metadata extraction. *)
-  index : bool;
-
   (* Save site metadata to a JSON file. *)
   dump_index_json : string option;
 
@@ -287,8 +284,6 @@ let default_settings = {
   complete_page_selector = "html";
   generator_mode = true;
   build_profiles = [];
-
-  index = false;
   dump_index_json = None;
   index_extract_after_widgets = [];
   index_fields = [];

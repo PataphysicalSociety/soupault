@@ -367,8 +367,15 @@ let _get_index_settings settings config =
   | Some st ->
     let () = check_options valid_index_options st {|table "index"|} in
     let date_formats = find_strings_or ~default:settings.index_date_input_formats st ["date_formats"] in
+    let () =
+      let index = OH.find_boolean_opt ~strict:false st ["index"] in
+      begin match index with
+      | Some _ ->
+        Logs.warn @@ fun m -> m "index.index option is deprecated and has no effect"
+      | None -> ()
+      end
+    in
     {settings with
-       index = find_bool_or ~default:settings.index st ["index"];
        dump_index_json = OH.find_string_opt st ["dump_json"];
        index_extract_after_widgets = find_strings_or ~default:[] st ["extract_after_widgets"];
        index_fields = get_index_queries st;
@@ -600,8 +607,7 @@ let inject_options settings config =
       inject_option ["settings"; "page_character_encoding"] (settings.page_character_encoding |> Utils.string_of_encoding |> string)
   in
   let inject_default_index_settings settings config =
-      inject_option ["index"; "index"] (boolean settings.index) config |>
-      inject_option ["index"; "extract_after_widgets"] (array []) |>
+      inject_option ["index"; "extract_after_widgets"] (array []) config |>
       inject_option ["index"; "strip_tags"] (boolean settings.index_strip_tags) |>
       inject_option ["index"; "date_formats"] (array @@ List.map string settings.index_date_input_formats) |>
       inject_option ["index"; "force_indexing_path_regex"] (array [])
