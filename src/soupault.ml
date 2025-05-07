@@ -87,9 +87,6 @@ let setup_logging verbose debug =
 
 (*** Filesystem stuff ***)
 
-let list_dirs path =
-    FileUtil.ls path |> FileUtil.filter FileUtil.Is_dir
-
 let make_build_dir build_dir =
   if (FileUtil.test FileUtil.Exists build_dir) then () else
   let () = Logs.info @@ fun m -> m {|Build directory "%s" does not exist, creating|} build_dir in
