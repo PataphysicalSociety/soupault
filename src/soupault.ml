@@ -94,19 +94,6 @@ let make_build_dir build_dir =
     (fun m ->
       Printf.ksprintf soupault_error "Failed to create build directory: %s" m)
 
-(* Wrappers for running hooks *)
-let run_pre_process_hook state hooks page_file target_dir target_file content =
-  let settings = state.soupault_settings in
-  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
-  match pre_process_hook with
-  | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
-    then (target_dir, target_file, content)
-    else
-      Hooks.run_pre_process_hook
-        state hook_config file_name source_code page_file target_dir target_file content
-  | None -> (target_dir, target_file, content)
-
 (*** Page processing helpers. ***)
 
 (* Finds a preprocessor for given file name,
@@ -431,9 +418,22 @@ let make_page_data state hooks page_file element_tree =
   let orig_target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
     FilePath.concat settings.build_dir
   in
-  let target_file = make_page_file_path settings page_file orig_target_dir in
+  let orig_target_file = make_page_file_path settings page_file orig_target_dir in
+  (* Run the pre-process hook -- it may modify the target dir and the target file,
+     in addition to the element tree.
+   *)
+  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
   let (target_dir, target_file, element_tree) =
-    run_pre_process_hook state hooks page_file orig_target_dir target_file element_tree
+    begin match pre_process_hook with
+    | Some (file_name, source_code, hook_config) ->
+      if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
+      then (orig_target_dir, orig_target_file, element_tree)
+      else
+        Hooks.run_pre_process_hook
+          state hook_config file_name source_code
+          page_file orig_target_dir orig_target_file element_tree
+      | None -> (orig_target_dir, orig_target_file, element_tree)
+    end
   in
   let url = make_page_url settings nav_path orig_nav_path target_dir page_file in
   let page = {
