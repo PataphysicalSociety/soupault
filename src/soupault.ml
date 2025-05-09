@@ -7,7 +7,7 @@ let mkdir dir err_func =
   try FileUtil.mkdir ~parent:true dir
   with FileUtil.MkdirError msg -> err_func msg
 
-(*** Logging setup ***)
+(* Logging setup *)
 
 (* Determines whether log coloring is appropriate in the environment where soupault is running.
 
@@ -85,8 +85,6 @@ let setup_logging verbose debug =
      by default it's disabled in the OCaml runtime *)
   if debug then Printexc.record_backtrace true
 
-(*** Filesystem stuff ***)
-
 let make_build_dir build_dir =
   if (FileUtil.test FileUtil.Exists build_dir) then () else
   let () = Logs.info @@ fun m -> m {|Build directory "%s" does not exist, creating|} build_dir in
@@ -94,7 +92,7 @@ let make_build_dir build_dir =
     (fun m ->
       Printf.ksprintf soupault_error "Failed to create build directory: %s" m)
 
-(* Build a list of site source files to be processed.
+(* Builds a list of site source files to be processed.
 
    There are two kinds of files: page files and asset files.
    Additionally we split page files into section index files
@@ -135,7 +133,124 @@ let get_site_files settings =
       dirs
   in aux settings.site_dir []
 
-(*** Page processing helpers. ***)
+(* Removes index page's parent dir from its navigation path
+
+    When clean URLs are used, the "navigation path" —
+    the list of directories/sections that precede the page —
+    is different from the real directory path for index pages.
+
+    For example, the parent of the page at foo/bar/index.html is technically "bar".
+    However, if the intended way to access that page is just
+    https://example.com/foo/bar,
+    then trying to use that definition for generating breadcrumbs and similar
+    will create pages with links to themselves.
+
+    The only way to deal with it I could find
+    is to remove the last parent if the page is an index page.
+ *)
+let fix_nav_path settings path page_name =
+  if page_name = settings.index_page then Utils.drop_tail path
+  else path
+
+(* Produces a target directory name for the page.
+
+   If clean URLs are used, then a subdirectory matching the page name
+   should be created inside the section directory, unless the page is
+   a section index page.
+   E.g. "site/foo.html" becomes "build/foo/index.html" to provide
+   a clean URL.
+
+   If clean URLs are not used, only section dirs are created.
+ *)
+let make_page_dir_name settings target_dir page_name =
+  if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
+  else FilePath.concat target_dir page_name
+
+(*  Generates page file name.
+
+    If clean URLs are used, it's always <target_dir>/<settings.index_file>
+
+    If clean URLs are not used, then the base file name is preserved.
+    The extension, however, is set to settings.default_extension,
+    unless it's in the settings.keep_extensions list.
+
+    The reason for this extension juggling is that people may use page preprocessors
+    but not use clean URLs, without extension mangling they will end up
+    with pages like build/about.md that have HTML inside despit their name.
+    In short, that's what Jekyll et al. always did to non-blog pages.
+ *)
+let make_page_file_path settings page_file target_dir =
+  if settings.clean_urls then (FilePath.concat target_dir settings.index_file) else
+  let page_file = FilePath.basename page_file in
+  let extension = File_path.get_extension page_file in
+  let page_file =
+    if Utils.in_list extension settings.keep_extensions then page_file
+    else FilePath.add_extension (FilePath.chop_extension page_file) settings.default_extension
+  in FilePath.concat target_dir page_file
+
+(* Produces a page URL from its file path *)
+let make_page_url settings nav_path orig_path target_dir page_file =
+  let orig_page_file_name = FilePath.basename page_file in
+  let target_page =
+    if settings.clean_urls then
+      begin
+        let url = target_dir |> FilePath.basename in
+        if settings.clean_url_trailing_slash then url ^ "/" else url
+      end
+    else make_page_file_path settings orig_page_file_name ""
+  in
+  let path =
+    if ((FilePath.chop_extension orig_page_file_name) = settings.index_page) then orig_path
+    else (List.append nav_path [target_page])
+  in
+  (* URL path should be absolute *)
+  String.concat "/" path |> Printf.sprintf "/%s"
+
+(* Assembles a page data structure. *)
+let make_page_data state hooks page_file element_tree =
+  let page_name = FilePath.basename page_file |> FilePath.chop_extension in
+  (* The "navigation path" of a page is a list of its parent dirs
+     excluding site_dir — e.g., ["pets", "cats"] for "site/pets/cats/fluffy.html"
+   *)
+  let orig_nav_path = FilePath.dirname page_file |> File_path.split_path |> CCList.drop 1 in
+  (* With a caveat — see above in [fix_nav_path].
+     We need to avoid index pages referring to themselves.
+   *)
+  let settings = state.soupault_settings in
+  let nav_path = fix_nav_path settings orig_nav_path page_name in
+  let orig_target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
+    FilePath.concat settings.build_dir
+  in
+  let orig_target_file = make_page_file_path settings page_file orig_target_dir in
+  (* Run the pre-process hook -- it may modify the target dir and the target file,
+     in addition to the element tree.
+   *)
+  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
+  let (target_dir, target_file, element_tree) =
+    begin match pre_process_hook with
+    | Some (file_name, source_code, hook_config) ->
+      if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
+      then (orig_target_dir, orig_target_file, element_tree)
+      else
+        Hooks.run_pre_process_hook
+          state hook_config file_name source_code
+          page_file orig_target_dir orig_target_file element_tree
+      | None -> (orig_target_dir, orig_target_file, element_tree)
+    end
+  in
+  let url = make_page_url settings nav_path orig_nav_path target_dir page_file in
+  let page = {
+    element_tree = element_tree;
+    nav_path = nav_path;
+    url = url;
+    page_file = page_file;
+    orig_target_dir = orig_target_dir;
+    target_dir = target_dir;
+    target_file = target_file
+  }
+  in
+  page
+
 
 (* Finds a preprocessor for given file name,
    if a preprocessor for its extension is configured.
@@ -163,6 +278,7 @@ let find_preprocessor settings preprocessors file_name =
      *)
     internal_error "Nomen tuum malum est, te pudeat!"
 
+(* Loads a page from disk into HTML source code, directly or with help of preprocessors and hooks. *)
 let load_html state hooks page_file =
   let settings = state.soupault_settings in
   let run_preprocessor prep page_file =
@@ -227,79 +343,27 @@ let load_html state hooks page_file =
   | None ->
     page_source
 
-(* The built-in HTML rendering function that is used when the "render" hook is not configured. *)
-let render_html_builtin settings soup =
-  let add_doctype settings html_str =
-    (* 32K is probably a sensible guesstimate of the average page size *)
-    let buf = Buffer.create (32 * 1024) in
-    let doctype = settings.doctype |> String.trim in
-    let () =
-      Buffer.add_string buf doctype;
-      Buffer.add_char buf '\n';
-      Buffer.add_string buf html_str
-    in
-    Buffer.contents buf
-  in
-  let print_html = if settings.pretty_print_html then Soup.pretty_print else Soup.to_string in
-  if settings.keep_doctype then
-    begin
-      let html_str = print_html soup in
-      (* If we are given an empty page, then adding doctype makes no sense, we just return an empty string. *)
-      if String.length html_str = 0 then "" else
-      let has_doctype =
-        (<>) 0 (Re.matches (Re.Perl.compile_pat ~opts:[`Caseless] "^(<!DOCTYPE[^>]*>)") html_str |> List.length)
-      in
-      (* Can the page be an invalid, incomplete HTML? Of course it can,
-         but if the user chose to force a doctype, it's their responsibilty.
-       *)
-      if not has_doctype then
-        add_doctype settings html_str
-      else html_str
-    end
-  else
-    begin
-      (* If we are asked to always completely replace the doctype,
-         we need to remove the original doctype declaration from the document.
-
-         XXX: As of lambdasoup 0.7.2, there's no way to delete the doctype "element"
-         (which isn't actually an element anyway),
-         so we extract the <html> from the document tree and prepend a new doctype to it.
-         That is, if the document even has <html> element to begin with — see below. *)
-      let html = Soup.select_one "html" soup in
-      match html with
-      | Some html ->
-        let html_str = print_html html in
-        add_doctype settings html_str
-      | None ->
-        (* This may happen if a page (in postprocessor mode)
-           or a page template (in generator mode) is incomplete.
-           At the moment soupault doesn't prohibit invalid HTML,
-           so we need to handle this case.
-         *)
-        let () = Logs.warn @@ fun m -> m "Page has no <HTML> element, not setting doctype" in
-        print_html soup
-    end
-
-(* The high-level render call that will either run the "render" hook or use the built-in renderer
-   if the render hook is not configured or the page is excluded from it.
- *)
-let render_html state hooks page =
-  let () = Logs.info @@ fun m -> m "Rendering page %s" page.page_file in
+(* Loads a page from a file on disk. *)
+let load_page_file state hooks page_file =
+  let () = Logs.info @@ fun m -> m "Loading page %s" page_file in
   let settings = state.soupault_settings in
-  let hook = Hashtbl.find_opt hooks "render" in
-  match hook with
-  | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "render" page.page_file)
-    then render_html_builtin settings page.element_tree
-    else
-      let page_source = Hooks.run_render_hook state hook_config file_name source_code page in
-      page_source
-  | None ->
-    render_html_builtin settings page.element_tree
+  (* Load and parse page HTML. *)
+  let html_source = load_html state hooks page_file in
+  (* If we are in generator mode, tell the parser to interpret pages
+     as HTML fragments that will go inside <body>,
+     otherwise treat them as documents. *)
+  let fragment = if settings.generator_mode then true else false in
+  let element_tree = Html_utils.parse_page ~fragment:fragment settings html_source in
+  let page_data = make_page_data state hooks page_file element_tree in
+  page_data
+
+let load_page_files state hooks files =
+  List.map (load_page_file state hooks) files
 
 (* Injects page content into a template.
-   Where exactly it will insert the content is defined by the [content_selector] option in the template config,
-   or by [settings.default_content_selector] if the default template is used.
+   Where exactly it will insert the content
+   depends on the [content_selector] option in the template config,
+   or on [settings.default_content_selector] if the default template is used.
  *)
 let include_content action selector html content =
   let element = Soup.select_one selector html in
@@ -372,122 +436,95 @@ let process_widgets state widget_list widget_hash page =
   in
   List.iter (process_widget state widget_hash page) widget_list
 
-(* Removes index page's parent dir from its navigation path
-
-    When clean URLs are used, the "navigation path" —
-    the list of directories/sections that precede the page —
-    is different from the real directory path for index pages.
-
-    For example, the parent of the page at foo/bar/index.html is technically "bar".
-    However, if the intended way to access that page is just
-    https://example.com/foo/bar,
-    then trying to use that definition for generating breadcrumbs and similar
-    will create pages with links to themselves.
-   
-    The only way to deal with it I could find
-    is to remove the last parent if the page is an index page.
- *)
-let fix_nav_path settings path page_name =
-  if page_name = settings.index_page then Utils.drop_tail path
-  else path
-
-(* Produces a target directory name for the page.
-
-   If clean URLs are used, then a subdirectory matching the page name
-   should be created inside the section directory, unless the page is
-   a section index page.
-   E.g. "site/foo.html" becomes "build/foo/index.html" to provide
-   a clean URL.
-
-   If clean URLs are not used, only section dirs are created.
- *)
-let make_page_dir_name settings target_dir page_name =
-  if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
-  else FilePath.concat target_dir page_name
-
-(*  Generates page file name.
-
-    If clean URLs are used, it's always <target_dir>/<settings.index_file>
-
-    If clean URLs are not used, then the base file name is preserved.
-    The extension, however, is set to settings.default_extension,
-    unless it's in the settings.keep_extensions list.
-
-    The reason for this extension juggling is that people may use page preprocessors
-    but not use clean URLs, without extension mangling they will end up
-    with pages like build/about.md that have HTML inside despit their name.
-    In short, that's what Jekyll et al. always did to non-blog pages.
- *)
-let make_page_file_path settings page_file target_dir =
-  if settings.clean_urls then (FilePath.concat target_dir settings.index_file) else
-  let page_file = FilePath.basename page_file in
-  let extension = File_path.get_extension page_file in
-  let page_file =
-    if Utils.in_list extension settings.keep_extensions then page_file
-    else FilePath.add_extension (FilePath.chop_extension page_file) settings.default_extension
-  in FilePath.concat target_dir page_file
-
-let make_page_url settings nav_path orig_path target_dir page_file =
-  let orig_page_file_name = FilePath.basename page_file in
-  let target_page =
-    if settings.clean_urls then
-      begin
-        let url = target_dir |> FilePath.basename in
-        if settings.clean_url_trailing_slash then url ^ "/" else url
-      end
-    else make_page_file_path settings orig_page_file_name ""
+(* The built-in HTML rendering function that is used when the "render" hook is not configured. *)
+let render_html_builtin settings soup =
+  let add_doctype settings html_str =
+    (* 32K is probably a sensible guesstimate of the average page size *)
+    let buf = Buffer.create (32 * 1024) in
+    let doctype = settings.doctype |> String.trim in
+    let () =
+      Buffer.add_string buf doctype;
+      Buffer.add_char buf '\n';
+      Buffer.add_string buf html_str
+    in
+    Buffer.contents buf
   in
-  let path =
-    if ((FilePath.chop_extension orig_page_file_name) = settings.index_page) then orig_path
-    else (List.append nav_path [target_page])
-  in
-  (* URL path should be absolute *)
-  String.concat "/" path |> Printf.sprintf "/%s"
-
-(* Assembles a page data structure. *)
-let make_page_data state hooks page_file element_tree =
-  let page_name = FilePath.basename page_file |> FilePath.chop_extension in
-  (* The "navigation path" of a page is a list of its parent dirs
-     excluding site_dir — e.g., ["pets", "cats"] for "site/pets/cats/fluffy.html"
-   *)
-  let orig_nav_path = FilePath.dirname page_file |> File_path.split_path |> CCList.drop 1 in
-  (* With a caveat — see above in [fix_nav_path].
-     We need to avoid index pages referring to themselves.
-   *)
-  let settings = state.soupault_settings in
-  let nav_path = fix_nav_path settings orig_nav_path page_name in
-  let orig_target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
-    FilePath.concat settings.build_dir
-  in
-  let orig_target_file = make_page_file_path settings page_file orig_target_dir in
-  (* Run the pre-process hook -- it may modify the target dir and the target file,
-     in addition to the element tree.
-   *)
-  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
-  let (target_dir, target_file, element_tree) =
-    begin match pre_process_hook with
-    | Some (file_name, source_code, hook_config) ->
-      if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
-      then (orig_target_dir, orig_target_file, element_tree)
-      else
-        Hooks.run_pre_process_hook
-          state hook_config file_name source_code
-          page_file orig_target_dir orig_target_file element_tree
-      | None -> (orig_target_dir, orig_target_file, element_tree)
+  let print_html = if settings.pretty_print_html then Soup.pretty_print else Soup.to_string in
+  if settings.keep_doctype then
+    begin
+      let html_str = print_html soup in
+      (* If we are given an empty page, then adding doctype makes no sense, we just return an empty string. *)
+      if String.length html_str = 0 then "" else
+      let has_doctype =
+        (<>) 0 (Re.matches (Re.Perl.compile_pat ~opts:[`Caseless] "^(<!DOCTYPE[^>]*>)") html_str |> List.length)
+      in
+      (* Can the page be an invalid, incomplete HTML? Of course it can,
+         but if the user chose to force a doctype, it's their responsibilty.
+       *)
+      if not has_doctype then
+        add_doctype settings html_str
+      else html_str
     end
-  in
-  let url = make_page_url settings nav_path orig_nav_path target_dir page_file in
-  let page = {
-    element_tree = element_tree;
-    nav_path = nav_path;
-    url = url;
-    page_file = page_file;
-    orig_target_dir = orig_target_dir;
-    target_dir = target_dir;
-    target_file = target_file
-  }
-  in
-  page
+  else
+    begin
+      (* If we are asked to always completely replace the doctype,
+         we need to remove the original doctype declaration from the document.
+
+         XXX: As of lambdasoup 0.7.2, there's no way to delete the doctype "element"
+         (which isn't actually an element anyway),
+         so we extract the <html> from the document tree and prepend a new doctype to it.
+         That is, if the document even has <html> element to begin with — see below. *)
+      let html = Soup.select_one "html" soup in
+      match html with
+      | Some html ->
+        let html_str = print_html html in
+        add_doctype settings html_str
+      | None ->
+        (* This may happen if a page (in postprocessor mode)
+           or a page template (in generator mode) is incomplete.
+           At the moment soupault doesn't prohibit invalid HTML,
+           so we need to handle this case.
+         *)
+        let () = Logs.warn @@ fun m -> m "Page has no <HTML> element, not setting doctype" in
+        print_html soup
+    end
+
+(* The high-level render call that will either run the "render" hook or use the built-in renderer
+   if the render hook is not configured or the page is excluded from it.
+ *)
+let render_html state hooks page =
+  let () = Logs.info @@ fun m -> m "Rendering page %s" page.page_file in
+  let settings = state.soupault_settings in
+  let hook = Hashtbl.find_opt hooks "render" in
+  match hook with
+  | Some (file_name, source_code, hook_config) ->
+    if not (Hooks.hook_should_run settings hook_config "render" page.page_file)
+    then render_html_builtin settings page.element_tree
+    else
+      let page_source = Hooks.run_render_hook state hook_config file_name source_code page in
+      page_source
+  | None ->
+    render_html_builtin settings page.element_tree
+
+let extract_metadata state hooks page =
+  (* Metadata is only extracted from non-index pages *)
+  let settings = state.soupault_settings in
+  if not (Autoindex.index_extraction_should_run settings page.page_file) then None else
+  let entry = Autoindex.get_index_entry settings page in
+  let post_index_hook = Hashtbl.find_opt hooks "post-index" in
+  match post_index_hook with
+  | Some (file_name, source_code, hook_config) ->
+    if not (Hooks.hook_should_run settings hook_config "post-index" page.page_file) then (Some entry) else
+    (* Let the post-index hook update the fields.
+       It can also set a special [ignore_page] variable to tell soupault to exclude the page
+       from indexing and any further processing.
+     *)
+    let index_fields =
+      Hooks.run_post_index_hook state hook_config file_name source_code page entry
+    in
+    Some {entry with fields=index_fields}
+  | None ->
+    Some entry
 
 (* Creates a directory for the page. *)
 let create_page_dir page =
@@ -515,43 +552,6 @@ let save_html state hooks page rendered_page_text =
   | None ->
     let () = Logs.info @@ fun m -> m "Saving the page generated from %s to %s" page.page_file page.target_file in
     write_page page.target_file rendered_page_text
-
-let extract_metadata state hooks page =
-  (* Metadata is only extracted from non-index pages *)
-  let settings = state.soupault_settings in
-  if not (Autoindex.index_extraction_should_run settings page.page_file) then None else
-  let entry = Autoindex.get_index_entry settings page in
-  let post_index_hook = Hashtbl.find_opt hooks "post-index" in
-  match post_index_hook with
-  | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "post-index" page.page_file) then (Some entry) else
-    (* Let the post-index hook update the fields.
-       It can also set a special [ignore_page] variable to tell soupault to exclude the page
-       from indexing and any further processing.
-     *)
-    let index_fields =
-      Hooks.run_post_index_hook state hook_config file_name source_code page entry
-    in
-    Some {entry with fields=index_fields}
-  | None ->
-    Some entry
-
-(* Loads a page from a file on disk. *)
-let load_page_file state hooks page_file =
-  let () = Logs.info @@ fun m -> m "Loading page %s" page_file in
-  let settings = state.soupault_settings in
-  (* Load and parse page HTML. *)
-  let html_source = load_html state hooks page_file in
-  (* If we are in generator mode, tell the parser to interpret pages
-     as HTML fragments that will go inside <body>,
-     otherwise treat them as documents. *)
-  let fragment = if settings.generator_mode then true else false in
-  let element_tree = Html_utils.parse_page ~fragment:fragment settings html_source in
-  let page_data = make_page_data state hooks page_file element_tree in
-  page_data
-
-let load_page_files state hooks files =
-  List.map (load_page_file state hooks) files
 
 (* Option parsing and initialization.
 
