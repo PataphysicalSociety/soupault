@@ -94,6 +94,47 @@ let make_build_dir build_dir =
     (fun m ->
       Printf.ksprintf soupault_error "Failed to create build directory: %s" m)
 
+(* Build a list of site source files to be processed.
+
+   There are two kinds of files: page files and asset files.
+   Additionally we split page files into section index files
+   and normal pages.
+
+   We split the list into assets and pages,
+   and also remove files that are set to be ignored
+   in [settings.ignore_extensions]
+ *)
+let get_site_files settings =
+  let remove_ignored_files settings files =
+    let ignored settings file =
+      (Utils.any_in_list settings.ignore_extensions (File_path.get_extensions file)) ||
+      (List.exists (fun r -> Regex_utils.Public.matches ~regex:r file) settings.ignore_path_regexes)
+    in
+    List.filter (fun f -> not (ignored settings f)) files
+  in
+  let list_section_files settings path =
+    let is_page_file f = Utils.in_list (File_path.get_extension f) settings.page_extensions in
+    let files = FileUtil.ls path |> FileUtil.filter (FileUtil.Is_file) |> remove_ignored_files settings in
+    let page_files = List.find_all is_page_file files in
+    let other_files = List.find_all (fun f -> not (is_page_file f)) files in
+    page_files, other_files
+  in
+  let rec aux path nav_path =
+    let dirs = FileUtil.ls path |> FileUtil.filter FileUtil.Is_dir in
+    (* Remove ignored dirs *)
+    let dirs = List.filter (fun d -> not (Utils.in_list (FilePath.basename d) settings.ignore_directories)) dirs in
+    let section_page_files, section_asset_files = list_section_files settings path in
+    let asset_path = File_path.concat_path (settings.build_dir :: nav_path) in
+    let section_asset_files = List.map (fun x -> (x, asset_path)) section_asset_files in
+    (* Collect files from subdirs *)
+    List.fold_left
+      (fun (p, a) d ->
+        let (p', a') = aux d (nav_path @ [FilePath.basename d]) in
+        (p @ p'), (a @ a'))
+      (section_page_files, section_asset_files)
+      dirs
+  in aux settings.site_dir []
+
 (*** Page processing helpers. ***)
 
 (* Finds a preprocessor for given file name,
@@ -918,7 +959,7 @@ let main cli_options =
     let () = make_build_dir settings.build_dir in
     let () = Hooks.run_startup_hook state hooks in
     let () = Logs.info @@ fun m -> m "Discovering website files in %s" settings.site_dir in
-    let (page_files, asset_files) = Site_dir.get_site_files settings in
+    let (page_files, asset_files) = get_site_files settings in
     let () = Logs.info @@ fun m -> m "Loading page files" in
     let page_sources = load_page_files state hooks page_files in
     (* Asset files are processed before pages
