@@ -315,12 +315,3 @@ let default_settings = {
   soupault_version = None;
 }
 
-let version = (5, 0, 0, None)
-
-let version_to_string v =
-  let major, minor, patch, suffix = v in
-  match suffix with
-  | Some suffix -> Printf.sprintf "%d.%d.%d-%s" major minor patch suffix
-  | None -> Printf.sprintf "%d.%d.%d" major minor patch
-
-let version_string = version_to_string version

@@ -132,7 +132,7 @@ module Plugin_version = struct
     | Ok r ->
       if r then ()
       else Printf.ksprintf plugin_error "Plugin requires soupault %s or newer, current version is %s"
-        vstr Defaults.version_string
+        vstr Version.version_string
     | Error msg ->
       plugin_error @@ Printf.sprintf "Plugin.require_version failed: %s" msg
 end
@@ -935,7 +935,7 @@ struct
        "fail", V.efunc (V.string **->> V.unit) (fun s -> plugin_error s);
        "exit", V.efunc (V.option V.string **->> V.unit) (fun e -> raise (Plugin_exit e));
        "require_version", V.efunc (V.string **->> V.unit) Plugin_version.require_version;
-       "soupault_version", V.efunc (V.unit **->> V.string) (fun () -> Defaults.version_string);
+       "soupault_version", V.efunc (V.unit **->> V.string) (fun () -> Version.version_string);
      ] g;
 
      C.register_module "Sys" [

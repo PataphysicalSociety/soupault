@@ -131,7 +131,7 @@ let make_default_config settings = Printf.sprintf {|
   page_character_encoding = "utf-8"
 |}
 
-Defaults.version_string settings.site_dir settings.build_dir
+Version.version_string settings.site_dir settings.build_dir
 
 (* This part contains example settings for a simple website,
    to give the user an idea what kind of functionality is available. *)

@@ -756,7 +756,7 @@ let find_config_file cli_options =
 
 let show_startup_message settings =
   let mode = if settings.generator_mode then "website generator" else "HTML processor" in
-  Logs.info @@ fun m -> m "Starting soupault %s in %s mode" Defaults.version_string mode
+  Logs.info @@ fun m -> m "Starting soupault %s in %s mode" Version.version_string mode
 
 let initialize cli_options =
   (* Soupault itself doesn't use the PRNG in any way,
@@ -823,7 +823,7 @@ let check_version settings =
       if r then ()
       else begin
         Printf.printf "According to settings.soupault_version, this configuration file is for soupault %s\n" v;
-        Printf.printf "You are running soupault version %s, older than required\n" Defaults.version_string;
+        Printf.printf "You are running soupault version %s, older than required\n" Version.version_string;
         Printf.printf "To proceed, upgrade soupault to at least %s, or (at your own risk) \
         remove the soupault_version option from your configuration\n" v;
         exit 1
@@ -905,7 +905,7 @@ let process_asset_file settings src_path dst_path =
 
 (* Prints a version message. *)
 let print_version () =
-  Printf.printf "soupault %s\n\n" Defaults.version_string;
+  Printf.printf "soupault %s\n\n" Version.version_string;
   print_endline "Copyright 2025 Daniil Baturin et al.";
   print_endline "soupault is free software distributed under the MIT license.";
   print_endline "Visit https://www.soupault.app for news and documentation.";
@@ -919,7 +919,7 @@ let main cli_options =
     let () = print_version () in
     exit 0
   | ShowVersionNumber ->
-    let () = print_endline Defaults.version_string in
+    let () = print_endline Version.version_string in
     exit 0
   | ShowDefaultConfig ->
     let () = print_endline (Project_init.make_default_config Defaults.default_settings) in
