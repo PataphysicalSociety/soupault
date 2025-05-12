@@ -1,7 +1,6 @@
 module OH = Otoml.Helpers
 
-open Defaults
-include Soupault_common
+open Common
 
 let (let*) = Result.bind
 

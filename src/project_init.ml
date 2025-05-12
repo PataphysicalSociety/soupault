@@ -1,7 +1,7 @@
 module FU = FileUtil
 module FP = FilePath
 
-open Defaults
+open Common
 
 let default_template = {|
 <html lang="en">
@@ -187,9 +187,9 @@ let init settings  =
     print_endline "Initializing the project";
     (* Easier to just check from here than to pass another parameter
        around just for a single use in here *)
-    if Config.config_exists Defaults.config_file
+    if Config.config_exists Common.config_file
     then (print_endline "Config file exists, not overwriting it")
-    else ((make_default_config settings) ^ " " ^ sample_config) |> Soup.write_file Defaults.config_file;
+    else ((make_default_config settings) ^ " " ^ sample_config) |> Soup.write_file Common.config_file;
 
     if FileUtil.test (FileUtil.Is_dir) settings.site_dir then
       (print_endline "Site directory already exists. Are you running init in an existing project?";

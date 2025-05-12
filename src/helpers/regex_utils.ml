@@ -1,4 +1,4 @@
-open Soupault_common
+open Common
 
 (* Internal exception to signal malformed (incorrect or unsupported) regex input.
    Unfortunately, as of 1.10.3, ocaml-rere doesn't give meaningful parse error messages,

@@ -1,7 +1,6 @@
 module OH = Otoml.Helpers
 
-open Defaults
-open Soupault_common
+open Common
 
 open Otoml
 
@@ -165,7 +164,7 @@ let valid_path_options = [
    That allows us to store them simply as string.
  *)
 let _get_page_preprocessors config =
-  let t = find_table_opt [Defaults.page_preprocessors_table] config in
+  let t = find_table_opt [Common.page_preprocessors_table] config in
   match t with
   | None -> []
   | Some t ->
@@ -192,7 +191,7 @@ let _get_asset_processors config =
       let () = Logs.err @@ fun m -> m {|Could not compile template from asset_processors.%s|} extension in
       config_error msg
   in
-  let t = find_table_opt [Defaults.asset_processors_table] config in
+  let t = find_table_opt [Common.asset_processors_table] config in
   match t with
   | None -> []
   | Some t ->
@@ -361,7 +360,7 @@ let _get_index_views index_table =
     List.append views custom_views
 
 let _get_index_settings settings config =
-  let st = find_table_opt [Defaults.index_settings_table] config in
+  let st = find_table_opt [Common.index_settings_table] config in
   match st with
   | None -> settings
   | Some st ->
@@ -383,7 +382,7 @@ let _get_index_settings settings config =
        index_views = _get_index_views st;
        index_profile = OH.find_string_opt st ["profile"];
        index_path_options = get_path_options st;
-       index_sort_options = get_sort_options st |> Option.value ~default:Defaults.default_sort_options;
+       index_sort_options = get_sort_options st |> Option.value ~default:Common.default_sort_options;
        index_date_input_formats = date_formats;
        index_force = find_strings_or ~default:[] st ["force_indexing_path_regex"];
        index_leaf_file = OH.find_string_opt st ["leaf_file"];
@@ -427,7 +426,7 @@ let update_page_template_settings settings config =
           Printf.ksprintf config_error "Could not load the file for [templates.%s]: %s" name msg
     end
   in
-  let tt = find_table_opt [Defaults.templates_table] config in
+  let tt = find_table_opt [Common.templates_table] config in
   match tt with
   | None -> settings
   | Some tt ->
@@ -459,7 +458,7 @@ let check_deprecated_settings settings_table =
   | None -> ()
 
 let _update_settings settings config =
-  let st = find_table_opt [Defaults.settings_table] config in
+  let st = find_table_opt [Common.settings_table] config in
   match st with
   | None ->
      let () = Logs.warn @@ fun m -> m "Could not find the [settings] section in the config, using defaults" in

@@ -1,4 +1,4 @@
-open Soupault_common
+open Common
 
 (* Multi-way tree used by the ToC module and the plugin API
    to build a tree of page sections from its headings.

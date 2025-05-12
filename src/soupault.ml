@@ -1,5 +1,4 @@
-open Soupault_common
-open Defaults
+open Common
 
 let mkdir dir err_func =
   (* Note: FileUtil.mkdir returns success if the directory
@@ -270,7 +269,7 @@ let find_preprocessor settings preprocessors file_name =
      *)
     if Utils.in_list ext settings.markdown_extensions then None else
     List.assoc_opt ext preprocessors
-  with Utils.Malformed_file_name _ ->
+  with Common.Malformed_file_name _ ->
     (* Since page file names come from directory listings,
        they are guaranteed to be valid, non-reserved names.
        But if this "can't happen" situation does happen,
@@ -713,21 +712,21 @@ let check_project_dir settings =
    For backward compatibility, both variants are still supported.
  *)
 let find_default_config_file () =
-  let conf_exists = Sys.file_exists Defaults.config_file in
-  let alt_conf_exists = Sys.file_exists Defaults.config_file_alt in
+  let conf_exists = Sys.file_exists Common.config_file in
+  let alt_conf_exists = Sys.file_exists Common.config_file_alt in
   match conf_exists, alt_conf_exists with
-  | true, false -> Defaults.config_file
-  | false, true -> Defaults.config_file_alt
+  | true, false -> Common.config_file
+  | false, true -> Common.config_file_alt
   | true, true ->
     let () = Logs.warn @@ fun m -> m "Both %s and %s files exist, using %s"
-      Defaults.config_file Defaults.config_file_alt Defaults.config_file
-    in Defaults.config_file
+      Common.config_file Common.config_file_alt Common.config_file
+    in Common.config_file
   | false, false ->
       let () =
         Logs.err @@ fun m -> m "Could not find either %s or %s in the current directory."
-          Defaults.config_file Defaults.config_file_alt;
+          Common.config_file Common.config_file_alt;
         Logs.err @@ fun m -> m "Make sure you are in a soupault project directory or specify configuration file location in \
-          %s environment variable." Defaults.config_path_env_var
+          %s environment variable." Common.config_path_env_var
       in
       Printf.ksprintf soupault_error "Cannot proceed without a configuration file."
 
@@ -742,7 +741,7 @@ let find_default_config_file () =
  *)
 let find_config_file cli_options =
   let config_env_var =
-    try Some (Unix.getenv Defaults.config_path_env_var)
+    try Some (Unix.getenv Common.config_path_env_var)
     with Not_found -> None
   in
   match config_env_var, cli_options.config_file_opt with
@@ -764,7 +763,7 @@ let initialize cli_options =
      so it needs to initialize the RNG to avoid completely predictable sequences.
    *)
   let () = Random.self_init () in
-  let settings = Defaults.default_settings in
+  let settings = Common.default_settings in
   let () = setup_logging settings.verbose settings.debug in
   let config_file = find_config_file cli_options in
   let config = Config.read_config config_file in
@@ -922,10 +921,10 @@ let main cli_options =
     let () = print_endline Version.version_string in
     exit 0
   | ShowDefaultConfig ->
-    let () = print_endline (Project_init.make_default_config Defaults.default_settings) in
+    let () = print_endline (Project_init.make_default_config Common.default_settings) in
     exit 0
   | InitProject ->
-    let settings = update_settings Defaults.default_settings cli_options in
+    let settings = update_settings Common.default_settings cli_options in
     let () = Project_init.init settings in
     exit 0
   | ShowEffectiveConfig ->

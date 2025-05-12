@@ -1,5 +1,4 @@
-open Defaults
-open Soupault_common
+open Common
 
 let html_of_string ?(parse=true) ?(context=None) settings html_str =
   if not parse then Soup.create_text html_str else

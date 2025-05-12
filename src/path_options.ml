@@ -22,8 +22,7 @@
    To make a widget apply to a directory tree, the user needs to add [include_subsections=true].
   *)
 
-open Defaults
-open Soupault_common
+open Common
 
 (* The underlying function of the [page/exclude_page] option.
    [page = "foo/bar.html"] enabled widget/hook iff

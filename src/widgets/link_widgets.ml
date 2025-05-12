@@ -2,8 +2,7 @@
 
 module OH = Otoml.Helpers
 
-open Defaults
-open Soupault_common
+open Common
 
 (* By default, exclude these categories of links from target rewriting:
      1. Links that have a URI schema (^([a-zA-Z0-9]+):), e.g. https://example.com
@@ -200,7 +199,6 @@ let target_matches only_regex exclude_regex target =
  *)
 let relativize_link_target state page check_file only_regex exclude_regex target =
   let strip_leading_slashes s = Regex_utils.Internal.replace ~regex:"^/+" ~sub:"" s in
-  let open Defaults in
   let settings = state.soupault_settings in
   if not (target_matches only_regex exclude_regex target) then
     let () =
@@ -256,7 +254,6 @@ let relativize_link_target state page check_file only_regex exclude_regex target
 
 (** Prepends a prefix (typically the base URL of the website) to link targets. *)
 let absolutize_link_target state page prefix check_file only_regex exclude_regex target =
-  let open Defaults in
   let settings = state.soupault_settings in
   if not (target_matches only_regex exclude_regex target) then
   let () =

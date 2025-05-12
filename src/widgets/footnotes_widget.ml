@@ -1,7 +1,6 @@
 (* Footnotes *)
 
-open Defaults
-open Soupault_common
+open Common
 
 module OH = Otoml.Helpers
 

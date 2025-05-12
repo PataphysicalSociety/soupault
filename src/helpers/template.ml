@@ -5,10 +5,8 @@
    JSON and TOML data to Jingoo's types.
  *)
 
-open Soupault_common
+open Common
 open Jingoo
-
-type t = Jg_template.Loaded.t
 
 let rec jingoo_of_json j =
   match j with

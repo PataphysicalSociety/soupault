@@ -2,8 +2,7 @@
 
 module OH = Otoml.Helpers
 
-open Defaults
-open Soupault_common
+open Common
 
 (** Deletes an element from the tree *)
 let delete_element _ config _ page =

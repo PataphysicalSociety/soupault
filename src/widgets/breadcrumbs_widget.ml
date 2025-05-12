@@ -1,7 +1,6 @@
 (* Breadcrumbs *)
 
-open Defaults
-open Soupault_common
+open Common
 
 let make_breadcrumbs nav_path bc_tmpl prepend append between =
   let rec aux xs bc_soup acc_href =

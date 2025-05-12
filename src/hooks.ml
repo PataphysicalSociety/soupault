@@ -15,8 +15,7 @@
    3. Call that function from an appropriate place in src/soupault.ml or elsewhere.
  *)
 
-open Defaults
-open Soupault_common
+open Common
 
 module OH = Otoml.Helpers
 module I = Plugin_api.I
@@ -121,7 +120,6 @@ let get_index_entry_json site_index page_file =
    It is free to modify the [page_source] variable that contains the page source.
  *)
 let run_pre_parse_hook soupault_state hook_config file_name lua_code page_file page_source =
-  let open Defaults in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
   let settings = soupault_state.soupault_settings in
@@ -157,7 +155,6 @@ let run_pre_parse_hook soupault_state hook_config file_name lua_code page_file p
    It has access to the page element tree and can modify it.
  *)
 let run_pre_process_hook soupault_state hook_config file_name lua_code page_file target_dir target_file soup =
-  let open Defaults in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
   let settings = soupault_state.soupault_settings in
@@ -211,7 +208,6 @@ let run_post_index_hook soupault_state hook_config file_name lua_code page entry
     | _ -> internal_error @@ Printf.sprintf "post-index hook got a JSON value that isn't an object:\n %s"
       (Ezjsonm.value_to_string j)
   in
-  let open Defaults in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
   let settings = soupault_state.soupault_settings in
@@ -262,7 +258,6 @@ let run_post_index_hook soupault_state hook_config file_name lua_code page entry
    to the [page_source] variable.
  *)
 let run_render_hook soupault_state hook_config file_name lua_code page =
-  let open Defaults in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
   let settings = soupault_state.soupault_settings in
@@ -301,7 +296,6 @@ let run_render_hook soupault_state hook_config file_name lua_code page =
     page.page_file
 
 let run_save_hook soupault_state hook_config file_name lua_code page page_source =
-  let open Defaults in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
   let index_entry_json = get_index_entry_json soupault_state.site_index page.page_file in
@@ -341,7 +335,6 @@ let run_save_hook soupault_state hook_config file_name lua_code page page_source
  *)
 
 let run_startup_hook soupault_state hooks =
-  let open Defaults in
   let hook = Hashtbl.find_opt hooks "startup" in
   match hook with
   | None -> ()
@@ -367,7 +360,6 @@ let run_startup_hook soupault_state hooks =
     end
 
 let run_post_build_hook soupault_state site_index hooks =
-  let open Defaults in
   let hook = Hashtbl.find_opt hooks "post-build" in
   match hook with
   | None -> ()
@@ -409,7 +401,6 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
     | _ | exception Plugin_error _ ->
       hook_error {|generated page must be a table with fields "page_file" (string) and "page_content" (string)|}
   in
-  let open Defaults in
   let lua_str = I.Value.string in
   let table_list = I.Value.list I.Value.table in
   let lua_state = I.mk () in

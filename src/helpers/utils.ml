@@ -1,5 +1,4 @@
-include Soupault_common
-open Defaults
+open Common
 
 (* IO helpers that return [(unit, string) result] instead of raising exceptions. *)
 

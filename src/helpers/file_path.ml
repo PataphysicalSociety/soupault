@@ -1,4 +1,4 @@
-open Soupault_common
+open Common
 
 (* File name and path manipulation helpers. *)
 

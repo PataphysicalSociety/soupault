@@ -1,5 +1,4 @@
-open Defaults
-open Soupault_common
+open Common
 
 (* Converts an HTML element tree node to text.
    If [strip_tags] is true, then it extracts all text nodes,
@@ -76,7 +75,7 @@ let get_index_entry settings page =
 
 let json_of_entry = Utils.json_of_index_entry
 
-(* Compares entries for sorting, using [Defaults.sort_options] for comparison rules.. *)
+(* Compares entries for sorting, using [Common.sort_options] for comparison rules.. *)
 let compare_entries settings sort_options l r =
   let (>>=) = Option.bind in
   let (let*) = Option.bind in
@@ -302,13 +301,13 @@ let insert_index state page view =
       let index = List.filter (view_includes_page settings page.page_file view) state.site_index in
       let index = sort_entries settings (get_sort_options settings view) index in
       match view.index_processor with
-      | Defaults.IndexItemTemplate tmpl ->
+      | Common.IndexItemTemplate tmpl ->
         let () = render_index soupault_config view tmpl ic index in []
-      | Defaults.IndexTemplate tmpl ->
+      | Common.IndexTemplate tmpl ->
         let () = render_index ~item_template:false soupault_config view tmpl ic index in []
-      | Defaults.ExternalIndexer cmd ->
+      | Common.ExternalIndexer cmd ->
         let () = run_index_processor view cmd ic index in []
-      | Defaults.LuaIndexer (file_name, lua_code) ->
+      | Common.LuaIndexer (file_name, lua_code) ->
         let index_view_config = Otoml.find soupault_config Otoml.get_table ["index"; "views"; view.index_view_name] |> Otoml.table in
         (* Give the Lua index processor a filtered index view rather than the original full version. *)
         let state = {state with site_index=index} in

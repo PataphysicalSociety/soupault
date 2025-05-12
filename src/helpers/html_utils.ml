@@ -1,4 +1,4 @@
-open Defaults
+open Common
 
 (** Checks is a CSS selector is valid.
 

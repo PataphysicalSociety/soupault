@@ -1,4 +1,4 @@
-open Soupault_common
+open Common
 
 module OH = Otoml.Helpers
 
@@ -6,7 +6,7 @@ let (>>=) = Option.bind
 
 (* Plugin config loading *)
 let get_plugin_config config plugin =
-  let plugins_tbl = Config.find_table_opt [Defaults.plugins_table; plugin] config in
+  let plugins_tbl = Config.find_table_opt [Common.plugins_table; plugin] config in
   match plugins_tbl with
   | Some plugins_tbl -> plugins_tbl
   | None ->
@@ -15,7 +15,7 @@ let get_plugin_config config plugin =
     Printf.ksprintf internal_error "Trying to lookup a non-existent plugin %s" plugin
 
 let list_plugins config =
-  let ps = Config.find_table_opt [Defaults.plugins_table] config >>= (fun x -> Some (Otoml.list_table_keys x)) in
+  let ps = Config.find_table_opt [Common.plugins_table] config >>= (fun x -> Some (Otoml.list_table_keys x)) in
   match ps with
   | None -> []
   | Some ps' -> ps'

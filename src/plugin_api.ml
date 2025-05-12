@@ -1,4 +1,4 @@
-open Soupault_common
+open Common
 
 (* Used internally to handle early exit
    initiated by calling [Plugin.exit] Lua function. *)
@@ -1240,7 +1240,6 @@ let run_lua lua_state filename lua_code =
     end
 
 let run_plugin filename lua_code soupault_state widget_config index page =
-  let open Defaults in
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
