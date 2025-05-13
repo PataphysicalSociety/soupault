@@ -53,7 +53,7 @@ or `"windows"` (Microsoft Windows or compatibles, such as ReactOS).
 
 ## Deprecated options
 
-* `settings.strict` and `--strict <true|false>` options are not deprecated
+* `settings.strict` and `--strict <true|false>` options are now deprecated
   and will be removed in future releases.
   All built-in errors are now treated as fatal and cannot be ignored.
 
