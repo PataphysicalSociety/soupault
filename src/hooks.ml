@@ -366,7 +366,7 @@ let run_startup_hook soupault_state hooks =
     let () =
       try Plugin_api.run_lua lua_state file_name source_code
       with Plugin_error msg ->
-        Printf.ksprintf soupault_error "Failed to run startup hook" msg
+        Printf.ksprintf soupault_error "Failed to run startup hook: %s" msg
     in
     let res = I.getglobal lua_state (I.Value.string.embed "global_data") in
     if I.Value.table.is res then import_global_data res
@@ -451,7 +451,12 @@ let run_lua_index_processor soupault_state index_view_config view_name file_name
   let () = Logs.info @@ fun m -> m {|Running Lua index processor %s for index view "%s" on page %s|}
     file_name view_name page.page_file
   in
-  let () = Plugin_api.run_lua lua_state file_name lua_code in
+  let () =
+    try Plugin_api.run_lua lua_state file_name lua_code
+    with Plugin_error msg ->
+      Printf.ksprintf soupault_error
+        "Failed to run a Lua index processor for view %s on page %s: %s" view_name page.page_file msg
+  in
   let res = I.getglobal lua_state (I.Value.string.embed "pages") in
   if not (table_list.is res)
   then Printf.ksprintf soupault_error
