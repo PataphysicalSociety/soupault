@@ -333,15 +333,23 @@ let run_save_hook soupault_state hook_config file_name lua_code page page_source
    can then read using the [Plugin.get_global_data] function.
  *)
 let run_startup_hook soupault_state hooks =
+  (* Import global data from the Lua state that the hook might have set. *)
   let import_global_data gdt =
-    let hash = I.Value.table.project gdt in
+    (* If the hook did not set global_data or set it to [nil], just do nothing. *)
+    if (I.Value.unit.is gdt) then () else
+    (* If it's set to a non-[nil] value, it must be a table. *)
+    if not (I.Value.table.is gdt) then Printf.ksprintf soupault_error
+      "Failed to run the startup hook: \
+         hook assigned a value of a wrong type to the global_data variable: \
+         expected a table, found %s" (I.Value.to_string gdt)
+    else let hash = I.Value.table.project gdt in
     I.Value.Luahash.iter
       (fun k v ->
         if I.Value.string.is k
         then Hashtbl.add Common.global_data
           (I.Value.string.project k) (Plugin_api.json_of_lua v)
         else Printf.ksprintf soupault_error
-          "startup hook used a wrong key type (%s) for global_data"
+          "startup hook used a wrong key type (%s) in global_data"
           (I.Value.to_string k))
       hash
   in
@@ -369,11 +377,7 @@ let run_startup_hook soupault_state hooks =
         Printf.ksprintf soupault_error "Failed to run startup hook: %s" msg
     in
     let res = I.getglobal lua_state (I.Value.string.embed "global_data") in
-    if I.Value.table.is res then import_global_data res
-    else Printf.ksprintf soupault_error
-      "Failed to run the startup hook: \
-         hook assigned a value of a wrong type to the global_data variable: \
-         expected a table, found %s" (I.Value.to_string res)
+    import_global_data res
 
 (* The post-build hook runs when soupault has finished saving generated pages to disk,
    just before it exits.
