@@ -936,6 +936,11 @@ struct
        "exit", V.efunc (V.option V.string **->> V.unit) (fun e -> raise (Plugin_exit e));
        "require_version", V.efunc (V.string **->> V.unit) Plugin_version.require_version;
        "soupault_version", V.efunc (V.unit **->> V.string) (fun () -> Version.version_string);
+       "get_global_data", V.efunc (V.string **->> V.value)
+         (fun key ->
+           try lua_of_json @@ Hashtbl.find global_data key
+           with Not_found ->
+             Printf.ksprintf plugin_error "undefined global data variable: %s" key)
      ] g;
 
      C.register_module "Sys" [

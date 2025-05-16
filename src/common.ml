@@ -393,3 +393,10 @@ let plugin_error err = raise (Plugin_error err)
 exception Widget_error of string
 
 let widget_error err = raise (Widget_error err)
+
+(* Shared data *)
+
+(* A hash table where the startup hook can insert data
+   that other plugins and hooks can then read.
+ *)
+let global_data : (string, Ezjsonm.value) Hashtbl.t = Hashtbl.create 1024
