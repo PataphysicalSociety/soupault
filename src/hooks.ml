@@ -1,8 +1,8 @@
-(* Hooks are extension points that allow the user to take inject logic between page processing steps
+(* Hooks are extension points that allow the user to inject custom logic between page processing steps
    or take over a processing step with custom logic.
    They are configured in the [hooks] table.
 
-   This module also has code for executing Lua index processors, which are configured differently
+   This module also hold the code for executing Lua index processors, which are configured differently
    but their internal execution process is very similar.
 
    To add a new hook:
@@ -10,7 +10,7 @@
    1. Add its name to [hook_types]
       It's important for config validation.
       NOTE: the order of the [hook_types] list doesn't matter,
-            but it's better keep it sorted in the hook execution order to avoid confusuion.
+            but it's better to keep it sorted in the hook execution order to avoid confusuion.
    2. Add a hook function to this module.
    3. Call that function from an appropriate place in src/soupault.ml or elsewhere.
  *)
@@ -113,11 +113,12 @@ let get_index_entry_json site_index page_file =
   | None -> `Null
   | Some ie -> Utils.json_of_index_entry ie
 
-(* pre-parse hook runs just after the page source is loaded from a file or received from a preprocessor
+(* The pre-parse hook runs just after the page source is loaded from a file
+   or received from a preprocessor
    and before it's parsed into an HTML element tree.
 
    It only has access to the page source, not an element tree.
-   It is free to modify the [page_source] variable that contains the page source.
+   It can modify the [page_source] variable that contains the page source.
  *)
 let run_pre_parse_hook soupault_state hook_config file_name lua_code page_file page_source =
   let lua_str = I.Value.string in
@@ -149,7 +150,7 @@ let run_pre_parse_hook soupault_state hook_config file_name lua_code page_file p
        hook has not assigned a string to the page_source variable"
     page_file
 
-(* pre-process hook runs just after a page source is parsed into an HTML element tree
+(* The pre-process hook runs just after a page source is parsed into an HTML element tree
    and before soupault itself does anything with it (before any widgets run).
 
    It has access to the page element tree and can modify it.
@@ -184,7 +185,7 @@ let run_pre_process_hook soupault_state hook_config file_name lua_code page_file
   let target_dir = Plugin_api.get_global lua_state "target_dir" I.Value.string in
   (target_dir, target_file, soup)
 
-(* post-index hook runs after soupault extracts index fields from a page.
+(* The post-index hook runs after soupault extracts index fields from a page.
 
    It has access to the page element tree and also to extracted index fields
    and can modify both.
@@ -252,7 +253,7 @@ let run_post_index_hook soupault_state hook_config file_name lua_code page entry
     let fields = Plugin_api.json_of_lua index_fields in
     assoc_of_json fields
 
-(* render hook replaces the normal page rendering process.
+(* The render hook replaces the normal page rendering process.
 
    It must assign HTML source code generated from the element tree
    to the [page_source] variable.
@@ -324,16 +325,13 @@ let run_save_hook soupault_state hook_config file_name lua_code page page_source
     Printf.ksprintf soupault_error
       "Failed to run the save hook on page %s: %s" page.page_file msg
 
-(** These two hooks are executed only once rather than for every page:
-    before the first page is processed and after the last page is processed. *)
+(*  These two hooks are executed only once rather than for every page. *)
 
-(* pre-parse hook runs just after the page source is loaded from a file or received from a preprocessor
-   and before it's parsed into an HTML element tree.
+(* The startup hook runs on soupault startup, before it starts processing pages.
 
-   It only has access to the page source, not an element tree.
-   It is free to modify the [page_source] variable that contains the page source.
+   This hook can set [global_data] variable that other plugins and hooks
+   can then read using the [Plugin.get_global_data] function.
  *)
-
 let run_startup_hook soupault_state hooks =
   let import_global_data gdt =
     let hash = I.Value.table.project gdt in
@@ -377,6 +375,9 @@ let run_startup_hook soupault_state hooks =
          hook assigned a value of a wrong type to the global_data variable: \
          expected a table, found %s" (I.Value.to_string res)
 
+(* The post-build hook runs when soupault has finished saving generated pages to disk,
+   just before it exits.
+ *)
 let run_post_build_hook soupault_state site_index hooks =
   let hook = Hashtbl.find_opt hooks "post-build" in
   match hook with
