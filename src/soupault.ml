@@ -224,13 +224,10 @@ let make_page_data state hooks page_file element_tree =
   (* Run the pre-process hook -- it may modify the target dir and the target file,
      in addition to the element tree.
    *)
-  let pre_process_hook = Hashtbl.find_opt hooks "pre-process" in
+  let pre_process_hook = Hooks.find_hook settings hooks "pre-process" page_file in
   let (target_dir, target_file, element_tree) =
     begin match pre_process_hook with
     | Some (file_name, source_code, hook_config) ->
-      if not (Hooks.hook_should_run settings hook_config "pre-process" page_file)
-      then (orig_target_dir, orig_target_file, element_tree)
-      else
         Hooks.run_pre_process_hook
           state hook_config file_name source_code
           page_file orig_target_dir orig_target_file element_tree
@@ -333,12 +330,10 @@ let load_html state hooks page_file =
   let page_preprocessor = find_preprocessor settings settings.page_preprocessors page_file in
   let page_source = load_file page_preprocessor page_file in
   let page_source = process_builtin_format settings page_file page_source in
-  let pre_parse_hook = Hashtbl.find_opt hooks "pre-parse" in
+  let pre_parse_hook = Hooks.find_hook settings hooks "pre-parse" page_file in
   match pre_parse_hook with
   | Some (file_name, source_code, hook_config) ->
-    if Hooks.hook_should_run settings hook_config "pre-parse" page_file then
-      Hooks.run_pre_parse_hook state hook_config file_name source_code page_file page_source
-    else page_source
+    Hooks.run_pre_parse_hook state hook_config file_name source_code page_file page_source
   | None ->
     page_source
 
@@ -494,14 +489,11 @@ let render_html_builtin settings soup =
 let render_html state hooks page =
   let () = Logs.info @@ fun m -> m "Rendering page %s" page.page_file in
   let settings = state.soupault_settings in
-  let hook = Hashtbl.find_opt hooks "render" in
+  let hook = Hooks.find_hook settings hooks "render" page.page_file in
   match hook with
   | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "render" page.page_file)
-    then render_html_builtin settings page.element_tree
-    else
-      let page_source = Hooks.run_render_hook state hook_config file_name source_code page in
-      page_source
+    let page_source = Hooks.run_render_hook state hook_config file_name source_code page in
+    page_source
   | None ->
     render_html_builtin settings page.element_tree
 
@@ -510,10 +502,9 @@ let extract_metadata state hooks page =
   let settings = state.soupault_settings in
   if not (Autoindex.index_extraction_should_run settings page.page_file) then None else
   let entry = Autoindex.get_index_entry settings page in
-  let post_index_hook = Hashtbl.find_opt hooks "post-index" in
+  let post_index_hook = Hooks.find_hook settings hooks "post-index" page.page_file in
   match post_index_hook with
   | Some (file_name, source_code, hook_config) ->
-    if not (Hooks.hook_should_run settings hook_config "post-index" page.page_file) then (Some entry) else
     (* Let the post-index hook update the fields.
        It can also set a special [ignore_page] variable to tell soupault to exclude the page
        from indexing and any further processing.
@@ -542,12 +533,10 @@ let save_html state hooks page rendered_page_text =
         page.page_file page.target_file msg
   in
   let settings = state.soupault_settings in
-  let save_hook = Hashtbl.find_opt hooks "save" in
+  let save_hook = Hooks.find_hook settings hooks "save" page.page_file in
   match save_hook with
   | Some (file_name, source_code, hook_config) ->
-    if Hooks.hook_should_run settings hook_config "save" page.page_file then
-      Hooks.run_save_hook state hook_config file_name source_code page rendered_page_text
-    else write_page page.target_file rendered_page_text
+    Hooks.run_save_hook state hook_config file_name source_code page rendered_page_text
   | None ->
     let () = Logs.info @@ fun m -> m "Saving the page generated from %s to %s" page.page_file page.target_file in
     write_page page.target_file rendered_page_text

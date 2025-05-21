@@ -52,29 +52,40 @@ let check_hook_tables config =
   | Some tbl -> Config.check_subsections ~parent_path:["hooks"] tbl hook_types "hooks"
 
 (* Checks if a hook should run on a specific page:
-   it isn't disabled entirely for the current run
+   it's configured, isn't disabled in the configuration,
+   is not restricted to a currently inactive build profile,
    and the page is not specifically excluded from it.
+   If it should run, returns [Some hook], else returns [None]
   *)
-let hook_should_run settings hook_config hook_type page_file =
-  let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
-  if disabled then
-    let () = Logs.debug @@ fun m -> m "%s hook is disabled in the configuration" hook_type in
-    false
-  else
-    let options = Config.get_path_options hook_config in
-    let profile = OH.find_string_opt hook_config ["profile"] in
-    if not (Utils.build_profile_matches profile settings.build_profiles) then
-      let () = Logs.debug @@ fun m -> m "%s hook is not used: not enabled in the current build profile (%s)"
-        hook_type (Option.value ~default:"default" profile)
-      in false
-    else begin
-      if Path_options.page_included settings options settings.site_dir page_file then true
-      else
-        let () = Logs.debug @@ fun m -> m "%s hook is not used: page %s is excluded by its page/section/regex options"
-          hook_type page_file
-        in
-        false
-    end
+let find_hook settings hooks hook_type page_file =
+  let hook = Hashtbl.find_opt hooks hook_type in
+  match hook with
+  | None ->
+    (* If the hook isn't configured at all, it certainly shouldn't run. *)
+    None
+  | Some (file_name, source_code, hook_config) ->
+    (* It may also be configured but disabled in the configuration. *)
+    let disabled = Config.find_bool_or ~default:false hook_config ["disabled"] in
+    if disabled then
+      let () = Logs.debug @@ fun m -> m "%s hook is disabled in the configuration" hook_type in
+      None
+    else
+      let options = Config.get_path_options hook_config in
+      (* It may be restricted to a specific build profile. *)
+      let profile = OH.find_string_opt hook_config ["profile"] in
+      if not (Utils.build_profile_matches profile settings.build_profiles) then
+        let () = Logs.debug @@ fun m -> m "%s hook is not used: not enabled in the current build profile (%s)"
+          hook_type (Option.value ~default:"default" profile)
+        in None
+      else begin
+        if Path_options.page_included settings options settings.site_dir page_file
+        then (Some (file_name, source_code, hook_config))
+        else
+          let () = Logs.debug @@ fun m -> m "%s hook is not used: page %s is excluded by its page/section/regex options"
+            hook_type page_file
+          in
+          None
+      end
 
 (* Loads hook code from an inline snippet in the config or from a file. *)
 let load_hook hook_config ident =
