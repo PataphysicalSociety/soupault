@@ -35,7 +35,7 @@ let find_widget plugins name =
 
 (* Widget config loading *)
 let get_widget_config config widget =
-  let widget_tbl = Config.find_table_opt [Common.widgets_table; widget] config in
+  let widget_tbl = Config.find_table_opt ["widgets"; widget] config in
   match widget_tbl with
   | Some widget_tbl -> widget_tbl
   | None ->
@@ -46,7 +46,7 @@ let get_widget_config config widget =
    internal_error @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget
 
 let list_widgets config =
-  let ws = Config.find_table_opt [Common.widgets_table] config >>= (fun x -> Some (Otoml.list_table_keys x)) in
+  let ws = Config.find_table_opt ["widgets"] config >>= (fun x -> Some (Otoml.list_table_keys x)) in
   match ws with
   | None -> []
   | Some ws' -> ws'

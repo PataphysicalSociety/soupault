@@ -164,7 +164,7 @@ let valid_path_options = [
    That allows us to store them simply as string.
  *)
 let _get_page_preprocessors config =
-  let t = find_table_opt [Common.page_preprocessors_table] config in
+  let t = find_table_opt ["preprocessors"] config in
   match t with
   | None -> []
   | Some t ->
@@ -191,7 +191,7 @@ let _get_asset_processors config =
       let () = Logs.err @@ fun m -> m {|Could not compile template from asset_processors.%s|} extension in
       config_error msg
   in
-  let t = find_table_opt [Common.asset_processors_table] config in
+  let t = find_table_opt ["asset_processors"] config in
   match t with
   | None -> []
   | Some t ->
@@ -360,7 +360,7 @@ let _get_index_views index_table =
     List.append views custom_views
 
 let _get_index_settings settings config =
-  let st = find_table_opt [Common.index_settings_table] config in
+  let st = find_table_opt ["index"] config in
   match st with
   | None -> settings
   | Some st ->
@@ -426,7 +426,7 @@ let update_page_template_settings settings config =
           Printf.ksprintf config_error "Could not load the file for [templates.%s]: %s" name msg
     end
   in
-  let tt = find_table_opt [Common.templates_table] config in
+  let tt = find_table_opt ["templates"] config in
   match tt with
   | None -> settings
   | Some tt ->
@@ -458,7 +458,7 @@ let check_deprecated_settings settings_table =
   | None -> ()
 
 let _update_settings settings config =
-  let st = find_table_opt [Common.settings_table] config in
+  let st = find_table_opt ["settings"] config in
   match st with
   | None ->
      let () = Logs.warn @@ fun m -> m "Could not find the [settings] section in the config, using defaults" in
