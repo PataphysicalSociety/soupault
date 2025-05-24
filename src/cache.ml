@@ -20,6 +20,10 @@ open Common
  *)
 let hash_sum = Hash.blake2s
 
+(* The special file in a cache directory
+   that hold the hash sum of the cached page. *)
+let page_hash_file = ".page_source_hash"
+
 let read_file path =
   try Soup.read_file path
   with Sys_error msg ->
@@ -59,7 +63,7 @@ let cache_object settings page_path identifier source_str output_str =
 let is_cache_outdated settings page_path page_source =
   if settings.force then true else
   try
-    let page_hash_path = FilePath.concat (FilePath.concat settings.cache_dir page_path) Common.page_hash_file in
+    let page_hash_path = FilePath.concat (FilePath.concat settings.cache_dir page_path) page_hash_file in
     (* If the page source hash file is missing, assume that the cache is invalid. *)
     if not (FileUtil.test FileUtil.Exists page_hash_path) then
       let () = Logs.warn @@ fun m -> m "Cache directory for page %s does not contain a page source hash file (%s),\
@@ -76,7 +80,7 @@ let is_cache_outdated settings page_path page_source =
 let refresh_page_cache settings page_path page_source =
   let save_page_hash page_cache_path page_source =
     let page_hash = hash_sum page_source in
-    let target_file = FilePath.concat page_cache_path Common.page_hash_file in
+    let target_file = FilePath.concat page_cache_path page_hash_file in
     let () = Logs.debug @@ fun m -> m "Saving new page hash to %s" target_file in
     write_file target_file page_hash
   in
