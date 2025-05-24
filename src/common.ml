@@ -332,7 +332,6 @@ type state = {
 
 let config_file = "soupault.toml"
 let config_file_alt = "soupault.conf"
-let config_path_env_var = "SOUPAULT_CONFIG"
 let page_hash_file = ".page_source_hash"
 
 let default_path_options = {

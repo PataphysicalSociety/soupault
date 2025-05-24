@@ -693,29 +693,29 @@ let check_project_dir settings =
     end
   in ()
 
-(* As of soupault 4.2.0, there are two possible default config file names.
+(* In soupault >2.0.0, there are two possible default config file names.
 
    The original config file name was soupault.conf,
    but in 2.0.0 the default was changed to soupault.toml
    to make it clear what the config format is.
    For backward compatibility, both variants are still supported.
  *)
-let find_default_config_file () =
-  let conf_exists = Sys.file_exists Common.config_file in
-  let alt_conf_exists = Sys.file_exists Common.config_file_alt in
+let find_default_config_file config_default config_alt config_path_env_var =
+  let conf_exists = Sys.file_exists config_default in
+  let alt_conf_exists = Sys.file_exists config_alt in
   match conf_exists, alt_conf_exists with
   | true, false -> Common.config_file
   | false, true -> Common.config_file_alt
   | true, true ->
     let () = Logs.warn @@ fun m -> m "Both %s and %s files exist, using %s"
-      Common.config_file Common.config_file_alt Common.config_file
+      config_default config_alt config_default
     in Common.config_file
   | false, false ->
       let () =
         Logs.err @@ fun m -> m "Could not find either %s or %s in the current directory."
-          Common.config_file Common.config_file_alt;
+          config_default config_alt;
         Logs.err @@ fun m -> m "Make sure you are in a soupault project directory or specify configuration file location in \
-          %s environment variable." Common.config_path_env_var
+          %s environment variable." config_path_env_var
       in
       Printf.ksprintf soupault_error "Cannot proceed without a configuration file."
 
@@ -729,8 +729,9 @@ let find_default_config_file () =
    if it's set globally in the system.
  *)
 let find_config_file cli_options =
+  let config_path_env_var = "SOUPAULT_CONFIG" in
   let config_env_var =
-    try Some (Unix.getenv Common.config_path_env_var)
+    try Some (Unix.getenv config_path_env_var)
     with Not_found -> None
   in
   match config_env_var, cli_options.config_file_opt with
@@ -740,7 +741,8 @@ let find_config_file cli_options =
     let () = Logs.warn @@ fun m -> m "Both SOUPAULT_CONFIG environment variable and --config option are given, using --config" in
     path
   | None, None ->
-    find_default_config_file ()
+    find_default_config_file
+      Common.config_file Common.config_file_alt config_path_env_var
 
 let show_startup_message settings =
   let mode = if settings.generator_mode then "website generator" else "HTML processor" in
