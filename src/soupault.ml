@@ -704,12 +704,12 @@ let find_default_config_file config_default config_alt config_path_env_var =
   let conf_exists = Sys.file_exists config_default in
   let alt_conf_exists = Sys.file_exists config_alt in
   match conf_exists, alt_conf_exists with
-  | true, false -> Common.config_file
-  | false, true -> Common.config_file_alt
+  | true, false -> config_default
+  | false, true -> config_alt
   | true, true ->
     let () = Logs.warn @@ fun m -> m "Both %s and %s files exist, using %s"
       config_default config_alt config_default
-    in Common.config_file
+    in config_default
   | false, false ->
       let () =
         Logs.err @@ fun m -> m "Could not find either %s or %s in the current directory."
@@ -730,6 +730,7 @@ let find_default_config_file config_default config_alt config_path_env_var =
  *)
 let find_config_file cli_options =
   let config_path_env_var = "SOUPAULT_CONFIG" in
+  let config_file_alt = "soupault.conf" in
   let config_env_var =
     try Some (Unix.getenv config_path_env_var)
     with Not_found -> None
@@ -742,7 +743,7 @@ let find_config_file cli_options =
     path
   | None, None ->
     find_default_config_file
-      Common.config_file Common.config_file_alt config_path_env_var
+      Common.config_file config_file_alt config_path_env_var
 
 let show_startup_message settings =
   let mode = if settings.generator_mode then "website generator" else "HTML processor" in
