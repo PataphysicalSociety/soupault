@@ -307,10 +307,9 @@ let _get_index_view st view_name =
     let script = OH.find_string_opt ~strict:true st ["index_processor"] in
     let lua_processor = get_lua_index_processor	st in
     match item_template, index_template, script, lua_processor with
-    | _, _, Some _, Some Ok _ ->
+    | _, _, Some _, Some _ ->
       index_view_error {|"index_processor" and "file"/"lua_source" are mutually exclusive, please pick only one|}
-    | _, _, _, Some (Ok (file_name, lua_code)) -> LuaIndexer (file_name, lua_code)
-    | _, _, _, Some (Error msg) -> index_view_error @@ Printf.sprintf "Failed to load index processor plugin: %s" msg
+    | _, _, _, Some (file_name, lua_code) -> LuaIndexer (file_name, lua_code)
     | Some item_template, None, None, None -> _get_template item_template
     | None, Some index_template, None, None -> _get_template ~item_template:false index_template
     | None, None, Some script, None -> ExternalIndexer script

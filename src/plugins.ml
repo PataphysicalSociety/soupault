@@ -20,28 +20,20 @@ let list_plugins config =
   | None -> []
   | Some ps' -> ps'
 
-let rec _load_plugins soupault_config ps hash =
-  let (let*) = Stdlib.Result.bind in
-  match ps with
-  | [] -> Ok ()
-  | p :: ps' ->
-    let plugin_cfg = get_plugin_config soupault_config p in
-    let () = Config.check_options ["file"; "lua_source"] plugin_cfg "a plugin config" in
-    let default_filename = Printf.sprintf "<inline Lua source for plugin %s>" p in
-    let ident = Printf.sprintf "plugin %s" p in
-    let* (file_name, source) = Utils.load_plugin_code plugin_cfg default_filename ident in
-    let () =  Hashtbl.add hash p (Plugin_api.run_plugin file_name source) in
-    _load_plugins soupault_config ps' hash
-
 let get_plugins soupault_config =
+  let load_plugin soupault_config hash name =
+    let plugin_cfg = get_plugin_config soupault_config name in
+    let () = Config.check_options ["file"; "lua_source"] plugin_cfg "a plugin config" in
+    let default_filename = Printf.sprintf "<inline Lua source for plugin %s>" name in
+    let ident = Printf.sprintf "plugin %s" name in
+    let (file_name, source) = Utils.load_plugin_code plugin_cfg default_filename ident in
+    Hashtbl.add hash name (Plugin_api.run_plugin file_name source)
+  in
   let () = Logs.info @@ fun m -> m "Loading explicitly configured plugins" in
-  let hash = Hashtbl.create 1024 in
-  let plugins = list_plugins soupault_config in
-  let res = _load_plugins soupault_config plugins hash in
-  match res with
-  | Ok () -> hash
-  | Error msg ->
-    Printf.ksprintf soupault_error "Failed to load plugins: %s" msg
+  let plugins_hash = Hashtbl.create 1024 in
+  let plugin_names = list_plugins soupault_config in
+  let () = List.iter (load_plugin soupault_config plugins_hash) plugin_names in
+  plugins_hash
 
 let rec lookup_plugin_file plugin_dirs file_name =
   match plugin_dirs with

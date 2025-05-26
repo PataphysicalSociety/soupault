@@ -91,10 +91,7 @@ let find_hook settings hooks hook_type page_file =
 let load_hook hook_config ident =
   let default_filename = Printf.sprintf {|<inline Lua source for hook "%s">|} ident in
   let ident = Printf.sprintf {|hook "%s"|} ident in
-  let res = Utils.load_plugin_code hook_config default_filename ident in
-  match res with
-  | Ok (file_name, source_code) -> (file_name, source_code)
-  | Error msg -> config_error msg
+  Utils.load_plugin_code hook_config default_filename ident
 
 (* Loads a single hook from its configuration. *)
 let get_hook config hooks_hash ident =

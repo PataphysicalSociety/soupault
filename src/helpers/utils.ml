@@ -173,17 +173,19 @@ let load_plugin_code plugin_config default_filename ident =
   let source = Otoml.Helpers.find_string_opt plugin_config ["lua_source"] in
   match file, source with
   | None, None ->
-    Error (Printf.sprintf {|In %s: either "file" or "lua_source" option is required|} ident)
+    Printf.ksprintf soupault_error {|Cannot load %s: its configuration does not specify\
+       either "file" or "lua_source"|} ident
   | Some _, Some _ ->
-    Error (Printf.sprintf {|In %s: "file" and "lua_source" options are mutually exclusive|} ident)
+    Printf.ksprintf soupault_error {|Cannot load %s: its configuration includes both "file" and "lua_source",\
+      those options are mutually exclusive|} ident
   | None, Some source ->
-    Ok (default_filename, source)
+    (default_filename, source)
   | Some file, None ->
     try
       let source = Soup.read_file file in
-      Ok (file, source)
+      (file, source)
      with Sys_error msg ->
-       Error (Printf.sprintf "Could not read file %s: %s" file msg)
+       Printf.ksprintf soupault_error "Could not load %s from file %s: %s" ident file msg
 
 (* Converts a string encoding name to Markup's internal encoding type. *)
 let encoding_of_string name =
