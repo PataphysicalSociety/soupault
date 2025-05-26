@@ -176,8 +176,8 @@ let load_plugin_code plugin_config default_filename ident =
     Printf.ksprintf soupault_error {|Cannot load %s: its configuration does not specify\
        either "file" or "lua_source"|} ident
   | Some _, Some _ ->
-    Printf.ksprintf soupault_error {|Cannot load %s: its configuration includes both "file" and "lua_source",\
-      those options are mutually exclusive|} ident
+    Printf.ksprintf soupault_error "Cannot load %s: its configuration includes both \"file\" and \"lua_source\", \
+      those options are mutually exclusive" ident
   | None, Some source ->
     (default_filename, source)
   | Some file, None ->
