@@ -299,7 +299,7 @@ let _get_index_view st view_name =
       | None, None -> None
       | _, _ ->
         let res = Utils.load_plugin_code st (Printf.sprintf {|<inline Lua code from index view "%s">|} name)
-          "index processor"
+          (Printf.sprintf {|Lua index processor for view "%s"|} name)
         in Some res
     in
     let item_template = OH.find_string_opt ~strict:true st ["index_item_template"] in
@@ -314,9 +314,11 @@ let _get_index_view st view_name =
     | None, Some index_template, None, None -> _get_template ~item_template:false index_template
     | None, None, Some script, None -> ExternalIndexer script
     | None, None, None, None ->
-      index_view_error @@ Printf.sprintf "No view rendering options found! Please specify one of: index_item_template, index_template, index_processor,\
-        or file/lua_source options."
-    | _ -> config_error {|options "index_item_template", "index_template", and "index_processor" are mutually exclusive, please pick only one|}
+      Printf.ksprintf index_view_error "index view does not specify any index rendering options. \
+        Please specify one of: index_item_template, index_template, index_processor, \
+          file (for an external Lua script), or lua_source"
+    | _ -> index_view_error "options index_item_template, index_template, and index_processor \
+       are mutually exclusive, please pick only one"
   in
   let selector = OH.find_string st ["index_selector"] in
   let () = check_selector index_view_error "index_selector" selector in
