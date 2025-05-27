@@ -1,6 +1,7 @@
 soupault
 ========
 
+![maintenance-status](https://img.shields.io/badge/maintenance-actively--developed-brightgreen.svg)
 ![Build](https://github.com/PataphysicalSociety/soupault/actions/workflows/main.yml/badge.svg)
 ![GitHub all releases](https://img.shields.io/github/downloads/PataphysicalSociety/soupault/total)
 
