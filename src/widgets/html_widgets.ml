@@ -81,7 +81,7 @@ let wrap _ config _ page =
 (* Renders a template using attributes and content of an element
    and replaces the original element with the rendered template.
  *)
-let element_template _ config _ page =
+let element_template state config _ page =
   let transform_element content_key template elem =
     (* Create an environment with element attributes and content. *)
     let attrs = Soup.fold_attributes
@@ -90,6 +90,15 @@ let element_template _ config _ page =
     let inner_html = Html_utils.inner_html elem in
     (* The content key is configurable. *)
     let env = (content_key, Jingoo.Jg_types.box_string inner_html) :: attrs in
+    (* Include the site index in the template environment *)
+    let env = ("site_index", (state.site_index |> Utils.json_of_index_entries |> Template.jingoo_of_json)) :: env in
+    (* Include the entry for the current page. *)
+    let env =
+      let entry = List.find_opt (fun e -> e.index_entry_page_file = page.page_file) state.site_index in
+      (match entry with
+       | Some e -> ("index_entry", (e |> Utils.json_of_index_entry |> Template.jingoo_of_json)) :: env
+       | None -> env)
+    in
     let res = Template.render template env in
     let new_soup = Soup.parse res in
     Soup.replace elem new_soup
