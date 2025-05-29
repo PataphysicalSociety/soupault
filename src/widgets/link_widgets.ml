@@ -275,7 +275,7 @@ let absolutize_link_target state page prefix check_file only_regex exclude_regex
    String.concat "/" [parent_path; target]
 
 (** Converts all internal links to relative according to the page's location in the directory tree. *)
-let relative_links state config _ page =
+let relative_links state config page =
   let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options ["exclude_target_regex"; "only_target_regex"; "check_file"] in
   let () = Config.check_options valid_options config {|widget "relative_links"|} in
@@ -297,7 +297,7 @@ let relative_links state config _ page =
   end
 
 (** Converts all internal links to absolute. *)
-let absolute_links state config _ page =
+let absolute_links state config page =
   let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]

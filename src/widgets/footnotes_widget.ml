@@ -104,7 +104,7 @@ let rec move_footnotes link_class back_links ref_tmpl note_tmpl notes container 
     in move_footnotes link_class back_links ref_tmpl note_tmpl ns container append prepend num
 
 (** Footnotes widget wrapper *)
-let footnotes _ config _ page =
+let footnotes _ config page =
   let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options
     ["selector"; "footnote_selector"; "ref_template"; "footnote_template"; "footnote_link_class";

@@ -414,12 +414,11 @@ let make_page settings page =
 (* Widget processing *)
 let process_widgets state widget_list widget_hash page =
   let settings = state.soupault_settings in
-  let index = state.site_index in
   let process_widget state widget_hash page widget_name =
     let widget = Hashtbl.find widget_hash widget_name in
     if not (Widgets.widget_should_run settings widget_name widget page.page_file) then () else
     let () = Logs.info @@ fun m -> m {|Processing widget "%s" on page %s|} widget_name page.page_file in
-    try widget.func state widget.config index page
+    try widget.func state widget.config page
     with
     | Widget_error msg | Plugin_error msg ->
       soupault_error @@ Printf.sprintf "Failed to process widget %s on page %s: %s"

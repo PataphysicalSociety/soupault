@@ -1244,7 +1244,7 @@ let run_lua lua_state filename lua_code =
       | None -> ()
     end
 
-let run_plugin filename lua_code soupault_state widget_config index page =
+let run_plugin filename lua_code soupault_state widget_config page =
   let lua_str_list = I.Value.list I.Value.string in
   let lua_str = I.Value.string in
   let lua_state = I.mk () in
@@ -1258,7 +1258,7 @@ let run_plugin filename lua_code soupault_state widget_config index page =
       "page_url", lua_str.embed page.url;
       "target_dir", lua_str.embed page.target_dir;
       "target_file", lua_str.embed page.target_file;
-      "site_index", lua_of_json (Utils.json_of_index_entries index);
+      "site_index", lua_of_json (Utils.json_of_index_entries soupault_state.site_index);
       "config", lua_of_toml widget_config;
       "widget_config", lua_of_toml widget_config;
       "soupault_config", lua_of_toml soupault_state.soupault_config;

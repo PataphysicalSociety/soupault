@@ -6,7 +6,7 @@ exception Widget_error of string
 
 type 'a widget = {
   config: Otoml.t;
-  func: Common.state -> Otoml.t -> Common.index -> Common.page_data -> unit
+  func: Common.state -> Otoml.t -> Common.page_data -> unit
 }
 
 (* The widgets datastructure is a widget priority list plus a hash with actual widgets *)

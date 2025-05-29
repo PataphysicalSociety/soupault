@@ -29,7 +29,7 @@ let make_breadcrumbs nav_path bc_tmpl prepend append between =
   in
   bc_soup
 
-let breadcrumbs _ config _ page =
+let breadcrumbs _ config page =
   let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options
     ["selector"; "min_depth"; "append"; "prepend"; "between"; "breadcrumb_template"; "action"] in

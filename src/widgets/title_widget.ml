@@ -3,7 +3,7 @@ open Common
 let (let*) = Result.bind
 
 (* Title *)
-let set_title _ config _ page =
+let set_title _ config page =
   let soup = page.element_tree in
   let make_title_string default prepend append title_opt =
     (* If title is not given, return the default title

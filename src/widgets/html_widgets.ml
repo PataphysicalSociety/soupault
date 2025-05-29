@@ -5,7 +5,7 @@ module OH = Otoml.Helpers
 open Common
 
 (** Deletes an element from the tree *)
-let delete_element _ config _ page =
+let delete_element _ config page =
   let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options [
     "selector"; "only_if_empty"; "when_no_child"; "delete_all"
@@ -41,7 +41,7 @@ let delete_element _ config _ page =
     end
 
 (** Wraps elements matching certain selectors into an HTML snippet. *)
-let wrap _ config _ page =
+let wrap _ config page =
   let soup = page.element_tree in
   let wrap_elem s w e =
     let w_soup = Soup.parse w in
@@ -81,7 +81,7 @@ let wrap _ config _ page =
 (* Renders a template using attributes and content of an element
    and replaces the original element with the rendered template.
  *)
-let element_template state config _ page =
+let element_template state config page =
   let transform_element content_key template elem =
     (* Create an environment with element attributes and content. *)
     let attrs = Soup.fold_attributes

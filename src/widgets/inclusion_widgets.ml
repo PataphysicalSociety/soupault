@@ -56,7 +56,7 @@ let os_matches config =
 
 (** Inserts an HTML snippet from the [html] config option
     into the first element that matches the [selector] *)
-let insert_html state config _ page =
+let insert_html state config page =
   let soup = page.element_tree in
   let settings = state.soupault_settings in
   let valid_options =
@@ -85,7 +85,7 @@ let insert_html state config _ page =
 
 (* Reads a file specified in the [file] config option and inserts its content into the first element
    that matches the [selector] *)
-let include_file state config _ page =
+let include_file state config page =
   let soup = page.element_tree in
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options [
@@ -125,7 +125,7 @@ let make_program_env page =
   [| page_file; page_url; target_dir |]
 
 (** Runs the [command] and inserts it output into the element that matches that [selector] *)
-let include_program_output state config _ page =
+let include_program_output state config page =
   let soup = page.element_tree in
   let settings = state.soupault_settings in
   let valid_options = List.append Config.common_widget_options [
@@ -168,7 +168,7 @@ let make_node_env node =
 (** Runs the [command] using the text of the element that matches the
  * specified [selector] as stdin. Reads stdout and replaces the content
  * of the element.*)
-let preprocess_element state config _ page =
+let preprocess_element state config page =
   let soup = page.element_tree in
   let settings = state.soupault_settings in
   let run_command page command action parse html_context node =

@@ -157,7 +157,7 @@ let rec _make_toc settings depth counter parent tree =
     else Soup.append_child parent container;
     List.iter (_make_toc settings (depth + 1) counter container) children
 
-let toc _ config _ page =
+let toc _ config page =
   let soup = page.element_tree in
   let valid_options = List.append Config.common_widget_options [
     (* General options *)
