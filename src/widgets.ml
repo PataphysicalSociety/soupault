@@ -55,17 +55,11 @@ let add_widget hash name widget_func widget_config =
   let widget_rec = {config=widget_config; func=widget_func} in
   Hashtbl.add hash name widget_rec
 
-(* The underlying widget loading function.
-   It raises [Widget_error] to escape from the loading loop,
-   and thus shouldn't be used directly -- there's a result'y wrapper below it.
- *)
-let rec _load_widgets settings soupault_config plugins ws hash =
-  match ws with
-  | [] -> ()
-  | w :: ws' ->
-    let widget_config = get_widget_config soupault_config w in
+let load_widgets settings soupault_config plugins =
+  let load_widget settings soupault_config plugins hash widget_name =
+    let widget_config = get_widget_config soupault_config widget_name in
     let name = OH.find_string_opt widget_config ["widget"] in
-    let fail msg = raise @@ Widget_error (Printf.sprintf "Error in [widgets.%s]: %s" w msg) in
+    let fail msg = raise @@ Soupault_error (Printf.sprintf "Error in [widgets.%s]: %s" widget_name msg) in
     begin
       match name with
       | None -> fail {|missing required option widget="<some widget>"|}
@@ -95,25 +89,20 @@ let rec _load_widgets settings soupault_config plugins ws hash =
                   in
                   let () = Hashtbl.add plugins name (Plugin_api.run_plugin name lua_source) in
                   let () = Logs.debug @@ fun m -> m "Widget %s is loaded from plugin file %s" name plugin_file in
-                  let () = add_widget hash w (find_widget plugins name |> Option.get) widget_config in
-                   _load_widgets settings soupault_config plugins ws' hash
+                  add_widget hash widget_name (find_widget plugins name |> Option.get) widget_config
             end
           | Some wf ->
-            let () = add_widget hash w wf widget_config in
-            _load_widgets settings soupault_config plugins ws' hash
+            add_widget hash widget_name wf widget_config
         end
     end
-
-(* Result'y wrapper for _load_widgets *)
-let load_widgets settings soupault_config plugins =
+  in
   let () = Logs.info @@ fun m -> m "Mapping plugins to widgets" in
-  let ws = list_widgets soupault_config in
+  let widget_names = list_widgets soupault_config in
   let widgets_hash = Hashtbl.create 1024 in
-  try
-    let () = _load_widgets settings soupault_config plugins ws widgets_hash in
-    widgets_hash
-  with Widget_error msg ->
-    Printf.ksprintf soupault_error "Failed to load widgets: %s" msg
+  let () = List.iter
+    (load_widget settings soupault_config plugins widgets_hash) widget_names
+  in
+  widgets_hash
 
 (* Widget dependency handling functions. *)
 
