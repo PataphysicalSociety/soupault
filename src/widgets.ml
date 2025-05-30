@@ -2,8 +2,6 @@ open Common
 
 module OH = Otoml.Helpers
 
-exception Widget_error of string
-
 type 'a widget = {
   config: Otoml.t;
   func: Common.state -> Otoml.t -> Common.page_data -> unit
