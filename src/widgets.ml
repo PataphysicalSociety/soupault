@@ -7,9 +7,6 @@ type 'a widget = {
   func: Common.state -> Otoml.t -> Common.page_data -> unit
 }
 
-(* The widgets datastructure is a widget priority list plus a hash with actual widgets *)
-type 'a widgets = string list * (string, 'a widget) Hashtbl.t
-
 (* Quick and dirty widget lookup *)
 let find_widget plugins name =
   let plugin_w = Hashtbl.find_opt plugins name in
