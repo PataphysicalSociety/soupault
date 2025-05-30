@@ -10,11 +10,6 @@ type 'a widget = {
 (* The widgets datastructure is a widget priority list plus a hash with actual widgets *)
 type 'a widgets = string list * (string, 'a widget) Hashtbl.t
 
-
-(* Option monad *)
-let (>>=) = Option.bind
-
-
 (* Quick and dirty widget lookup *)
 let find_widget plugins name =
   let plugin_w = Hashtbl.find_opt plugins name in
@@ -44,10 +39,10 @@ let get_widget_config config widget =
    internal_error @@ Printf.sprintf "Trying to lookup a non-existent widget %s" widget
 
 let list_widgets config =
-  let ws = Config.find_table_opt ["widgets"] config >>= (fun x -> Some (Otoml.list_table_keys x)) in
-  match ws with
+  let res = Config.find_table_opt ["widgets"] config in
+  match res with
+  | Some wt -> Otoml.list_table_keys wt
   | None -> []
-  | Some ws' -> ws'
 
 let add_widget hash name widget_func widget_config =
   let widget_rec = {config=widget_config; func=widget_func} in
