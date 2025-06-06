@@ -1009,6 +1009,8 @@ struct
        "ends_with", V.efunc (V.string **-> V.string **->> V.bool) (fun s pat -> String.ends_with ~suffix:pat s);
        "is_valid_utf8", V.efunc (V.string **->> V.bool) Text.is_valid_utf8;
        "is_valid_ascii", V.efunc (V.string **->> V.bool) Text.is_valid_ascii;
+       "uppercase_ascii", V.efunc (V.string **->> V.string) String.uppercase_ascii;
+       "lowercase_ascii", V.efunc (V.string **->> V.string) String.lowercase_ascii;
      ] g;
 
     C.register_module "JSON" [
