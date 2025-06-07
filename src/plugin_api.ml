@@ -1011,6 +1011,8 @@ struct
        "is_valid_ascii", V.efunc (V.string **->> V.bool) Text.is_valid_ascii;
        "uppercase_ascii", V.efunc (V.string **->> V.string) String.uppercase_ascii;
        "lowercase_ascii", V.efunc (V.string **->> V.string) String.lowercase_ascii;
+       "capitalize_ascii", V.efunc (V.string **->> V.string) String.capitalize_ascii;
+       "uncapitalize_ascii", V.efunc (V.string **->> V.string) String.uncapitalize_ascii;
      ] g;
 
     C.register_module "JSON" [
