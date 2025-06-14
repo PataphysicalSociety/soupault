@@ -20,8 +20,10 @@ let json_of_string_opt s =
   | Some s -> `String s
 
 (* Extract index fields from a page using selectors from the index config. *)
-let get_fields strip_tags fields soup =
+let get_fields settings soup =
   let exception Missing_field of string in
+  let strip_tags = settings.index_strip_tags in
+  let fields = settings.index_fields in
   let get_content f elem =
     match f.extract_attribute with
     | None -> string_of_elem ~strip_tags:strip_tags elem
@@ -60,7 +62,7 @@ let get_fields strip_tags fields soup =
 
 (* Prepares a complete entry together with built-in meta-fields. *)
 let get_index_entry settings page =
-  let fields = get_fields settings.index_strip_tags settings.index_fields page.element_tree in
+  let fields = get_fields settings page.element_tree in
   match fields with
   | Ok fields ->
     {
