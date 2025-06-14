@@ -71,6 +71,9 @@ type index_field = {
      but the element has no such attribute. *)
   fallback_to_content : bool;
 
+  (* Strip HTML tags from the element content. *)
+  strip_field_tags : bool;
+
   (* Fail the build if any page doesn't have this field. *)
   required_field : bool;
 }

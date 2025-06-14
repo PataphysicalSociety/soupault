@@ -204,6 +204,7 @@ let get_index_queries index_table =
     let default_value = OH.find_string_opt it [k; "default"] in
     let extract_attribute = OH.find_string_opt it [k; "extract_attribute"] in
     let content_fallback = find_bool_or ~default:false it [k; "fallback_to_content"] in
+    let strip_tags = find_bool_or ~default:false it [k; "strip_tags"] in
     let select_all = find_bool_or ~default:false it [k; "select_all"] in
     let required = find_bool_or ~default:false it [k; "required"] in
     let () =
@@ -221,6 +222,7 @@ let get_index_queries index_table =
         default_field_value = default_value;
         extract_attribute = extract_attribute;
         fallback_to_content = content_fallback;
+        strip_field_tags = strip_tags;
         required_field = required;
       })
   in

@@ -26,7 +26,7 @@ let get_fields settings soup =
   let fields = settings.index_fields in
   let get_content f elem =
     match f.extract_attribute with
-    | None -> string_of_elem ~strip_tags:strip_tags elem
+    | None -> string_of_elem ~strip_tags:(strip_tags || f.strip_field_tags) elem
     | Some attr -> begin
       match (Soup.attribute attr elem) with
       | Some _ as a -> a
