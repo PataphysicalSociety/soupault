@@ -1,3 +1,29 @@
+# 5.1.0 (2025-06-17)
+
+## New features
+
+* Target directories for page files are now guaranteed to exist when soupault starts processing widgets,
+  so that widgets can create new asset files in page directories.
+* Global data for Lua plugins is now reintroduced: the startup hook can add values to the `global_data` table
+  and all Lua plugins and hooks can retrieve them using the new `Plugin.get_global_data(name)` function.
+  Plugins and hooks cannot _modify_ the global data, so it doesn't create a consistency problem.
+* `site_index` and `index_entry` variables are now available in the template environment of the `element_template` widget.
+* New index field option `strip_tags` for people who want to strip HTML tags from particular index fields.
+
+### New Lua API functions
+
+There are now functions for case conversion. They only affect the case of ASCII characters,
+Unicode characters are ignored because handling their case requires knowing their language.
+
+* `String.lowercase_ascii(string)`
+* `String.uppercase_ascii(string)`
+* `String.capitalize_ascii(string)`
+* `String.uncapitalize_ascii(string)`
+
+## Behavior changes
+
+* Index extraction is now always enabled in generator mode. `index.index` option no longer has any effect.
+
 # 5.0.0 (2025-04-24)
 
 ## Removed features
