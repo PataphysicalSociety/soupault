@@ -18,7 +18,7 @@ type page_data = {
      For example, for [site/foo/bar/index.html], the navigation path is [foo]
      because including [bar] in it would make that page to have links to itself.
    *)
-  nav_path : string list;
+  nav_path: string list;
 
   (* Target dir before its possible modification by the pre-parse hook. *)
   orig_target_dir: string;
@@ -51,31 +51,31 @@ type path_options = {
 
 (* Index field extraction rule. *)
 type index_field = {
-  field_name : string;
+  field_name: string;
 
   (* CSS selectors for elements to extract data from. *)
-  field_selectors : string list;
+  field_selectors: string list;
 
   (* Select all matching elements into a list,
      rather than just the first one. *)
-  select_all : bool;
+  select_all: bool;
 
-  default_field_value : string option;
+  default_field_value: string option;
 
   (* By default, soupault extracts element content
      for the index field.
      This option allows to extract an attribute value instead. *)
-  extract_attribute : string option;
+  extract_attribute: string option;
 
   (* Extract element content if extract_attribute is set
      but the element has no such attribute. *)
-  fallback_to_content : bool;
+  fallback_to_content: bool;
 
   (* Strip HTML tags from the element content. *)
-  strip_field_tags : bool;
+  strip_field_tags: bool;
 
   (* Fail the build if any page doesn't have this field. *)
-  required_field : bool;
+  required_field: bool;
 }
 
 (* A (logic-capable) template. As of 5.x, soupault uses Jingoo
@@ -115,21 +115,21 @@ type sort_type =
 (* Index entry sort options. *)
 type sort_options = {
   (* Index field to use as the sort key. *)
-  sort_by : string option;
+  sort_by: string option;
 
   (* Sort type, the default is calendar. *)
-  sort_type : sort_type;
+  sort_type: sort_type;
 
   (* The default order is descending,
      because a lot of the time website indices are sorted by date,
      from newer to older.
    *)
-  sort_descending : bool;
+  sort_descending: bool;
 
   (* Fail the website build on sorting errors
      such as undefined fields.
    *)
-  sort_strict : bool;
+  sort_strict: bool;
 }
 
 (* An index view defined how to render an index.
@@ -138,20 +138,20 @@ type sort_options = {
    (e.g., recent entries and entries by category).
  *)
 type index_view = {
-  index_view_name : string;
-  index_selector : string;
-  index_action : string option;
-  index_processor : index_processor;
-  index_view_path_options : path_options;
-  index_view_sort_options : sort_options option;
-  max_items : int option;
+  index_view_name: string;
+  index_selector: string;
+  index_action: string option;
+  index_processor: index_processor;
+  index_view_path_options: path_options;
+  index_view_sort_options: sort_options option;
+  max_items: int option;
 }
 
 type index_entry = {
   index_entry_url: string;
   index_entry_page_file: string;
   index_entry_nav_path: string list;
-  fields : (string * Ezjsonm.value) list;
+  fields: (string * Ezjsonm.value) list;
 }
 
 type index = index_entry list
@@ -161,56 +161,56 @@ type index = index_entry list
    There can be multiple templates for different pages or sections.
  *)
 type page_template = {
-  template_name : string;
-  template_data : string;
-  template_path_options : path_options;
-  template_content_selector : string option;
-  template_content_action : string option;
+  template_name: string;
+  template_data: string;
+  template_path_options: path_options;
+  template_content_selector: string option;
+  template_content_action: string option;
 }
 
 (* Soupault configuration. *)
 type settings = {
   (* Show build progress. *)
-  verbose : bool;
+  verbose: bool;
 
   (* Show debug information. *)
-  debug : bool;
+  debug: bool;
 
   (* HTML doctype to insert in generated pages. *)
-  doctype : string;
+  doctype: string;
 
   (* Whether to keep the doctype if a page already has one. *)
-  keep_doctype : bool;
+  keep_doctype: bool;
 
   (* Where generated pages are saved. *)
-  build_dir : string;
+  build_dir: string;
 
   (* Where to look for page source files. *)
-  site_dir : string;
+  site_dir: string;
 
   (* Page source file to use for section index, without extension. *)
-  index_page : string;
+  index_page: string;
 
   (* Generated section index file name. *)
-  index_file : string;
+  index_file: string;
 
   (* Default HTML page template. *)
-  default_template : string;
+  default_template: string;
 
   (* Default template source string (not a file path). *)
-  default_template_source : string;
+  default_template_source: string;
 
   (* What to do with the content. *)
-  default_content_action : string;
+  default_content_action: string;
 
   (* Alternative templates for specific pages. *)
-  page_templates : page_template list;
+  page_templates: page_template list;
 
   (* Element where page content is inserted in the template. *)
-  default_content_selector : string;
+  default_content_selector: string;
 
   (* Use clean URLs if true (mirror the site dir structure exactly when false). *)
-  clean_urls : bool;
+  clean_urls: bool;
 
   (* Whether to add a trailing slash to clean URLs.
      Many web servers redirect https://example.com/foo to https://example.com/foo/
@@ -220,10 +220,10 @@ type settings = {
      Soupault now adds a trailing slash by default,
      but gives the user an option to disable that.
     *)
-  clean_url_trailing_slash : bool;
+  clean_url_trailing_slash: bool;
 
   (* What files to consider pages rather than assets. *)
-  page_extensions : string list;
+  page_extensions: string list;
 
   (* Extensions for files to be processed by the built-in Markdown parser.
      If an extension is in this list, the file is processed
@@ -234,10 +234,10 @@ type settings = {
      so that people can choose to use the built-in parser
      or an external preprocessor.
    *)
-  markdown_extensions : string list;
+  markdown_extensions: string list;
 
   (* Files to ignore completely. *)
-  ignore_extensions : string list;
+  ignore_extensions: string list;
   ignore_path_regexes: string list;
   ignore_directories: string list;
 
@@ -245,76 +245,76 @@ type settings = {
      That's for people who want to use Markdown etc. _without_ also using clean URLs,
      so that about.htm remains about.htm, but contact.md becomes contact.html
    *)
-  keep_extensions : string list;
+  keep_extensions: string list;
 
   (* Extension to use for pages whose content file extension is _not_ in the keep_extensions list.
      E.g. a user has site/index.md, and it becomes build/index.html,
      while site/about.html can stay build/about.html
    *) 
-  default_extension : string;
+  default_extension: string;
 
   (* HTML files considered complete pages rather than content files.
      Normally those that have an <html> element in them.
    *)
-  complete_page_selector : string;
+  complete_page_selector: string;
 
   (* If set to false, soupault doesn't use or require a page template,
      but treats everything as a complete page. *)
-  generator_mode : bool;
+  generator_mode: bool;
 
   (* Build "profiles" specified from the CLI with --profile
      E.g. "dev" or "production".
      Widgets can be restricted to specific profiles.
    *)
-  build_profiles : string list;
+  build_profiles: string list;
 
   (* Save site metadata to a JSON file. *)
-  dump_index_json : string option;
+  dump_index_json: string option;
 
   (* The content model.
      Starting from 2.0.0 soupault doesn't have a built-in content model,
      users need to explicitly configure metadata field names
      and extraction rules (CSS selectors and extraction options).
    *)
-  index_fields : index_field list;
+  index_fields: index_field list;
 
   (* Widgets may generate data useful as metadata.
      In that case metadata extraction should be scheduled after those widgets have run.
    *)
-  index_extract_after_widgets : string list;
+  index_extract_after_widgets: string list;
 
   (* Strip HTML tags from extracted metadata. *)
-  index_strip_tags : bool;
+  index_strip_tags: bool;
 
   (* Index views define different ways to present the metadata on site. *)
-  index_views : index_view list;
-  index_path_options : path_options;
-  index_profile : string option;
-  index_date_input_formats : string list;
-  index_force : string list;
+  index_views: index_view list;
+  index_path_options: path_options;
+  index_profile: string option;
+  index_date_input_formats: string list;
+  index_force: string list;
   index_leaf_file: string option;
 
-  index_sort_options : sort_options;
+  index_sort_options: sort_options;
 
   (* Page preprocessors convert other formats to HTML. *)
-  page_preprocessors : (string * string) list;
+  page_preprocessors: (string * string) list;
 
   (* Asset processors that manipulate static asset files. *)
-  asset_processors : (string * template) list;
+  asset_processors: (string * template) list;
 
-  plugin_dirs : string list;
+  plugin_dirs: string list;
   plugin_discovery: bool;
 
   caching: bool;
-  cache_dir : string;
+  cache_dir: string;
 
-  force : bool;
+  force: bool;
 
-  page_character_encoding : Markup.Encoding.t;
+  page_character_encoding: Markup.Encoding.t;
 
-  pretty_print_html : bool;
+  pretty_print_html: bool;
 
-  soupault_version : string option;
+  soupault_version: string option;
 }
 
 (* The global state of soupault as a whole. *)
@@ -490,4 +490,4 @@ let widget_error err = raise (Widget_error err)
 (* A hash table where the startup hook can insert data
    that other plugins and hooks can then read.
  *)
-let global_data : (string, Ezjsonm.value) Hashtbl.t = Hashtbl.create 1024
+let global_data: (string, Ezjsonm.value) Hashtbl.t = Hashtbl.create 1024
