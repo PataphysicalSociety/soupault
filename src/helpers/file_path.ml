@@ -39,6 +39,13 @@ let strip_extensions file =
   let (name, _) = split_file_name file in
   name
 
+(* Removes the last extension from a file name. Same as strip_extensions for 0 or 1 extensions. *)
+let strip_extension file =
+  let (name, extensions) = split_file_name file in
+  match (List.rev extensions) with
+  | [] | [_] -> name
+  | last :: remain -> String.concat "." (name :: List.rev remain)
+
 (* Checks if a file name has a certain extension in it.
    It doesn't have to be the last extension:
    [has_extension "tar" "file.tar.gz"] is true.
