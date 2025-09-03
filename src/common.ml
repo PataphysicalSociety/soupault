@@ -409,6 +409,26 @@ let default_settings = {
   soupault_version = None;
 }
 
+(* The widget data structure. *)
+type 'a widget = {
+  (* The config of the widget itself.
+     It is stored separately from the widget function
+     for debugging purposes
+     and to simplify calculating the processing order
+     (the ordering function can just take individual widget configs
+     from the widget hash
+     instead of extracting them from the global config.
+   *)
+  config: Otoml.t;
+
+  (* The widget function that takes the soupault state,
+     the widget condig, and the page data record.
+     Widget functions modify the element tree directly
+     and aren't expected to return any useful values.
+   *)
+  func: state -> Otoml.t -> page_data -> unit
+}
+
 (* Common exceptions and error helpers. *)
 
 (* Indicates an unrecoverable website processing error.

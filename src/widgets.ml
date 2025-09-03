@@ -2,11 +2,6 @@ open Common
 
 module OH = Otoml.Helpers
 
-type 'a widget = {
-  config: Otoml.t;
-  func: Common.state -> Otoml.t -> Common.page_data -> unit
-}
-
 (* Quick and dirty widget lookup *)
 let find_widget plugins name =
   let plugin_w = Hashtbl.find_opt plugins name in
