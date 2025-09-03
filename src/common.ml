@@ -410,7 +410,7 @@ let default_settings = {
 }
 
 (* The widget data structure. *)
-type 'a widget = {
+type widget = {
   (* The config of the widget itself.
      It is stored separately from the widget function
      for debugging purposes
