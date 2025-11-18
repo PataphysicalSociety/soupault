@@ -44,7 +44,7 @@ let strip_extension file =
   let (name, extensions) = split_file_name file in
   match (List.rev extensions) with
   | [] | [_] -> name
-  | last :: remain -> String.concat "." (name :: List.rev remain)
+  | _ :: exts -> String.concat "." (name :: List.rev exts)
 
 (* Checks if a file name has a certain extension in it.
    It doesn't have to be the last extension:
