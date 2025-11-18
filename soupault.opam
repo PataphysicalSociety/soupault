@@ -23,7 +23,7 @@ The website generator mode is optional, you can use it as post-processor for exi
 maintainer: "Daniil Baturin <daniil+opam@baturin.org>"
 authors: "Daniil Baturin <daniil+soupault@baturin.org>"
 license: "MIT"
-homepage: "https://www.soupault.app"
+homepage: "https://www.soupault.net"
 bug-reports: "https://github.com/PataphysicalSociety/soupault/issues"
 dev-repo: "git+https://github.com/PataphysicalSociety/soupault"
 x-maintenance-intent: ["(latest)"]

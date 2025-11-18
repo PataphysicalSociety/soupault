@@ -599,7 +599,7 @@ let default_cli_options = {
 let usage_msg = Printf.sprintf {|Usage: %s [OPTIONS]
 
 Soupault is a static site generator based on HTML element tree rewriting.
-Visit https://soupault.app/reference-manual/ for documentation.
+Visit https://soupault.net/reference-manual/ for documentation.
 
 To build your website, you can simply run %s without any arguments
 or specify --build explicitly if you insist.
@@ -898,7 +898,7 @@ let print_version () =
   Printf.printf "soupault %s\n\n" Version.version_string;
   print_endline "Copyright 2025 Daniil Baturin et al.";
   print_endline "soupault is free software distributed under the MIT license.";
-  print_endline "Visit https://www.soupault.app for news and documentation.";
+  print_endline "Visit https://www.soupault.net for news and documentation.";
   print_newline ();
   Printf.printf "Compiled with OCaml %s" Sys.ocaml_version;
   print_newline ()

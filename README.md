@@ -65,19 +65,19 @@ Extracted metadata can then be rendered and injected into pages:
 Soupault is...
 
 * Durable and easy to upgrade or roll back: it's available as a statically-linked binary with no dependencies.
-* Extensible: you can bring your own [page preprocessors](https://soupault.app/reference-manual/#page-preprocessors)
-  (e.g., Markdown to HTML convertors), define [asset processors](https://soupault.app/reference-manual/#asset-processing)
+* Extensible: you can bring your own [page preprocessors](https://soupault.net/reference-manual/#page-preprocessors)
+  (e.g., Markdown to HTML convertors), define [asset processors](https://soupault.net/reference-manual/#asset-processing)
   (e.g., a Sass/Less compiler, an image optimizer),
-  pipe HTML elements through [external programs](https://soupault.app/reference-manual/#preprocess-element-widget),
-  and load [Lua plugins](https://soupault.app/plugins/).
+  pipe HTML elements through [external programs](https://soupault.net/reference-manual/#preprocess-element-widget),
+  and load [Lua plugins](https://soupault.net/plugins/).
 * Flexible: most options are configurable, most built-in features can be reimplemented as Lua plugins,
-  and there are [page processing hooks](https://soupault.app/reference-manual/#page-processing-hooks).
+  and there are [page processing hooks](https://soupault.net/reference-manual/#page-processing-hooks).
 
 Soupault is named after [Philippe Soupault](https://en.wikipedia.org/wiki/Philippe_Soupault),
 a French dadaist and surrealist writer and poet,
 because it uses [lambdasoup](http://aantron.github.io/lambdasoup/) library to work with tag soups.
 
-Visit [soupault.app](https://www.soupault.app) for details.
+Visit [soupault.net](https://www.soupault.net) for details.
 
 For support and discussion, write a message to the [mailing list](https://lists.sr.ht/~dmbaturin/soupault).
 

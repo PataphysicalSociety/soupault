@@ -24,7 +24,7 @@ let default_page = "
 
 (* This part contains the default settings and it's used in more than one place in the code *)
 let make_default_config settings = Printf.sprintf {|
-# To learn about configuring soupault, visit https://www.soupault.app/reference-manual
+# To learn about configuring soupault, visit https://www.soupault.net/reference-manual
 
 [settings]
   # Soupault version that the config was written/generated for

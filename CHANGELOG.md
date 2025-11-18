@@ -595,7 +595,7 @@ To make working with tables simpler, I’ve added a high level few helpers funct
 * The built-in template processor is now Jingoo rather than Mustache.
 * The `breadcrumb_template` in the breadcrumbs widget options is now a Jingoo template.
 
-There is an [online config convertor](https://soupault.app/1-to-2) to simplify migration.
+There is an [online config convertor](https://soupault.net/1-to-2) to simplify migration.
 
 The reason for removing the built-in content model was that custom fields introduced in soupault ...
 were already more flexible than the old-built in fields: they had `extract_attribute` and `default_value` options.
