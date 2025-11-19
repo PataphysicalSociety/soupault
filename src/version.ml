@@ -3,7 +3,7 @@
 (* Current version -- updated for every release.
    The last component of the tuple is the suffix (if any), like "alpha1".
  *)
-let version : (int * int * int * string option) = (5, 1, 0, None)
+let version : (int * int * int * string option) = (5, 2, 0, None)
 
 (* Formats a version tuple into a version string. *)
 let version_to_string v =
