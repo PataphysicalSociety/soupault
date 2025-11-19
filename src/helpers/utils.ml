@@ -173,8 +173,8 @@ let load_plugin_code plugin_config default_filename ident =
   let source = Otoml.Helpers.find_string_opt plugin_config ["lua_source"] in
   match file, source with
   | None, None ->
-    Printf.ksprintf soupault_error {|Cannot load %s: its configuration does not specify\
-       either "file" or "lua_source"|} ident
+    Printf.ksprintf soupault_error "Cannot load %s: its configuration does not specify \
+       either \"file\" or \"lua_source\"" ident
   | Some _, Some _ ->
     Printf.ksprintf soupault_error "Cannot load %s: its configuration includes both \"file\" and \"lua_source\", \
       those options are mutually exclusive" ident
