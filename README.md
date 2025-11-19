@@ -109,9 +109,9 @@ To build static binaries, you need to install OCaml with musl runtime,
 then use the `static` Dune profile:
 
 ```
-# For OCaml 4.14.2, adjust for your desired version
-opam switch create 4.14.2-musl ocaml-variants.4.14.2+options ocaml-option-musl ocaml-option-static
-opam switch 4.14.2-musl
+# For OCaml 5.3.0, adjust for your desired version
+opam switch create 5.3.0-musl ocaml-variants.5.3.0+options ocaml-option-musl ocaml-option-static
+opam switch 5.3.0-musl
 
 # Build static binaries
 dune build --profile=static
