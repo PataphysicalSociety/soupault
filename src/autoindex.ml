@@ -195,7 +195,7 @@ let jingoo_model_of_entry e =
 let take_entries view entries =
   match view.max_items with
   | None -> entries
-  | Some n -> CCList.take n entries
+  | Some n -> List.take n entries
 
 (* Renders an index using a Jingoo template.
 

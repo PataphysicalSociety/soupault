@@ -512,7 +512,7 @@ struct
     (* Take up to N keys from a hash and move them to a new hash *)
     let hash_take hash limit =
       let keys = get_hash_keys hash in
-      let head_keys = CCList.take limit keys in
+      let head_keys = List.take limit keys in
       let new_hash = V.Luahash.create 100 in
       let () = List.iter (move_item hash new_hash) head_keys in
       new_hash
