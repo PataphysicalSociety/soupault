@@ -22,7 +22,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 5.3.0
+          ocaml-compiler: 5.4.0
 
       - name: Build soupault
         shell: pwsh
