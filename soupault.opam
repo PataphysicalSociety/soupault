@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "soupault"
-version: "5.2.0"
+version: "5.2.1"
 synopsis: "Static website generator based on HTML element tree rewriting"
 description: """
 A website generator that works with page element trees rather than text
