@@ -32,7 +32,7 @@ build: [
   ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
-  "ocaml" {>= "5.3.0"}
+  "ocaml" {>= "5.1.0"}
   "dune" {>= "2.0.0"}
   "containers" {>= "3.9"}
   "fileutils" {>= "0.6.3"}
