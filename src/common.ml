@@ -236,9 +236,15 @@ type settings = {
    *)
   markdown_extensions: string list;
 
-  (* Enables replacement of quotes, dashes, and other punctuation characters
+  (* Enables replacement of punctuation characters/character sequences like "---"
      with nicer-looking HTML entities. *)
   markdown_smart_punctuation: bool;
+
+  (* Individual smart punctuation settings. *)
+  markdown_smart_dashes: bool;
+  markdown_smart_quotes: bool;
+  markdown_smart_apostrophe: bool;
+  markdown_smart_ellipsis: bool;
 
   (* Files to ignore completely. *)
   ignore_extensions: string list;
@@ -333,6 +339,11 @@ type state = {
   soupault_config: Otoml.t;
 
   site_index: index_entry list;
+
+  (* A Markdown renderering function
+     prepared according to rendering settings in the config.
+   *)
+  render_markdown: string -> string;
 }
 
 (* Default values *)
@@ -375,6 +386,10 @@ let default_settings = {
   page_extensions = ["htm"; "html"];
   markdown_extensions = [];
   markdown_smart_punctuation = true;
+  markdown_smart_dashes = true;
+  markdown_smart_quotes = true;
+  markdown_smart_apostrophe = true;
+  markdown_smart_ellipsis = true;
   ignore_extensions = [];
   ignore_path_regexes = [];
   ignore_directories = [];
