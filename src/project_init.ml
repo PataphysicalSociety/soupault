@@ -59,6 +59,24 @@ let make_default_config settings = Printf.sprintf {|
   # that you want to be interpreted as Markdown files.
   markdown_extensions = ["md"]
 
+  # By default, Soupault uses "smart punctuation" when rendering Markdown
+  markdown_smart_punctuation = true
+
+  # You can disable individual punctuation substitutions
+  # if you only want some of them but not all
+
+  # Replace `` and '' with &ldquo; and &rdquo;
+  markdown_smart_quotes = true
+
+  # Replace ' with &rsquo;
+  markdown_smart_apostrophe = true
+
+  # Replace --- and -- with &mdash; and &ndash;
+  markdown_smart_dashes = true
+
+  # Replace "..." with &hellip;
+  markdown_smart_ellipsis = true
+
   # By default, soupault uses "clean URLs",
   # that is, $site_dir/page.html is converted to $build_dir/page/index.html
   # You can make it produce $build_dir/page.tml instead by changing this option to false
