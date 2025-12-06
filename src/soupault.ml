@@ -323,8 +323,14 @@ let load_html state hooks page_file =
   in
   let process_builtin_format settings file_name page_source =
     let ext = File_path.get_extension file_name in
-    if Utils.in_list ext settings.markdown_extensions
-    then Cmarkit.Doc.of_string ~strict:false page_source |> Cmarkit_html.of_doc ~safe:false
+    if Utils.in_list ext settings.markdown_extensions then
+      begin
+        let render_markdown =
+          if settings.markdown_smart_punctuation then Markdown.smart_punctuation_html_of_doc
+          else Cmarkit_html.of_doc ~backend_blocks:false
+        in
+        Cmarkit.Doc.of_string ~strict:false page_source |> render_markdown ~safe:false
+      end
     else page_source
   in
   let page_preprocessor = find_preprocessor settings settings.page_preprocessors page_file in

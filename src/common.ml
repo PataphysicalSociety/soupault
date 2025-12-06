@@ -236,6 +236,10 @@ type settings = {
    *)
   markdown_extensions: string list;
 
+  (* Enables replacement of quotes, dashes, and other punctuation characters
+     with nicer-looking HTML entities. *)
+  markdown_smart_punctuation: bool;
+
   (* Files to ignore completely. *)
   ignore_extensions: string list;
   ignore_path_regexes: string list;
@@ -370,6 +374,7 @@ let default_settings = {
   clean_url_trailing_slash = true;
   page_extensions = ["htm"; "html"];
   markdown_extensions = [];
+  markdown_smart_punctuation = true;
   ignore_extensions = [];
   ignore_path_regexes = [];
   ignore_directories = [];

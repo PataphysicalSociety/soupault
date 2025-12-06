@@ -443,7 +443,7 @@ let valid_settings = [
   "index_page"; "index_file";
   "clean_urls"; "clean_url_trailing_slash";
   "page_file_extensions"; "ignore_extensions"; "default_extension"; "keep_extensions";
-  "markdown_extensions";
+  "markdown_extensions"; "markdown_smart_punctuation";
   "ignore_path_regexes"; "ignore_directories";
   "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery";
@@ -490,6 +490,7 @@ let _update_settings settings config =
        clean_url_trailing_slash = find_bool_or ~default:settings.clean_url_trailing_slash st ["clean_url_trailing_slash"];
        page_extensions = find_strings_or ~default:settings.page_extensions st ["page_file_extensions"];
        markdown_extensions = find_strings_or ~default:settings.markdown_extensions st ["markdown_extensions"];
+       markdown_smart_punctuation = find_bool_or ~default:settings.markdown_smart_punctuation st ["markdown_smart_punctuation"];
        ignore_extensions = find_strings_or ~default:[] st ["ignore_extensions"];
        ignore_path_regexes = find_strings_or ~default:[] st ["ignore_path_regexes"];
        ignore_directories = find_strings_or ~default:[] st ["ignore_directories"];
