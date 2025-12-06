@@ -53,11 +53,15 @@ let make_default_config settings = Printf.sprintf {|
   # for converting them to HTML (see below).
   page_file_extensions = ["htm", "html"]
 
-  # Soupault has built-in support for CommonMark
+  # Soupault has built-in support for CommonMark with extensions.
   # If you use Markdown and want to use the built-in parser,
   # use this option to specify file extensions
   # that you want to be interpreted as Markdown files.
   markdown_extensions = ["md"]
+
+  # Soupault enables Markdown extensions such as tables, strike-through, etc.
+  # by default but you can disable them if you want and stick to strict CommonMark
+  markdown_strict_commonmark = false
 
   # By default, Soupault uses "smart punctuation" when rendering Markdown
   markdown_smart_punctuation = true

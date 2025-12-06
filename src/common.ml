@@ -236,6 +236,11 @@ type settings = {
    *)
   markdown_extensions: string list;
 
+  (* Adhere to the CommonMark standard or enable extensions
+     like tables, strike-through, etc.
+   *)
+  markdown_strict_commonmark: bool;
+
   (* Enables replacement of punctuation characters/character sequences like "---"
      with nicer-looking HTML entities. *)
   markdown_smart_punctuation: bool;
@@ -385,6 +390,7 @@ let default_settings = {
   clean_url_trailing_slash = true;
   page_extensions = ["htm"; "html"];
   markdown_extensions = [];
+  markdown_strict_commonmark = false;
   markdown_smart_punctuation = true;
   markdown_smart_dashes = true;
   markdown_smart_quotes = true;

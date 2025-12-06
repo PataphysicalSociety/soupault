@@ -112,6 +112,7 @@ let make_markdown_renderer settings =
     Cmarkit_renderer.doc_to_string r doc
   in
   let render_markdown source =
-    Cmarkit.Doc.of_string ~strict:false source |> smart_punctuation_html_of_doc ~safe:false
+    Cmarkit.Doc.of_string ~strict:settings.markdown_strict_commonmark source |>
+    smart_punctuation_html_of_doc ~safe:false
   in
   render_markdown

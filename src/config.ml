@@ -444,6 +444,7 @@ let valid_settings = [
   "clean_urls"; "clean_url_trailing_slash";
   "page_file_extensions"; "ignore_extensions"; "default_extension"; "keep_extensions";
   "markdown_extensions";
+  "markdown_strict_commonmark";
   "markdown_smart_punctuation";
   "markdown_smart_quotes"; "markdown_smart_apostrophe";
   "markdown_smart_dashes"; "markdown_smart_ellipsis";
@@ -493,6 +494,7 @@ let _update_settings settings config =
        clean_url_trailing_slash = find_bool_or ~default:settings.clean_url_trailing_slash st ["clean_url_trailing_slash"];
        page_extensions = find_strings_or ~default:settings.page_extensions st ["page_file_extensions"];
        markdown_extensions = find_strings_or ~default:settings.markdown_extensions st ["markdown_extensions"];
+       markdown_strict_commonmark = find_bool_or ~default:settings.markdown_strict_commonmark st ["markdown_strict_commonmark"];
        markdown_smart_punctuation = find_bool_or ~default:settings.markdown_smart_punctuation st ["markdown_smart_punctuation"];
        markdown_smart_dashes = find_bool_or ~default:settings.markdown_smart_dashes st ["markdown_smart_dashes"];
        markdown_smart_quotes = find_bool_or ~default:settings.markdown_smart_quotes st ["markdown_smart_quotes"];
