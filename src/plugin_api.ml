@@ -829,6 +829,13 @@ struct
       Utils.parse_date input_formats date_string >>=
       (fun d -> Some (Utils.format_date output_format d))
 
+    let format_timestamp timestamp output_format =
+      let d = ODate.Unix.From.seconds timestamp in
+      try
+        Utils.format_date output_format d
+      with Soupault_error msg ->
+        plugin_error @@ Printf.sprintf "Incorrect argument in Date.format_timestamp: %s" msg
+
     let to_timestamp date_string input_formats =
       let (>>=) = Stdlib.Option.bind in
       Utils.parse_date input_formats date_string >>=
@@ -1059,6 +1066,7 @@ struct
 
     C.register_module "Date" [
       "reformat", V.efunc (V.string **-> V.list V.string **-> V.string **->> V.option V.string) reformat_date;
+      "format_timestamp", V.efunc (V.int **-> V.string **->> V.string) format_timestamp;
       "to_timestamp", V.efunc (V.string **-> V.list V.string **->> V.option V.int) to_timestamp;
       "now_format", V.efunc (V.string **->> V.string) current_date;
       "now_timestamp", V.efunc (V.unit **->> V.int) (fun () -> ODate.Unix.now () |> ODate.Unix.To.seconds);
