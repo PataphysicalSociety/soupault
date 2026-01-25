@@ -116,3 +116,9 @@ let make_markdown_renderer settings =
     smart_punctuation_html_of_doc ~safe:false
   in
   render_markdown
+
+(* The Markdown renderer instance.
+   For simplicity, we create the default instance at compile time here,
+   which will be updated at runtime with settings from the config.
+ *)
+let render_markdown = ref @@ make_markdown_renderer Common.default_settings

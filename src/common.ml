@@ -344,11 +344,6 @@ type state = {
   soupault_config: Otoml.t;
 
   site_index: index_entry list;
-
-  (* A Markdown renderering function
-     prepared according to rendering settings in the config.
-   *)
-  render_markdown: string -> string;
 }
 
 (* Default values *)

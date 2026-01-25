@@ -324,7 +324,7 @@ let load_html state hooks page_file =
   let process_builtin_format settings file_name page_source =
     let ext = File_path.get_extension file_name in
     if Utils.in_list ext settings.markdown_extensions
-    then state.render_markdown page_source
+    then !Markdown.render_markdown page_source
     else page_source
   in
   let page_preprocessor = find_preprocessor settings settings.page_preprocessors page_file in
@@ -929,9 +929,10 @@ let main cli_options =
       soupault_settings = settings;
       soupault_config = config;
       site_index = [];
-      render_markdown = Markdown.make_markdown_renderer settings;
     }
     in
+    (* Update the global Markdown renderer instance with actual settings. *)
+    let () = Markdown.render_markdown := Markdown.make_markdown_renderer settings in
     (* Clear cache if --force is given, to make it a cold build. *)
     let () =
       if settings.force then begin
