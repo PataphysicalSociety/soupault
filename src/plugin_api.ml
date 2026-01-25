@@ -1023,6 +1023,7 @@ struct
        "to_float", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
        "to_number", V.efunc (V.string **->> V.option V.float) (fun s -> try Some (float_of_string s) with _ -> None);
        "render_template", V.efunc (V.string **-> V.value **->> V.string) render_template;
+       "render_markdown", V.efunc (V.string **->> V.string) !Markdown.render_markdown;
        "base64_encode", V.efunc (V.string **->> V.option V.string) base64_encode;
        "base64_decode", V.efunc (V.string **->> V.option V.string) base64_decode;
        "url_encode", V.efunc (V.string **-> V.option (V.list V.string) **->> V.string) url_encode;
