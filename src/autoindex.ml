@@ -209,7 +209,7 @@ let take_entries view entries =
    through [index_template, but the original [index_item_template] option remains
    for compatibility and because for some users it may be all they need.
  *)
-let render_index ?(item_template=true) soupault_config view template soup entries =
+let render_index ?(item_template=true) soupault_config view template soup page entries =
   let () = Logs.info @@ fun m -> m "Generating section index" in
   let entries = take_entries view entries in
   try
@@ -218,6 +218,11 @@ let render_index ?(item_template=true) soupault_config view template soup entrie
         List.map (fun e -> jingoo_model_of_entry e |> Template.render template |> Soup.parse) entries
       else
         let env = [
+          "page_file", Template.jingoo_of_json @@ `String page.page_file;
+          "target_dir", Template.jingoo_of_json @@ `String page.target_dir;
+          "target_file", Template.jingoo_of_json @@ `String page.target_file;
+          "url", Template.jingoo_of_json @@ `String page.url;
+          "nav_path", Template.jingoo_of_json @@ `A (List.map (fun s -> `String s) page.nav_path);
           "soupault_config", Template.jingoo_of_toml soupault_config;
           "entries", Template.jingoo_of_json (json_of_entries entries)
         ]
@@ -304,9 +309,9 @@ let insert_index state page view =
       let index = sort_entries settings (get_sort_options settings view) index in
       match view.index_processor with
       | Common.IndexItemTemplate tmpl ->
-        let () = render_index soupault_config view tmpl ic index in []
+        let () = render_index soupault_config view tmpl ic page index in []
       | Common.IndexTemplate tmpl ->
-        let () = render_index ~item_template:false soupault_config view tmpl ic index in []
+        let () = render_index ~item_template:false soupault_config view tmpl ic page index in []
       | Common.ExternalIndexer cmd ->
         let () = run_index_processor view cmd ic index in []
       | Common.LuaIndexer (file_name, lua_code) ->
