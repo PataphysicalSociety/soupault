@@ -222,6 +222,9 @@ type settings = {
     *)
   clean_url_trailing_slash: bool;
 
+  (* Pages excluded from clean URLs *)
+  clean_url_exclude_regexes: string list;
+
   (* What files to consider pages rather than assets. *)
   page_extensions: string list;
 
@@ -383,6 +386,7 @@ let default_settings = {
   default_content_selector = "body";
   clean_urls = true;
   clean_url_trailing_slash = true;
+  clean_url_exclude_regexes = [];
   page_extensions = ["htm"; "html"];
   markdown_extensions = [];
   markdown_strict_commonmark = false;

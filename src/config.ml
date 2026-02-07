@@ -441,7 +441,7 @@ let valid_settings = [
   "default_content_selector"; "default_template_file"; "default_content_action"; 
   "doctype"; "keep_doctype";
   "index_page"; "index_file";
-  "clean_urls"; "clean_url_trailing_slash";
+  "clean_urls"; "clean_url_trailing_slash"; "clean_urls_exclude_regexes";
   "page_file_extensions"; "ignore_extensions"; "default_extension"; "keep_extensions";
   "markdown_extensions";
   "markdown_strict_commonmark";
@@ -492,6 +492,7 @@ let _update_settings settings config =
        default_content_action = find_string_or ~default:settings.default_content_action st ["default_content_action"];
        clean_urls = find_bool_or ~default:settings.clean_urls st ["clean_urls"];
        clean_url_trailing_slash = find_bool_or ~default:settings.clean_url_trailing_slash st ["clean_url_trailing_slash"];
+       clean_url_exclude_regexes = find_strings_or ~default:[] st ["clean_urls_exclude_regexes"];
        page_extensions = find_strings_or ~default:settings.page_extensions st ["page_file_extensions"];
        markdown_extensions = find_strings_or ~default:settings.markdown_extensions st ["markdown_extensions"];
        markdown_strict_commonmark = find_bool_or ~default:settings.markdown_strict_commonmark st ["markdown_strict_commonmark"];

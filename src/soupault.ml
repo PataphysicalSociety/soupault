@@ -151,19 +151,9 @@ let fix_nav_path settings path page_name =
   if page_name = settings.index_page then Utils.drop_tail path
   else path
 
-(* Produces a target directory name for the page.
-
-   If clean URLs are used, then a subdirectory matching the page name
-   should be created inside the section directory, unless the page is
-   a section index page.
-   E.g. "site/foo.html" becomes "build/foo/index.html" to provide
-   a clean URL.
-
-   If clean URLs are not used, only section dirs are created.
- *)
-let make_page_dir_name settings target_dir page_name =
-  if (page_name = settings.index_page) || (not settings.clean_urls) then target_dir
-  else FilePath.concat target_dir page_name
+let use_clean_url settings page_file =
+  if not settings.clean_urls then false
+  else not @@ List.exists (Path_options.regex_matches page_file) settings.clean_url_exclude_regexes
 
 (*  Generates page file name.
 
@@ -179,7 +169,7 @@ let make_page_dir_name settings target_dir page_name =
     In short, that's what Jekyll et al. always did to non-blog pages.
  *)
 let make_page_file_path settings page_file target_dir =
-  if settings.clean_urls then (FilePath.concat target_dir settings.index_file) else
+  if use_clean_url settings page_file then (FilePath.concat target_dir settings.index_file) else
   let page_file = FilePath.basename page_file in
   let extension = File_path.get_extension page_file in
   let page_file =
@@ -191,7 +181,7 @@ let make_page_file_path settings page_file target_dir =
 let make_page_url settings nav_path orig_path target_dir page_file =
   let orig_page_file_name = FilePath.basename page_file in
   let target_page =
-    if settings.clean_urls then
+    if use_clean_url settings page_file then
       begin
         let url = target_dir |> FilePath.basename in
         if settings.clean_url_trailing_slash then url ^ "/" else url
@@ -217,9 +207,23 @@ let make_page_data state hooks page_file element_tree =
    *)
   let settings = state.soupault_settings in
   let nav_path = fix_nav_path settings orig_nav_path page_name in
-  let orig_target_dir = make_page_dir_name settings (File_path.concat_path orig_nav_path) page_name |>
-    FilePath.concat settings.build_dir
+  (* Generate the target directory name for the page.
+
+     If clean URLs are used, then a subdirectory matching the page name
+     should be created inside the section directory, unless the page is
+     a section index page.
+     E.g., "site/foo.html" becomes "build/foo/index.html" to provide
+     a clean URL.
+
+   If clean URLs are not used, only section dirs are created.
+  *)
+  let orig_target_dir_base = File_path.concat_path orig_nav_path in
+  let orig_target_dir_base =
+    if (page_name = settings.index_page) || (not @@ use_clean_url settings page_file)
+    then orig_target_dir_base
+    else FilePath.concat orig_target_dir_base page_name
   in
+  let orig_target_dir = FilePath.concat settings.build_dir orig_target_dir_base in
   let orig_target_file = make_page_file_path settings page_file orig_target_dir in
   (* Run the pre-process hook -- it may modify the target dir and the target file,
      in addition to the element tree.
