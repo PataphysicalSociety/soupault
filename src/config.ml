@@ -448,6 +448,7 @@ let valid_settings = [
   "markdown_smart_punctuation";
   "markdown_smart_quotes"; "markdown_smart_apostrophe";
   "markdown_smart_dashes"; "markdown_smart_ellipsis";
+  "markdown_math_delimiters_html";
   "ignore_path_regexes"; "ignore_directories";
   "complete_page_selector"; "generator_mode";
   "plugin_dirs"; "plugin_discovery";
@@ -501,6 +502,7 @@ let _update_settings settings config =
        markdown_smart_quotes = find_bool_or ~default:settings.markdown_smart_quotes st ["markdown_smart_quotes"];
        markdown_smart_apostrophe = find_bool_or ~default:settings.markdown_smart_apostrophe st ["markdown_smart_apostrophe"];
        markdown_smart_ellipsis = find_bool_or ~default:settings.markdown_smart_ellipsis st ["markdown_smart_ellipsis"];
+       markdown_math_delimiters_html = find_bool_or ~default:settings.markdown_math_delimiters_html st ["markdown_math_delimiters_html"];
        ignore_extensions = find_strings_or ~default:[] st ["ignore_extensions"];
        ignore_path_regexes = find_strings_or ~default:[] st ["ignore_path_regexes"];
        ignore_directories = find_strings_or ~default:[] st ["ignore_directories"];
@@ -605,6 +607,7 @@ let inject_options settings config =
       inject_option ["settings"; "clean_urls"] (boolean settings.clean_urls) |>
       inject_option ["settings"; "page_file_extensions"] (array @@ List.map string settings.page_extensions) |>
       inject_option ["settings"; "markdown_extensions"] (array @@ List.map string settings.markdown_extensions) |>
+      inject_option ["settings"; "markdown_math_delimiters_html"] (boolean settings.markdown_math_delimiters_html) |>
       inject_option ["settings"; "ignore_extensions"] (array []) |>
       inject_option ["settings"; "ignore_path_regexes"] (array []) |>
       inject_option ["settings"; "ignore_directories"] (array []) |>

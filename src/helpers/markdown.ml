@@ -9,6 +9,8 @@
 
 open Common
 
+module CCtx = Cmarkit_renderer.Context
+
 (* "Smart punctuation" substitution maps *)
 
 (* Quotes and similar characters *)
@@ -75,8 +77,14 @@ let make_substitution_map settings =
 
 type Cmarkit.Block.t += Doc of Cmarkit.Doc.t
 
-let make_markdown_renderer settings =
-  let inline substitutions ctx node =
+let smart_punctuation_renderer settings =
+  (* Prepare the substitution map *)
+  let substitution_map = make_substitution_map settings in
+  (* Pre-compile regexes to avoid wasting CPU time on that
+     every time the Markdown rendering function is called
+   *)
+  let substitutions = compile_substitutions substitution_map in
+  let inline ctx node =
     match node with
     | Cmarkit.Inline.Text (t, _) ->
       (* Handle text nodes.
@@ -90,6 +98,9 @@ let make_markdown_renderer settings =
       (* Let the default rendered handle everything else *)
       false
   in
+  Cmarkit_renderer.make ~inline ()
+
+let doc_block_renderer () =
   let block ctx node =
     match node with
     | Doc d ->
@@ -99,21 +110,65 @@ let make_markdown_renderer settings =
       (* Let the default HTML renderer handle everything else *)
       false
   in
-  (* Prepare the substitution map *)
-  let substitution_map = make_substitution_map settings in
-  (* Pre-compile regexes to avoid wasting CPU time on that
-     every time the Markdown rendering function is called
-   *)
-  let substitutions = compile_substitutions substitution_map in
-  let smart_punctuation_html = Cmarkit_renderer.make ~inline:(inline substitutions) ~block () in
-  let smart_punctuation_html_of_doc ~safe doc =
+  Cmarkit_renderer.make ~block ()
+
+let math_renderer () =
+  let math_span c ms =
+    let tex_line c l = Cmarkit_html.html_escaped_string c (Cmarkit.Block_line.tight_to_string l) in
+    let tex_lines c = function (* newlines only between lines *)
+    | [] -> () | l :: ls ->
+        let line c l = CCtx.byte c '\n'; tex_line c l in
+        tex_line c l; List.iter (line c) ls
+    in
+    let tex = Cmarkit.Inline.Math_span.tex_layout ms in
+    if tex = [] then () else
+    (CCtx.string c (if Cmarkit.Inline.Math_span.display ms then "<span class=\"math-display\">" else "<span class=\"math-inline\">");
+    tex_lines c tex;
+    CCtx.string c "</span>")
+  in
+  let inline ctx node =
+    match node with
+    | Cmarkit.Inline.Ext_math_span (ms, _) -> math_span ctx ms; true
+    | _ -> 
+      (* Let the default HTML renderer handle everything else *)
+      false
+  in
+  let math_block ctx node =
+    let line l = Cmarkit_html.html_escaped_string ctx (Cmarkit.Block_line.to_string l); CCtx.byte ctx '\n' in
+    CCtx.string ctx "<div class=\"math-display\">";
+    List.iter line (Cmarkit.Block.Code_block.code node);
+    CCtx.string ctx "</div>"
+  in
+  let block ctx node =
+    match node with
+    | Cmarkit.Block.Ext_math_block (node, _) -> math_block ctx node; true
+    | _ -> 
+      (* Let the default HTML renderer handle everything else *)
+      false
+  in
+  Cmarkit_renderer.make ~inline ~block ()
+
+let make_markdown_renderer settings =
+  let punct = smart_punctuation_renderer settings in
+  let docb = doc_block_renderer () in
+  let math = math_renderer () in
+  let html_renderer ~safe doc =
     let default = Cmarkit_html.renderer ~safe () in
-    let r = Cmarkit_renderer.compose default smart_punctuation_html in
+    let r =
+      default
+      |> fun d -> Cmarkit_renderer.compose d punct
+      |> fun d -> Cmarkit_renderer.compose d docb
+      |> fun d ->
+        if settings.markdown_math_delimiters_html then
+          Cmarkit_renderer.compose d math
+        else
+          d
+    in
     Cmarkit_renderer.doc_to_string r doc
   in
   let render_markdown source =
     Cmarkit.Doc.of_string ~strict:settings.markdown_strict_commonmark source |>
-    smart_punctuation_html_of_doc ~safe:false
+    html_renderer ~safe:false
   in
   render_markdown
 

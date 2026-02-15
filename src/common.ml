@@ -254,6 +254,9 @@ type settings = {
   markdown_smart_apostrophe: bool;
   markdown_smart_ellipsis: bool;
 
+  (* Render math delimiters in the default CMarkit way or as html *)
+  markdown_math_delimiters_html: bool;
+
   (* Files to ignore completely. *)
   ignore_extensions: string list;
   ignore_path_regexes: string list;
@@ -395,6 +398,7 @@ let default_settings = {
   markdown_smart_quotes = true;
   markdown_smart_apostrophe = true;
   markdown_smart_ellipsis = true;
+  markdown_math_delimiters_html = false;
   ignore_extensions = [];
   ignore_path_regexes = [];
   ignore_directories = [];
