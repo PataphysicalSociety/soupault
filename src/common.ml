@@ -254,7 +254,7 @@ type settings = {
   markdown_smart_apostrophe: bool;
   markdown_smart_ellipsis: bool;
 
-  (* Render math delimiters in the default CMarkit way or as html *)
+  (* Render math delimiters in the default CMarkit way or as HTML *)
   markdown_math_delimiters_html: bool;
 
   (* Files to ignore completely. *)

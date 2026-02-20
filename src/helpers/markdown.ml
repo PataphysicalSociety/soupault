@@ -121,8 +121,11 @@ let math_renderer () =
         tex_line c l; List.iter (line c) ls
     in
     let tex = Cmarkit.Inline.Math_span.tex_layout ms in
-    if tex = [] then () else
-    (CCtx.string c (if Cmarkit.Inline.Math_span.display ms then "<span class=\"math-display\">" else "<span class=\"math-inline\">");
+    if tex = [] then ()
+    else (CCtx.string c
+      (if Cmarkit.Inline.Math_span.display ms
+       then "<span class=\"math-display\">"
+       else "<span class=\"math-inline\">");
     tex_lines c tex;
     CCtx.string c "</span>")
   in
@@ -155,14 +158,15 @@ let make_markdown_renderer settings =
   let html_renderer ~safe doc =
     let default = Cmarkit_html.renderer ~safe () in
     let r =
-      default
-      |> fun d -> Cmarkit_renderer.compose d punct
-      |> fun d -> Cmarkit_renderer.compose d docb
-      |> fun d ->
-        if settings.markdown_math_delimiters_html then
-          Cmarkit_renderer.compose d math
-        else
-          d
+      default |>
+      fun d -> Cmarkit_renderer.compose d punct |>
+      fun d -> Cmarkit_renderer.compose d docb |>
+      fun d ->
+        begin
+          if settings.markdown_math_delimiters_html
+          then Cmarkit_renderer.compose d math
+          else d
+        end
     in
     Cmarkit_renderer.doc_to_string r doc
   in

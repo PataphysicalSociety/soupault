@@ -82,8 +82,9 @@ let make_default_config settings = Printf.sprintf {|
   markdown_smart_ellipsis = true
 
   # When using built-in support for CommonMark, by default Soupault will render math
-  # delimiters as `\[ \]` and `\( \)`. Instead you can let Soupault render them as
-  # html (span.math-inline, span.math-display or div.math-display)
+  # delimiters as `\[ \]` and `\( \)`,
+  # Instead you can tell Soupault to render them as HTML
+  # (span.math-inline, span.math-display or div.math-display)
   markdown_math_delimiters_html = false
 
   # By default, soupault uses "clean URLs",
