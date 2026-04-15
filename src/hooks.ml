@@ -376,6 +376,7 @@ let run_startup_hook soupault_state hooks =
         "soupault_config", lua_of_toml soupault_state.soupault_config;
         "force", I.Value.bool.embed settings.force;
         "site_dir", lua_str.embed settings.site_dir;
+        "global_data", I.Value.table.embed @@ I.Value.Luahash.create 1024;
       ] lua_state
     in
     let () = Logs.info @@ fun m -> m "Running the startup hook" in
