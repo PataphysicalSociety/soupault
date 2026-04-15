@@ -18,6 +18,17 @@ let find_widget plugins name =
   | None, Some b -> Some b
   | _ -> None
 
+(* Widget name suggestion, if the name is not found *)
+let get_widget_suggestion plugins name =
+  let plugin_names = Hashtbl.fold (fun name _ acc -> name :: acc) plugins [] in
+  let builtin_names = List.map (fun (name, _) -> name) Builtin_widgets.widgets in
+  let names = plugin_names @ builtin_names in
+  let index = Spellcheck.make_index names in
+  let suggestion = Spellcheck.get_suggestion index name in
+  match suggestion with
+  | Some s -> Printf.sprintf {|Did you mean "%s"?|} s
+  | None -> ""
+
 (* Widget config loading *)
 let get_widget_config config widget =
   let widget_tbl = Config.find_table_opt ["widgets"; widget] config in
@@ -57,7 +68,8 @@ let load_widgets settings soupault_config plugins =
             begin
               if not settings.plugin_discovery then
                 let () = Logs.warn @@ fun m -> m {|Plugin discovery is disabled, not attempting to find a plugin that implements widget "%s"|} name in
-                fail @@ Printf.sprintf {|unknown widget "%s"|} name
+                let suggestion = get_widget_suggestion plugins name in
+                fail @@ Printf.sprintf {|unknown widget "%s". %s|} name suggestion
               else
                 let file_name = Printf.sprintf "%s.lua" name in
                 let file_path = Plugins.lookup_plugin_file settings.plugin_dirs file_name in
@@ -65,7 +77,8 @@ let load_widgets settings soupault_config plugins =
                 | None ->
                   let dirs_str = String.concat ", " settings.plugin_dirs in
                   let () = Logs.err @@ fun m -> m "Failed to find plugin file %s in directories [%s]" file_name dirs_str in
-                  fail @@ Printf.sprintf {|widget "%s" is not a soupault built-in and is not provided by any available plugin|} name
+                  let suggestion = get_widget_suggestion plugins name in
+                  fail @@ Printf.sprintf {|widget "%s" is not a soupault built-in and is not provided by any available plugin. %s|} name suggestion
                 | Some plugin_file ->
                   let lua_source =
                     try Soup.read_file plugin_file
