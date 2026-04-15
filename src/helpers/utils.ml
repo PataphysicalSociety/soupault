@@ -179,8 +179,10 @@ let load_plugin_code plugin_config default_filename ident =
     Printf.ksprintf soupault_error "Cannot load %s: its configuration includes both \"file\" and \"lua_source\", \
       those options are mutually exclusive" ident
   | None, Some source ->
+    let () = Logs.debug @@ fun m -> m "Loading %s from inline Lua source" ident in
     (default_filename, source)
   | Some file, None ->
+    let () = Logs.debug @@ fun m -> m "Loading %s from file %s" ident file in
     try
       let source = Soup.read_file file in
       (file, source)
