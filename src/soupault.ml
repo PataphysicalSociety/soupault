@@ -197,11 +197,20 @@ let make_page_url settings nav_path orig_path target_dir page_file =
 
 (* Assembles a page data structure. *)
 let make_page_data state hooks page_file element_tree =
+  (* Since site_dir can be arbitrary, we need a way to get the page file path
+     relative to site_dir.
+     Since we split the page path to reassemble it later,
+     the most obvious solution is to find how long the site_dir path is
+     and drop that number of items from the page path.
+     There may be smarter solutions with fewer repeated useless operations
+     but this should do for now.
+   *)
+  let site_dir_length = File_path.split_path state.soupault_settings.site_dir |> List.length in
   let page_name = FilePath.basename page_file |> FilePath.chop_extension in
   (* The "navigation path" of a page is a list of its parent dirs
-     excluding site_dir — e.g., ["pets", "cats"] for "site/pets/cats/fluffy.html"
+     after site_dir, e.g., ["pets", "cats"] for "site/pets/cats/fluffy.html"
    *)
-  let orig_nav_path = FilePath.dirname page_file |> File_path.split_path |> CCList.drop 1 in
+  let orig_nav_path = FilePath.dirname page_file |> File_path.split_path |> CCList.drop site_dir_length in
   (* With a caveat — see above in [fix_nav_path].
      We need to avoid index pages referring to themselves.
    *)
