@@ -25,15 +25,26 @@ jobs:
         with:
           ocaml-compiler: 5.4.0
 
-      - name: Build soupault
+      - name: Build soupault executable
         run: |
           opam install . --deps-only --with-test --yes
           opam exec -- dune build
           opam exec -- dune runtest
 
-      - name: Upload the executable
-        uses: actions/upload-artifact@v4
+      - name: Build release tarball
+        run: |
+          export RELEASE_DIR=soupault-$(_build/default/src/soupault.exe --version | head -n 1 | cut -d ' ' -f 2)-macos-$(uname -m)
+          mkdir $RELEASE_DIR
+          cp _build/default/src/soupault.exe $RELEASE_DIR/soupault
+          cp LICENSE $RELEASE_DIR/
+          cp README.md $RELEASE_DIR/
+          cp CHANGELOG.md $RELEASE_DIR/
+          tar cvfz $RELEASE_DIR.tar.gz $RELEASE_DIR
+          echo "RELEASE_TARBALL=$RELEASE_DIR.tar.gz" >> $GITHUB_ENV
+
+      - name: Upload the release tarball
+        uses: actions/upload-artifact@v7
         with:
-          name: soupault
-          path: _build/default/src/soupault.exe
+          path: ${{env.RELEASE_TARBALL}}
+          archive: false
           if-no-files-found: error
