@@ -92,6 +92,10 @@ let make_default_config settings = Printf.sprintf {|
   # You can make it produce $build_dir/page.html instead by changing this option to false
   clean_urls = true
 
+  # You can specify the base URL for links in automatically generated indices,
+  # or leave it empty if you prefer links relative to the site root like "/about"
+  #site_url = "https://www.example.com"
+
   # If you set clean_urls=false,
   # file names with ".html" and ".htm" extensions are left unchanged.
   keep_extensions = ["html", "htm"]

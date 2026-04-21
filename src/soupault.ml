@@ -193,7 +193,11 @@ let make_page_url settings nav_path orig_path target_dir page_file =
     else (List.append nav_path [target_page])
   in
   (* URL path should be absolute *)
-  String.concat "/" path |> Printf.sprintf "/%s"
+  let url = String.concat "/" path |> Printf.sprintf "/%s" in
+  (* Add base URL, if it's defined in the config *)
+  match settings.site_url with
+  | None -> url
+  | Some base_url -> base_url ^ url
 
 (* Assembles a page data structure. *)
 let make_page_data state hooks page_file element_tree =

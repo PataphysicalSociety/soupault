@@ -303,7 +303,23 @@ let absolute_links state config page =
     ["exclude_target_regex"; "only_target_regex"; "check_file"; "prefix"]
   in
   let () = Config.check_options valid_options config {|widget "absolute_links"|} in
-  let prefix = Config.find_string config ["prefix"] in
+  let prefix = Otoml.Helpers.find_string_opt config ["prefix"] in
+  let prefix =
+    begin match prefix, state.soupault_settings.site_url with
+    | Some p, _ ->
+      (* If prefix is defined in the widget config,
+         it takes over the global site_url *)
+      p
+    | None, Some u ->
+      (* Fall back to the global site_url
+         if prefix is not defined explicitly. *)
+      let () = Logs.debug @@ fun m -> m "prefix is not set, using settings.site_url as the base URL" in
+      u
+    | None, None ->
+      config_error "Cannot produce absolute links without knowing the base URL. \
+        Specify \"prefix\" in the widget config or set settings.site_url"
+    end
+  in
   (* Strip trailing slashes to avoid duplicate slashes after concatenation *)
   let prefix = Regex_utils.Internal.replace ~regex:"/+$" ~sub:"" prefix in
   let exclude_regex = OH.find_string_opt config ["exclude_target_regex"] in

@@ -225,6 +225,9 @@ type settings = {
   (* Pages excluded from clean URLs *)
   clean_url_exclude_regexes: string list;
 
+  (* Site URL for soupault-generated links. *)
+  site_url: string option;
+
   (* What files to consider pages rather than assets. *)
   page_extensions: string list;
 
@@ -390,6 +393,7 @@ let default_settings = {
   clean_urls = true;
   clean_url_trailing_slash = true;
   clean_url_exclude_regexes = [];
+  site_url = None;
   page_extensions = ["htm"; "html"];
   markdown_extensions = [];
   markdown_strict_commonmark = false;

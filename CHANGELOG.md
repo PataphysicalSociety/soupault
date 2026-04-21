@@ -1,4 +1,4 @@
-# 5.3.0 (2026-04-18)
+# 5.3.0 (2026-04-21)
 
 ## New features
 
@@ -98,6 +98,19 @@ from clean URLs, whether for technical or aesthetic reasons:
 [settings]
   clean_urls_exclude_regexes = ['\d+\.html']
 ```
+
+### Site URL option
+
+There's now an option to specify the base URL for links in automatically
+generated indices.
+
+```toml
+[settings]
+  site_url = "https://example.com"
+```
+
+The `absolute_links` widget will now this option as the default base URL
+if you do not specify the `prefix` option explicitly.
 
 ### New Lua plugin functions
 
