@@ -1,0 +1,51 @@
+name: linux-release
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # As of April 2026, there's no ubuntu-arm-latest
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout tree
+        uses: actions/checkout@v6
+
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "ocaml-variants.5.4.0+options,ocaml-option-flambda,ocaml-option-musl,ocaml-option-static"
+
+      - name: Build soupault executable
+        run: |
+          opam install . --deps-only --with-test --yes
+          opam exec -- dune build --profile static
+          opam exec -- dune runtest
+
+      - name: Build release tarball
+        run: |
+          export RELEASE_DIR=soupault-$(_build/default/src/soupault.exe --version | head -n 1 | cut -d ' ' -f 2)-linux-$(uname -m)
+          mkdir $RELEASE_DIR
+          cp _build/default/src/soupault.exe $RELEASE_DIR/soupault
+          cp LICENSE $RELEASE_DIR/
+          cp README.md $RELEASE_DIR/
+          cp CHANGELOG.md $RELEASE_DIR/
+          tar cvfz $RELEASE_DIR.tar.gz $RELEASE_DIR
+          echo "RELEASE_TARBALL=$RELEASE_DIR.tar.gz" >> $GITHUB_ENV
+
+      - name: Upload the release tarball
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{env.RELEASE_TARBALL}}
+          archive: false
+          if-no-files-found: error
