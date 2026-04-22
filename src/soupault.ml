@@ -592,6 +592,7 @@ type cli_options = {
   site_dir_opt: string option;
   build_dir_opt: string option;
   dump_index_json_opt: string option;
+  site_url_opt: string option;
   force_opt: bool option;
   caching_opt : bool option;
 }
@@ -609,6 +610,7 @@ let default_cli_options = {
   build_dir_opt = None;
   build_profiles_opt = [];
   dump_index_json_opt = None;
+  site_url_opt = None;
   force_opt = None;
   caching_opt = None;
 }
@@ -647,6 +649,7 @@ let get_args () =
     ("--build-dir", Arg.String (fun s -> opts := {!opts with build_dir_opt=(Some s)}), "<DIR>  Output directory");
     ("--profile", Arg.String (fun s -> opts := {!opts with build_profiles_opt=(s :: !opts.build_profiles_opt)}), "<NAME>  Build profile (you can give this option more than once)");
     ("--dump-index-json", Arg.String (fun s -> opts := {!opts with dump_index_json_opt=(Some s)}), "<PATH>  Dump extracted index to a JSON file");
+    ("--site-url", Arg.String (fun s -> opts := {!opts with site_url_opt=(Some s)}), "<URL>  Base URL for automatically generated links");
     ("--force", Arg.Unit (fun () -> opts := {!opts with force_opt=(Some true)}), " Force generating all target files");
     ("--no-caching", Arg.Unit (fun () -> opts := {!opts with caching_opt=(Some false)}), " Disable caching (overrides settings.caching)");
   ]
@@ -683,6 +686,7 @@ let update_settings settings cli_options =
     if Option.is_some cli_options.site_dir_opt then sr := {!sr with site_dir=(Option.get cli_options.site_dir_opt)};
     if Option.is_some cli_options.build_dir_opt then sr := {!sr with build_dir=(Option.get cli_options.build_dir_opt)};
     if Option.is_some cli_options.dump_index_json_opt then sr := {!sr with dump_index_json=cli_options.dump_index_json_opt};
+    if Option.is_some cli_options.site_url_opt then sr := {!sr with site_url=cli_options.site_url_opt};
     if Option.is_some cli_options.caching_opt then sr := {!sr with caching=(Option.get cli_options.caching_opt)};
     sr := {!sr with build_profiles=cli_options.build_profiles_opt}
   in !sr
