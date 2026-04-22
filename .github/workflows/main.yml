@@ -1,5 +1,3 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
 # Controls when the action will run. Triggers the workflow on push or pull request
@@ -10,37 +8,20 @@ on:
   pull_request:
     branches: [ main ]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Install build dependencies via homebrew
-      run: |
-        echo Installing the OCaml toolchain
-        brew install gpatch
-        brew install ocaml opam
-        opam init -y
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.4.0
 
-    - name: Install OCaml dependencies from opam
-      run: |
-        echo Installing OCaml dependencies
-        opam install -y --deps-only .
-
-    - name: Build soupault
-      run: |
-        eval $(opam env)
-        dune build
-
-    - uses: actions/upload-artifact@v7
-      with:
-        name: soupault
-        path: _build/default/src/soupault.exe
-        if-no-files-found: error
+      - name: Build soupault executable
+        run: |
+          opam install . --deps-only --with-test --yes
+          opam exec -- dune build
+          opam exec -- dune runtest
