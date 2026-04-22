@@ -109,7 +109,7 @@ generated indices.
   site_url = "https://example.com"
 ```
 
-The `absolute_links` widget will now this option as the default base URL
+The `absolute_links` widget will now use this option as the default base URL
 if you do not specify the `prefix` option explicitly.
 
 ### New Lua plugin functions
@@ -118,8 +118,6 @@ if you do not specify the `prefix` option explicitly.
 * `String.render_markdown(str)` — converts Markdown source to HTML source
   (that you can parse with `HTML.parse()` if need be).
   Smart punctuation and Markdown extension settings are taken from the config.
-* `String.render_markdown(str)` — renders a Markdown string into HTML
-  (uses smart punctuation settings defined in the config).
 
 ## Bug fixes
 
