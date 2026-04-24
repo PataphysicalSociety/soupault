@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - windows-2025
+          - windows-2022
 
     runs-on: ${{ matrix.os }}
 
@@ -31,22 +31,9 @@ jobs:
           opam exec -- dune build
           opam exec -- dune runtest
 
-      - name: Build release archive
-        shell: pwsh
-        run: |
-          Set-Variable RELEASE_DIR soupault-$(./_build/default/src/soupault.exe --version | select -first 1 | ForEach-Object {([string]$_).Split(" ")[1]})-win64
-          mkdir $RELEASE_DIR
-          cp _build/default/src/soupault.exe $RELEASE_DIR/SOUPAULT.EXE
-          # Modern Windows seems to be fine with Unix line ends
-          # so we don't bother with conversion here
-          cp LICENSE $RELEASE_DIR/LICENSE.TXT
-          cp README.md $RELEASE_DIR/README.TXT
-          cp CHANGELOG.md $RELEASE_DIR/CHANGELOG.TXT
-          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
-
-      - name: Upload the release archive
+      - name: Upload the executable
         uses: actions/upload-artifact@v7
         with:
-          path: soupault-*/*
-          name: ${{env.RELEASE_DIR}}
+          path: _build/default/src/soupault.exe
+          name: soupault.exe
           if-no-files-found: error
