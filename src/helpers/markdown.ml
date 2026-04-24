@@ -13,13 +13,34 @@ module CCtx = Cmarkit_renderer.Context
 
 (* "Smart punctuation" substitution maps *)
 
-(* Quotes and similar characters *)
-
-(* Double quotes facing in correct directions *)
-let smart_quotes = [
-  ("``", "&ldquo;");
-  ("''", "&rdquo;");
-]
+(* Convert pairs of ASCII double quotes to typographic quotes
+   facing in the correct opening or closing direction.
+ *)
+let convert_double_quotes s =
+  let aux open_quote buf c =
+    match c with
+    | '"' ->
+      (* Add a closing quote if	we are inside a	quoted string,
+         or open a quote if we aren't. *)
+      if !open_quote then
+        (Buffer.add_bytes buf (String.to_bytes "&rdquo;");
+         open_quote := false)
+      else
+        (Buffer.add_bytes buf (String.to_bytes "&ldquo;");
+         open_quote := true)
+    | _	-> Buffer.add_char buf c
+  in
+  let quote_count =
+    String.fold_left (fun acc c -> if c = '"' then acc + 1 else acc) 0 s
+  in
+  (* Create a buffer large enough to contain the original string
+     with every quote character replaced with  "&ldquo;" or "&rdquo;",
+     which are both seven characters long. *)
+  let length = (String.length s) + (quote_count * 7) in
+  let buf = Buffer.create length in
+  let open_quote = ref false in
+  let () = String.iter (aux open_quote buf) s in
+  Buffer.to_bytes buf |> Bytes.to_string
 
 (* We use "&rsquo;" for a proper typographic apostrophe here
    because "&apos;" looks like a "typewriter quote" in most fonts.
@@ -46,31 +67,30 @@ let smart_ellipsis = [
 
 (* Substitution logic *)
 
-let compile_substitutions ss =
-  List.map (fun (re, sub) -> (Re.Perl.compile_pat re, sub)) ss
-
 let substitute substitutions str =
   let rec aux subs str =
     match subs with
     | [] -> str	
-    | (re, sub) :: rest ->
-      let new_str = Re.replace ~all:true ~f:(fun _ -> sub) re str in
+    | sub_func :: rest ->
+      let new_str = sub_func str in
       aux rest new_str
   in aux substitutions str
 
 let make_substitution_map settings =
+  let regex_replace = fun (re, sub) -> Re.replace ~all:true ~f:(fun _ -> sub) re in
+  let regex_list ss = List.map (fun (rs, sub) -> regex_replace (Re.Perl.compile_pat rs, sub)) ss in
   (* Use an empty map if smart punctuation is disabled in the config *)
   if not settings.markdown_smart_punctuation then [] else
   (* If it's enabled, compose a map according to the settings.
      By default, everything is enabled but the user can disable individual options *)
   let map = [] in
-  let map = if settings.markdown_smart_quotes then map @ smart_quotes else map in
+  let map = if settings.markdown_smart_quotes then map @ [convert_double_quotes] else map in
   (* Add the smart apostrophe reges only after quotes,
      to avoid replacing "''" with "&rsquo;&rsquo;"
    *)
-  let map = if settings.markdown_smart_apostrophe then map @ smart_apostrophe else map in
-  let map = if settings.markdown_smart_dashes then map @ smart_dashes else map in
-  let map = if settings.markdown_smart_ellipsis then map @ smart_ellipsis else map in
+  let map = if settings.markdown_smart_apostrophe then map @ (regex_list smart_apostrophe) else map in
+  let map = if settings.markdown_smart_dashes then map @ (regex_list smart_dashes) else map in
+  let map = if settings.markdown_smart_ellipsis then map @ (regex_list smart_ellipsis) else map in
   map
 
 (* Markdown renderering function maker *)
@@ -79,11 +99,10 @@ type Cmarkit.Block.t += Doc of Cmarkit.Doc.t
 
 let smart_punctuation_renderer settings =
   (* Prepare the substitution map *)
-  let substitution_map = make_substitution_map settings in
+  let substitutions = make_substitution_map settings in
   (* Pre-compile regexes to avoid wasting CPU time on that
      every time the Markdown rendering function is called
    *)
-  let substitutions = compile_substitutions substitution_map in
   let inline ctx node =
     match node with
     | Cmarkit.Inline.Text (t, _) ->
