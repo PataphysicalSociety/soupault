@@ -57,6 +57,8 @@ let cache_object settings page_path identifier source_str output_str =
      [<cache dir>/<path path>/<identifier hash>_<data hash>],
    *)
   let target_path = make_cached_object_path settings page_path identifier source_str in
+  let target_dir = FilePath.dirname target_path in
+  let () = FileUtil.mkdir ~parent:true target_dir in
   let () = Logs.debug @@ fun m -> m "Saving a cached object to %s" target_path in
   write_file target_path output_str
 
